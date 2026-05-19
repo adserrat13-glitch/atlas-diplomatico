@@ -140,13 +140,18 @@
     .edital-section { width:100%; max-width:520px; margin-top:8px; }
     .edital-section h4 { font-size:12px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
     .edital-tree-list { display:flex; flex-direction:column; gap:4px; }
-    .edital-tree-btn { display:flex; align-items:center; gap:8px; padding:8px 14px;
+    .edital-tree-btn { display:flex; flex-direction:column; gap:6px; padding:10px 14px;
       background:var(--card); border:1px solid var(--border); border-radius:10px;
       color:var(--text); font-size:13px; cursor:pointer; text-align:left;
-      font-family:inherit; transition:0.15s; }
+      font-family:inherit; transition:0.15s; width:100%; }
     .edital-tree-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(142,167,255,0.07); }
-    .edital-tree-btn .etb-code { font-size:10px; color:var(--muted); font-weight:700; min-width:40px; }
-    .edital-tree-btn .etb-count { font-size:11px; color:var(--muted); margin-left:auto; }
+    .etb-top { display:flex; align-items:center; gap:8px; }
+    .etb-code { font-size:10px; color:var(--muted); font-weight:700; min-width:40px; }
+    .etb-title { flex:1; font-size:12px; }
+    .etb-count { font-size:11px; color:var(--muted); margin-left:auto; white-space:nowrap; }
+    .etb-bar-wrap { height:4px; background:rgba(255,255,255,.08); border-radius:2px; width:100%; }
+    .etb-bar { height:100%; border-radius:2px; transition:width .4s; }
+    .etb-pct { font-size:10px; color:var(--muted); }
 
     /* ===== TTS BAR ===== */
     .tts-bar { width:100%; max-width:600px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
@@ -662,13 +667,33 @@
       if (!rows.length) { section.style.display = 'none'; return; }
 
       section.style.display = '';
-      list.innerHTML = rows.map(r =>
-        `<button class="edital-tree-btn" onclick="startStudy('edital','${r.id}')">
-          <span class="etb-code">${r.code}</span>
-          <span>${r.title}</span>
-          <span class="etb-count">${r.count} cards</span>
-        </button>`
-      ).join('');
+
+      // Calcular cobertura (cards conhecidos por item do edital)
+      const knownMap = {};
+      Object.entries(editalMap).forEach(([question, items]) => {
+        const isKnown = cardStatusMap[question]?.status === 'known';
+        items.forEach(item => {
+          if (!knownMap[item.id]) knownMap[item.id] = 0;
+          if (isKnown) knownMap[item.id]++;
+        });
+      });
+
+      list.innerHTML = rows.map(r => {
+        const known = knownMap[r.id] || 0;
+        const pct = r.count ? Math.round(known / r.count * 100) : 0;
+        const barColor = pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#3b82f6';
+        return `<button class="edital-tree-btn" onclick="startStudy('edital','${r.id}')">
+          <div class="etb-top">
+            <span class="etb-code">${r.code}</span>
+            <span class="etb-title">${r.title}</span>
+            <span class="etb-count">${r.count} cards</span>
+          </div>
+          <div class="etb-bar-wrap">
+            <div class="etb-bar" style="width:${pct}%;background:${barColor}"></div>
+          </div>
+          <span class="etb-pct">${pct}% dominado</span>
+        </button>`;
+      }).join('');
     }
 
     function startStudy(mode, editalId) {

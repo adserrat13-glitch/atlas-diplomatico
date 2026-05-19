@@ -140,6 +140,19 @@
       overflow:hidden; margin-top:8px; }
     .wgt-bar { height:100%; border-radius:20px; background:var(--neon-green);
       transition:width 1.2s cubic-bezier(.4,0,.2,1); width:0%; }
+    .daily-cycle{margin:28px 0}
+    .cycle-header{font-size:13px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+    .cycle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+    .cycle-card{background:#111;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
+    .cycle-card.done{border-color:rgba(34,197,94,.27);background:#0a1a0f}
+    .cycle-card-top{display:flex;justify-content:space-between;align-items:center}
+    .cycle-name{font-size:12px;font-weight:600;color:#e8e8e8}
+    .cycle-badge-done{font-size:11px;color:#22c55e;font-weight:600}
+    .cycle-badge-pend{font-size:11px;color:#555}
+    .cycle-count{font-size:11px;color:#666}
+    .cycle-btn{font-size:11px;background:rgba(255,255,255,.06);border:none;color:#aaa;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;text-decoration:none;display:block;transition:.15s}
+    .cycle-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+    .cycle-complete{background:#0a1a0f;border:1px solid rgba(34,197,94,.27);border-radius:10px;padding:12px 16px;color:#22c55e;font-size:13px;font-weight:600;text-align:center;margin-top:8px;display:none}
     .wgt-next-name { font-size:13px; font-weight:900; margin-bottom:4px; }
     .wgt-next-meta { font-size:10px; color:var(--muted2); margin-bottom:10px; }
     .wgt-next-btn { display:block; text-align:center; padding:8px;
@@ -273,6 +286,13 @@
         <a href="simulados.html"  class="btn-action" style="margin-bottom:4px">📝 Simulado <span class="arr">›</span></a>
         <a href="leaderboard.html"class="btn-action">🏆 Ranking <span class="arr">›</span></a>
       </div>
+    </div>
+
+    <!-- CICLO DIÁRIO -->
+    <div class="daily-cycle">
+      <div class="cycle-header">📅 Ciclo Diário — Matérias de Hoje</div>
+      <div class="cycle-grid" id="dailyCycleGrid"></div>
+      <div class="cycle-complete" id="cycleComplete">🎯 Ciclo completo hoje! Todas as matérias estudadas.</div>
     </div>
 
     <!-- TPS -->
@@ -549,6 +569,38 @@
       }).join('');
     }
 
+    function renderDailyCycle() {
+      const CYCLE_SUBJECTS = [
+        {id:'HB',  name:'História do Brasil',      icon:'🇧🇷'},
+        {id:'PI',  name:'Política Internacional',  icon:'🌐'},
+        {id:'ECO', name:'Economia',                icon:'📊'},
+        {id:'DIP', name:'Direito Internacional',   icon:'⚖️'},
+        {id:'GEO', name:'Geografia',               icon:'🗺️'},
+        {id:'HM',  name:'História Mundial',        icon:'🌍'},
+        {id:'LP',  name:'Português',               icon:'📝'},
+        {id:'ING', name:'Inglês',                  icon:'🇬🇧'},
+      ];
+      const today = new Date().toISOString().split('T')[0];
+      const todaySessions = _sessions.filter(s => (s.date||s.created_at||'').startsWith(today));
+      let doneCount = 0;
+      const cards = CYCLE_SUBJECTS.map(sub => {
+        const subSessions = todaySessions.filter(s => s.subject === sub.id);
+        const totalCards = subSessions.reduce((a,s) => a + (s.total||0), 0);
+        const done = subSessions.length > 0;
+        if (done) doneCount++;
+        return `<div class="cycle-card${done?' done':''}">
+          <div class="cycle-card-top">
+            <span class="cycle-name">${sub.icon} ${sub.name}</span>
+            <span class="${done?'cycle-badge-done':'cycle-badge-pend'}">${done?'✅':'⏳'}</span>
+          </div>
+          <div class="cycle-count">${done ? totalCards+' cards hoje' : 'Não estudado'}</div>
+          <a class="cycle-btn" href="flashcards.html?subject=${sub.id}">Estudar →</a>
+        </div>`;
+      }).join('');
+      document.getElementById('dailyCycleGrid').innerHTML = cards;
+      document.getElementById('cycleComplete').style.display = doneCount === CYCLE_SUBJECTS.length ? 'block' : 'none';
+    }
+
     function renderAnnouncements(list) {
       if (!list.length) return;
       document.getElementById('announcementsCard').style.display = '';
@@ -595,6 +647,7 @@
       updateIslandStats();
       renderNextTask();
       renderRecentSessions();
+      renderDailyCycle();
       renderAnnouncements(announcements);
     })();
   </script>

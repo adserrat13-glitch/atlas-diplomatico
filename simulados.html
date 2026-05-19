@@ -890,10 +890,31 @@
       const label = `Revisão — ${deckName} — ${new Date().toLocaleDateString('pt-BR')}`;
       localStorage.setItem('reviewDeckPending', csv);
       localStorage.setItem('reviewDeckName', label);
+
+      // Salvar também no formato tps_review_decks (lido por flashcards.html?tab=review)
+      try {
+        const rows = Papa.parse(csv, {delimiter:';', skipEmptyLines:true}).data;
+        const cards = rows.filter(r => r[0] && r[1]).map(r => ({q:r[0].trim(), a:r[1].trim()}));
+        const now = Date.now();
+        const existing = JSON.parse(localStorage.getItem('tps_review_decks')||'[]')
+          .filter(d => d.expiresAt > now);
+        existing.push({
+          id: now,
+          name: label,
+          source: deckName,
+          cards,
+          wrongCount: wrong.length,
+          relatedCount: Math.max(0, cards.length - wrong.length),
+          createdAt: now,
+          expiresAt: now + 24*3600*1000
+        });
+        localStorage.setItem('tps_review_decks', JSON.stringify(existing));
+      } catch(e) { console.warn('tps_review_decks save failed:', e); }
+
       btn.textContent = '✅ Deck criado!';
       btn.classList.remove('loading');
       document.getElementById('deckActionRow').innerHTML = `
-        <a class="btn btn-primary" href="flashcards.html">▶ Estudar agora</a>
+        <a class="btn btn-primary" href="flashcards.html?tab=review">▶ Ver Revisões</a>
         <button class="btn btn-secondary" onclick="downloadReviewDeck()">⬇ Baixar CSV</button>`;
     }
 
