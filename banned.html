@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Conta Suspensa — Atlas CACD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080a0f;--surface:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);
+  --text:#dde2ee;--muted:#5a6070;--red:#ff4545;--mono:'JetBrains Mono',monospace}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:var(--surface);border:1px solid rgba(255,69,69,.25);border-radius:16px;
+  padding:48px 40px;max-width:460px;width:100%;text-align:center;display:flex;flex-direction:column;gap:20px}
+.icon{font-size:52px;line-height:1}
+.badge{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--red);
+  background:rgba(255,69,69,.1);border:1px solid rgba(255,69,69,.3);
+  padding:4px 12px;border-radius:4px;display:inline-block;margin:0 auto}
+h1{font-size:22px;font-weight:800;color:#fff}
+.reason-box{background:rgba(255,69,69,.06);border:1px solid rgba(255,69,69,.15);
+  border-radius:8px;padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.6;text-align:left}
+.reason-box strong{color:#f87171;font-weight:600}
+.divider{height:1px;background:var(--border)}
+p{font-size:13px;color:var(--muted);line-height:1.6}
+a.contact{color:#8ea7ff;text-decoration:none;font-weight:600}
+a.contact:hover{text-decoration:underline}
+.btn-logout{background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--muted);
+  padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;
+  transition:.15s;margin-top:4px}
+.btn-logout:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.ts{font-family:var(--mono);font-size:10px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">🔒</div>
+  <span class="badge">ACESSO RESTRITO</span>
+  <h1>Conta Suspensa</h1>
+
+  <div class="reason-box" id="reasonBox">
+    <strong>Motivo:</strong> <span id="banReason">Violação dos termos de uso da plataforma.</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <p>Se acredita que houve um erro, entre em contato com a equipe de suporte:
+    <a class="contact" href="mailto:suporte@atlascacd.com">suporte@atlascacd.com</a>
+  </p>
+
+  <p class="ts" id="banDate"></p>
+
+  <button class="btn-logout" onclick="DB.logout()">Sair da conta</button>
+</div>
+
+<script>
+(async () => {
+  try {
+    const user = await DB.getUser();
+    if (!user) { window.location.href = 'login.html'; return; }
+    const profile = await DB.getProfile();
+    if (profile && !profile.banned_at) { window.location.href = 'index.html'; return; }
+    if (profile?.banned_reason) {
+      document.getElementById('banReason').textContent = profile.banned_reason;
+    }
+    if (profile?.banned_at) {
+      const d = new Date(profile.banned_at);
+      document.getElementById('banDate').textContent =
+        `Suspensão aplicada em: ${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`;
+    }
+  } catch {}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,264 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CACD 2024-2026 — Evolução das Notas</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f6f9;
+      color: #222;
+    }
+
+    header {
+      background: #0d1b2a;
+      color: white;
+      padding: 24px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+
+    .container {
+      width: 95%;
+      max-width: 1400px;
+      margin: 30px auto;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #555;
+    }
+
+    .card p {
+      font-size: 34px;
+      margin: 12px 0 0;
+      font-weight: bold;
+      color: #0d1b2a;
+    }
+
+    .chart-box {
+      background: white;
+      padding: 20px;
+      margin-bottom: 40px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 40px;
+    }
+
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: center;
+    }
+
+    th {
+      background: #0d1b2a;
+      color: white;
+    }
+
+    tr:hover {
+      background: #f0f3f8;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CACD — Evolução das Notas (2024-2026)</h1>
+  <p>Análise das notas máximas, médias e mínimas por disciplina</p>
+</header>
+
+<div class="container">
+
+  <div class="cards">
+    <div class="card">
+      <h2>Maior Nota Geral</h2>
+      <p>208.75</p>
+    </div>
+
+    <div class="card">
+      <h2>Média Geral</h2>
+      <p>197.10</p>
+    </div>
+
+    <div class="card">
+      <h2>Menor Nota Geral</h2>
+      <p>192.50</p>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <h2>Maior Nota por Ano</h2>
+    <canvas id="chartMaior"></canvas>
+  </div>
+
+  <div class="chart-box">
+    <h2>Média das Notas por Ano</h2>
+    <canvas id="chartMedia"></canvas>
+  </div>
+
+  <div class="chart-box">
+    <h2>Menor Nota por Ano</h2>
+    <canvas id="chartMenor"></canvas>
+  </div>
+
+  <h2>Tabela de Evolução por Matéria</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Matéria</th>
+        <th>2024</th>
+        <th>2025</th>
+        <th>2026</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr>
+        <td>Língua Portuguesa</td>
+        <td>31.5</td>
+        <td>33.0</td>
+        <td>35.0</td>
+      </tr>
+
+      <tr>
+        <td>História do Brasil</td>
+        <td>24.0</td>
+        <td>25.5</td>
+        <td>27.0</td>
+      </tr>
+
+      <tr>
+        <td>História Mundial</td>
+        <td>18.0</td>
+        <td>19.5</td>
+        <td>21.0</td>
+      </tr>
+
+      <tr>
+        <td>Geografia</td>
+        <td>19.0</td>
+        <td>20.0</td>
+        <td>21.5</td>
+      </tr>
+
+      <tr>
+        <td>Inglês</td>
+        <td>22.0</td>
+        <td>24.0</td>
+        <td>26.0</td>
+      </tr>
+
+      <tr>
+        <td>Política Internacional</td>
+        <td>28.0</td>
+        <td>31.0</td>
+        <td>34.0</td>
+      </tr>
+
+      <tr>
+        <td>Economia</td>
+        <td>16.0</td>
+        <td>18.0</td>
+        <td>20.0</td>
+      </tr>
+
+      <tr>
+        <td>Direito</td>
+        <td>17.0</td>
+        <td>19.0</td>
+        <td>21.0</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<footer>
+  Dashboard HTML criado para análise estatística do CACD.
+</footer>
+
+<script>
+  const anos = ['2024', '2025', '2026'];
+
+  new Chart(document.getElementById('chartMaior'), {
+    type: 'line',
+    data: {
+      labels: anos,
+      datasets: [{
+        label: 'Maior Nota',
+        data: [198.5, 203.0, 208.75],
+        borderWidth: 3,
+        tension: 0.3
+      }]
+    }
+  });
+
+  new Chart(document.getElementById('chartMedia'), {
+    type: 'bar',
+    data: {
+      labels: anos,
+      datasets: [{
+        label: 'Média Geral',
+        data: [185.2, 191.8, 197.1],
+        borderWidth: 1
+      }]
+    }
+  });
+
+  new Chart(document.getElementById('chartMenor'), {
+    type: 'line',
+    data: {
+      labels: anos,
+      datasets: [{
+        label: 'Menor Nota',
+        data: [170.0, 181.5, 192.5],
+        borderWidth: 3,
+        tension: 0.3
+      }]
+    }
+  });
+</script>
+
+</body>
+</html>

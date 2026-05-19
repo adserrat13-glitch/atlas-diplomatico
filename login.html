@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar — Atlas Diplomático</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #080a0f; --card: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.09);
+      --border2: rgba(255,255,255,0.14); --text: #dde2ee; --muted: #5a6070;
+      --accent: #8ea7ff; --neon: #39ff14; --red: #f87171; --green: #6ee7b7;
+      --mono: 'JetBrains Mono', monospace;
+    }
+    body { background: var(--bg); color: var(--text); font-family: Inter, sans-serif;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+
+    .grid-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+      background-size: 40px 40px; }
+
+    .card { position: relative; z-index: 1; width: 100%; max-width: 420px;
+      background: var(--card); border: 1px solid var(--border2); border-radius: 20px; padding: 40px;
+      box-shadow: 0 0 60px rgba(142,167,255,.04); }
+
+    .logo { text-align: center; margin-bottom: 32px; }
+    .logo h1 { font-size: 22px; font-weight: 900; letter-spacing: 3px; color: #fff; }
+    .logo h1 span { color: var(--neon); }
+    .logo p { font-size: 11px; color: var(--muted); margin-top: 6px; letter-spacing: 1.5px;
+      font-family: var(--mono); }
+
+    .tabs { display: flex; background: rgba(255,255,255,0.04); border-radius: 10px;
+      padding: 4px; margin-bottom: 24px; }
+    .tab { flex: 1; padding: 8px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      text-align: center; cursor: pointer; transition: 0.2s; color: var(--muted); border: none;
+      background: none; font-family: inherit; }
+    .tab.active { background: rgba(142,167,255,0.15); color: var(--accent); }
+
+    label { display: block; font-size: 11px; font-weight: 700; color: var(--muted);
+      letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; margin-top: 16px;
+      font-family: var(--mono); }
+    input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 14px; color: var(--text); font-family: inherit;
+      font-size: 14px; outline: none; transition: 0.2s; }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+
+    .btn-submit { width: 100%; margin-top: 20px; padding: 13px; border-radius: 12px;
+      background: var(--accent); color: #080a0f; font-size: 15px; font-weight: 800;
+      border: none; cursor: pointer; font-family: inherit; transition: 0.2s; letter-spacing: .3px; }
+    .btn-submit:hover { opacity: 0.85; }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .divider-or { display: flex; align-items: center; gap: 12px; margin: 20px 0 4px; }
+    .divider-or::before,.divider-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .divider-or span { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+    .btn-oauth { width: 100%; margin-top: 10px; padding: 12px 16px; border-radius: 12px;
+      background: rgba(255,255,255,.06); border: 1px solid var(--border2); color: var(--text);
+      font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-oauth:hover { background: rgba(255,255,255,.1); border-color: var(--accent); color: var(--accent); }
+    .btn-oauth svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .msg { margin-top: 16px; padding: 10px 14px; border-radius: 10px; font-size: 13px; display: none;
+      line-height: 1.5; }
+    .msg-error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); }
+    .msg-success { background: rgba(110,231,183,0.1); border: 1px solid rgba(110,231,183,0.3); color: var(--green); }
+    .msg-warn    { background: rgba(251,191,36,0.1);  border: 1px solid rgba(251,191,36,0.3);  color: #fbbf24; }
+    .msg.visible { display: block; }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(8,10,15,0.35);
+      border-top-color: #080a0f; border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .terms { font-size: 11px; color: var(--muted); text-align: center; margin-top: 16px; line-height: 1.5; }
+    .security-note { font-family: var(--mono); font-size: 10px; color: var(--muted);
+      text-align: center; margin-top: 20px; letter-spacing: .5px; }
+    .security-note span { color: var(--neon); }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="card">
+    <div class="logo">
+      <h1>ATLAS <span>.</span>CACD</h1>
+      <p>PLATAFORMA DE FORMAÇÃO DIPLOMÁTICA</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tabLogin" onclick="switchTab('login')">Entrar</button>
+      <button class="tab" id="tabRegister" onclick="switchTab('register')">Cadastrar</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form id="formLogin" onsubmit="handleLogin(event)">
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" placeholder="seu@email.com" required autocomplete="email"/>
+      <label>Senha</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password"/>
+      <button type="submit" class="btn-submit" id="btnLogin" data-label="Entrar">Entrar</button>
+
+      <div class="divider-or"><span>ou</span></div>
+      <button type="button" class="btn-oauth" onclick="handleGoogleLogin()">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M43.6 20.3H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.7z" fill="#FFC107"/>
+          <path d="M6.3 14.7l6.6 4.8C14.6 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" fill="#FF3D00"/>
+          <path d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.2 0-9.7-3.5-11.3-8.3L6.1 32.5C9.5 39.5 16.2 44 24 44z" fill="#4CAF50"/>
+          <path d="M43.6 20.3H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.2 5.2C37.2 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.7z" fill="#1976D2"/>
+        </svg>
+        Continuar com Google
+      </button>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form id="formRegister" onsubmit="handleRegister(event)" style="display:none">
+      <label>Nome completo</label>
+      <input type="text" id="regName" placeholder="Seu nome" required autocomplete="name"/>
+      <label>E-mail</label>
+      <input type="email" id="regEmail" placeholder="seu@email.com" required autocomplete="email"/>
+      <label>Senha</label>
+      <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password"/>
+      <label>Confirmar senha</label>
+      <input type="password" id="regConfirm" placeholder="Repita a senha" required autocomplete="new-password"/>
+      <button type="submit" class="btn-submit" id="btnRegister" data-label="Criar conta">Criar conta</button>
+
+      <div class="divider-or"><span>ou</span></div>
+      <button type="button" class="btn-oauth" onclick="handleGoogleLogin()">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M43.6 20.3H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.7z" fill="#FFC107"/>
+          <path d="M6.3 14.7l6.6 4.8C14.6 16.1 19 13 24 13c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" fill="#FF3D00"/>
+          <path d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.4-4.5 2.3-7.2 2.3-5.2 0-9.7-3.5-11.3-8.3L6.1 32.5C9.5 39.5 16.2 44 24 44z" fill="#4CAF50"/>
+          <path d="M43.6 20.3H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.4l6.2 5.2C37.2 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.7z" fill="#1976D2"/>
+        </svg>
+        Continuar com Google
+      </button>
+
+      <div class="terms">
+        Ao criar uma conta você concorda com os termos de uso da plataforma.
+      </div>
+    </form>
+
+    <div class="msg msg-error"   id="msgError"></div>
+    <div class="msg msg-success" id="msgSuccess"></div>
+    <div class="msg msg-warn"    id="msgWarn"></div>
+
+    <div class="security-note"><span>🔒</span> Conexão segura — dados protegidos com Supabase Auth</div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    (async () => {
+      try {
+        const user = await DB.getUser();
+        if (!user) return;
+        const profile = await DB.getProfile();
+        if (profile?.banned_at) { window.location.href = 'banned.html'; return; }
+        window.location.href = 'index.html';
+      } catch {}
+    })();
+
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('tabLogin').classList.toggle('active', isLogin);
+      document.getElementById('tabRegister').classList.toggle('active', !isLogin);
+      document.getElementById('formLogin').style.display    = isLogin ? 'block' : 'none';
+      document.getElementById('formRegister').style.display = isLogin ? 'none'  : 'block';
+      hideMessages();
+    }
+
+    function showError(msg)   { show('msgError',   msg); }
+    function showSuccess(msg) { show('msgSuccess', msg); }
+    function showWarn(msg)    { show('msgWarn',    msg); }
+
+    function show(id, msg) {
+      ['msgError','msgSuccess','msgWarn'].forEach(i => document.getElementById(i).classList.remove('visible'));
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+    function hideMessages() {
+      ['msgError','msgSuccess','msgWarn'].forEach(i => document.getElementById(i).classList.remove('visible'));
+    }
+    function setLoading(btn, loading) {
+      btn.disabled = loading;
+      btn.innerHTML = loading ? '<span class="spinner"></span>Aguarde…' : btn.dataset.label;
+    }
+
+    async function handleGoogleLogin() {
+      try {
+        await DB.loginWithGoogle();
+      } catch (e) {
+        showError('Erro ao conectar com Google. Tente novamente.');
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn      = document.getElementById('btnLogin');
+      const email    = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      setLoading(btn, true); hideMessages();
+
+      const { error } = await DB.login(email, password);
+
+      if (error) {
+        await DB.logSecurityEvent('login_failed', { email, error: error.message }).catch(() => {});
+        showError(error.message || 'Credenciais inválidas. Verifique e-mail e senha.');
+        setLoading(btn, false);
+        return;
+      }
+
+      // Check ban/suspension BEFORE redirecting
+      try {
+        const profile = await DB.getProfile(true);
+        if (profile?.banned_at) {
+          await DB.logout();
+          window.location.href = 'banned.html';
+          return;
+        }
+        if (profile?.suspended_until && new Date(profile.suspended_until) > new Date()) {
+          const until = new Date(profile.suspended_until).toLocaleDateString('pt-BR');
+          showWarn(`Conta suspensa até ${until}. Entre em contato com o suporte.`);
+          await DB.logout();
+          setLoading(btn, false);
+          return;
+        }
+        // Log successful login + track session
+        await Promise.allSettled([
+          DB.logSecurityEvent('login_success', { email }),
+          DB.trackSession(),
+        ]);
+      } catch {}
+
+      window.location.href = 'index.html';
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn      = document.getElementById('btnRegister');
+      const name     = document.getElementById('regName').value.trim();
+      const email    = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const confirm  = document.getElementById('regConfirm').value;
+
+      if (password !== confirm) { showError('As senhas não coincidem.'); return; }
+      setLoading(btn, true); hideMessages();
+
+      const { error } = await DB.register(email, password, name);
+      setLoading(btn, false);
+
+      if (error) { showError(error.message || 'Erro ao cadastrar. Tente novamente.'); }
+      else {
+        showSuccess('Conta criada com sucesso! Verifique seu e-mail para confirmar e depois faça login.');
+        switchTab('login');
+      }
+    }
+  </script>
+</body>
+</html>

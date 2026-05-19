@@ -1,0 +1,482 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapas & Arquivos — Atlas Diplomático</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1117; --card:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.09);
+      --text:#e8e8e8; --muted:#8f8f8f; --accent:#8ea7ff;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; overflow:auto; }
+    .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; }
+    nav { position:fixed; top:0; left:0; right:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:#39ff14; }
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:#39ff14; border-bottom:2px solid #39ff14; border-radius:0; padding-bottom:3px; }
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
+      border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+
+    /* IBGE SECTION */
+    .ibge-section { position:relative; z-index:1; padding:80px 24px 0; max-width:960px; margin:0 auto; }
+    .ibge-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+    .ibge-title { font-size:15px; font-weight:700; letter-spacing:1px; color:#fff; }
+    .ibge-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+    .ibge-tab { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+      color:#888; padding:6px 14px; border-radius:8px; font-size:12px; font-weight:600;
+      cursor:pointer; transition:.15s; font-family:inherit; }
+    .ibge-tab:hover { color:#fff; border-color:rgba(255,255,255,.25); }
+    .ibge-tab.active { background:rgba(142,167,255,.15); border-color:rgba(142,167,255,.4); color:var(--accent); }
+    .ibge-img-wrap { border-radius:14px; overflow:hidden; border:1px solid var(--border);
+      cursor:zoom-in; max-height:480px; display:flex; align-items:center; justify-content:center;
+      background:#000; }
+    .ibge-img-wrap img { max-width:100%; max-height:480px; object-fit:contain; display:block;
+      transition:.2s; }
+    .ibge-img-wrap:hover img { opacity:.9; }
+    .ibge-divider { border:none; border-top:1px solid var(--border); margin:32px 0 0; }
+    /* Lightbox */
+    #ibgeLightbox { display:none; position:fixed; inset:0; z-index:999;
+      background:rgba(0,0,0,.93); align-items:center; justify-content:center; }
+    #ibgeLightbox.open { display:flex; }
+    #ibgeLightbox img { max-width:92vw; max-height:90vh; border-radius:8px; object-fit:contain; }
+    .lb-close { position:absolute; top:20px; right:24px; background:rgba(255,255,255,.1);
+      border:none; color:#fff; font-size:22px; width:40px; height:40px; border-radius:50%;
+      cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .lb-close:hover { background:rgba(255,255,255,.2); }
+
+    /* LOADER VIEW */
+    #viewLoader { position:relative; z-index:1; padding-top:52px; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; min-height:100vh; gap:24px; padding-inline:24px; }
+    .loader-title { font-size:28px; font-weight:700; letter-spacing:1px; }
+    .loader-sub { color:var(--muted); font-size:14px; }
+
+    .upload-area { width:100%; max-width:560px; border:2px dashed var(--border); border-radius:18px;
+      padding:48px; text-align:center; cursor:pointer; transition:0.2s; background:var(--card); }
+    .upload-area:hover { border-color:var(--accent); background:rgba(142,167,255,0.05); }
+    .upload-area input { display:none; }
+    .upload-icon { font-size:44px; margin-bottom:14px; }
+    .upload-label { font-size:15px; color:var(--muted); }
+    .upload-label strong { color:var(--accent); }
+    .upload-hint { font-size:13px; color:var(--muted); margin-top:10px; }
+    .format-chips { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+    .chip { padding:5px 14px; background:var(--card); border:1px solid var(--border);
+      border-radius:20px; font-size:12px; color:var(--muted); }
+
+    /* VIEWER */
+    #viewViewer { display:none; position:fixed; inset:0; z-index:50; flex-direction:row; }
+    #viewViewer.vis { display:flex; }
+
+    /* Thumbnail strip */
+    .thumb-strip { width:130px; flex-shrink:0; background:rgba(15,17,23,0.98); border-right:1px solid var(--border);
+      padding-top:52px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:60px 8px 16px; }
+    .thumb { border:2px solid transparent; border-radius:10px; overflow:hidden; cursor:pointer;
+      transition:0.2s; background:rgba(255,255,255,0.04); flex-shrink:0; position:relative; }
+    .thumb:hover { border-color:rgba(255,255,255,0.3); }
+    .thumb.active { border-color:var(--accent); }
+    .thumb img { width:100%; height:70px; object-fit:cover; display:block; }
+    .thumb-pdf { width:100%; height:70px; display:flex; align-items:center; justify-content:center;
+      font-size:24px; background:rgba(255,255,255,0.04); }
+    .thumb-name { font-size:10px; color:var(--muted); padding:4px 6px; text-overflow:ellipsis;
+      overflow:hidden; white-space:nowrap; }
+    .thumb-num { position:absolute; top:4px; left:4px; background:rgba(15,17,23,0.8);
+      color:var(--muted); font-size:10px; padding:2px 6px; border-radius:4px; }
+
+    /* Main viewer area */
+    .viewer-main { flex:1; display:flex; flex-direction:column; background:var(--bg); }
+    .viewer-toolbar { height:56px; display:flex; align-items:center; gap:10px; padding:0 20px;
+      background:rgba(15,17,23,0.95); border-bottom:1px solid var(--border); flex-shrink:0; }
+    .vt-title { font-size:13px; font-weight:600; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .vt-counter { font-size:12px; color:var(--muted); }
+    .vt-spacer { flex:1; }
+    .vt-btn { background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text);
+      padding:6px 14px; border-radius:8px; font-size:13px; cursor:pointer; font-family:inherit; transition:0.2s; }
+    .vt-btn:hover { background:rgba(255,255,255,0.12); }
+    .vt-btn:disabled { opacity:0.35; cursor:default; }
+    .vt-btn-accent { background:var(--accent); color:#0f1117; border-color:var(--accent); }
+    .vt-btn-accent:hover { opacity:0.85; }
+    .zoom-display { font-size:12px; color:var(--muted); min-width:40px; text-align:center; }
+
+    .viewer-content { flex:1; overflow:hidden; display:flex; align-items:center; justify-content:center;
+      position:relative; }
+    .img-container { position:absolute; inset:0; overflow:auto; display:flex; align-items:flex-start;
+      justify-content:center; padding:24px; }
+    .viewer-img { max-width:none; transform-origin:top center; display:block; border-radius:4px;
+      box-shadow:0 0 60px rgba(0,0,0,0.6); transition:transform 0.2s; }
+    .pdf-frame { width:100%; height:100%; border:none; display:block; background:#fff; }
+
+    .viewer-nav { position:absolute; bottom:24px; left:50%; transform:translateX(-50%);
+      display:flex; gap:10px; background:rgba(15,17,23,0.9); backdrop-filter:blur(8px);
+      border:1px solid var(--border); border-radius:40px; padding:8px 16px; }
+
+    .add-more-btn { position:absolute; bottom:24px; right:24px; }
+
+    input[type=file]#moreInput { display:none; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <button class="nav-ham" onclick="openSidebar()">☰</button>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">🏠 Início</a>
+    <a href="flashcards.html">🃏 Flashcards</a>
+    <a href="analise.html">📊 Análise</a>
+    <a href="leaderboard.html">🏆 Ranking</a>
+    <a href="agenda.html">📅 Agenda</a>
+    <a href="grupo.html">👥 Grupo</a>
+    <a href="segunda-fase.html">✍️ 2ª Fase</a>
+    <a href="mapas.html" class="active">🗺️ Mapas</a>
+    
+    <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <!-- IBGE MAPS SECTION -->
+  <section class="ibge-section">
+    <div class="ibge-header">
+      <span style="font-size:20px">🗺️</span>
+      <div class="ibge-title">MAPAS IBGE</div>
+    </div>
+    <div class="ibge-tabs" id="ibgeTabs"></div>
+    <div class="ibge-img-wrap" id="ibgeImgWrap" onclick="ibgeLightboxOpen()">
+      <img id="ibgeMainImg" src="" alt="Mapa IBGE" />
+    </div>
+    <hr class="ibge-divider" />
+  </section>
+
+  <!-- Lightbox -->
+  <div id="ibgeLightbox">
+    <button class="lb-close" onclick="ibgeLightboxClose()">✕</button>
+    <img id="ibgeLbImg" src="" alt="Mapa IBGE ampliado" />
+  </div>
+
+  <!-- LOADER -->
+  <div id="viewLoader">
+    <div class="loader-title">MAPAS & ARQUIVOS</div>
+    <div class="loader-sub">Visualize imagens e PDFs do seu material de estudo</div>
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept="image/*,.pdf" multiple />
+      <div class="upload-icon">🗺️</div>
+      <div class="upload-label"><strong>Clique para selecionar</strong> arquivos</div>
+      <div class="upload-hint">Você pode selecionar múltiplos arquivos de uma vez (Ctrl+clique)</div>
+    </div>
+    <div class="format-chips">
+      <span class="chip">🖼 JPG / PNG</span>
+      <span class="chip">📄 PDF</span>
+      <span class="chip">📷 JPEG</span>
+      <span class="chip">🗺 Mapas IBGE</span>
+    </div>
+  </div>
+
+  <!-- VIEWER -->
+  <div id="viewViewer">
+    <div class="thumb-strip" id="thumbStrip"></div>
+    <div class="viewer-main">
+      <div class="viewer-toolbar">
+        <button class="vt-btn" onclick="closeViewer()">← Abrir novo</button>
+        <div class="vt-title" id="vtTitle"></div>
+        <div class="vt-counter" id="vtCounter"></div>
+        <div class="vt-spacer"></div>
+        <button class="vt-btn" id="zoomOut" onclick="changeZoom(-0.25)">−</button>
+        <div class="zoom-display" id="zoomDisplay">100%</div>
+        <button class="vt-btn" id="zoomIn" onclick="changeZoom(0.25)">+</button>
+        <button class="vt-btn" onclick="resetZoom()">⊡ Resetar</button>
+        <button class="vt-btn" onclick="fitToWindow()">⊞ Ajustar</button>
+        <button class="vt-btn vt-btn-accent" onclick="document.getElementById('moreInput').click()">+ Adicionar</button>
+        <input type="file" id="moreInput" accept="image/*,.pdf" multiple onchange="addMoreFiles(this.files)" />
+      </div>
+      <div class="viewer-content">
+        <div class="img-container" id="imgContainer">
+          <img class="viewer-img" id="viewerImg" src="" alt="" />
+        </div>
+        <iframe class="pdf-frame" id="pdfFrame" style="display:none"></iframe>
+      </div>
+      <div class="viewer-nav">
+        <button class="vt-btn" id="btnPrev" onclick="navigate(-1)" disabled>← Anterior</button>
+        <span style="font-size:13px;color:var(--muted);padding:0 8px;align-self:center" id="navCounter"></span>
+        <button class="vt-btn" id="btnNext" onclick="navigate(1)" disabled>Próximo →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // IBGE Maps
+    const IBGE_MAPS = [
+      { name: 'Mapa 1', path: 'MAPAS/4af1e6be0a15b181b7433a0f0d27a156.jpg' },
+      { name: 'Mapa 2', path: 'MAPAS/66e0ac0dcc54dcc49775c06aa906f46d.jpg' },
+      { name: 'Mapa 3', path: 'MAPAS/e3614d9f9b1ca27030e7ce763e730521.jpg' },
+      { name: 'Mapa 4', path: 'MAPAS/f81024afc31e1223a0cb4a0eb6314d08.jpg' },
+    ];
+    let ibgeActive = 0;
+
+    function ibgeRender() {
+      const tabsEl = document.getElementById('ibgeTabs');
+      tabsEl.innerHTML = IBGE_MAPS.map((m, i) =>
+        `<button class="ibge-tab${i===ibgeActive?' active':''}" onclick="ibgeSelect(${i})">${m.name}</button>`
+      ).join('');
+      document.getElementById('ibgeMainImg').src = IBGE_MAPS[ibgeActive].path;
+    }
+
+    function ibgeSelect(i) {
+      ibgeActive = i;
+      ibgeRender();
+    }
+
+    function ibgeLightboxOpen() {
+      document.getElementById('ibgeLbImg').src = IBGE_MAPS[ibgeActive].path;
+      document.getElementById('ibgeLightbox').classList.add('open');
+    }
+
+    function ibgeLightboxClose() {
+      document.getElementById('ibgeLightbox').classList.remove('open');
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') ibgeLightboxClose();
+    });
+
+    ibgeRender();
+
+    (async () => {
+      const user = await DB.requireAuth();
+      const [profile, isAdm, examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
+      if (isAdm) document.getElementById('navAdmin').style.display = '';
+      const nu = document.getElementById('navUser');
+      if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+      const nc = document.getElementById('navCountdown');
+      if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+    })();
+
+    let files = [];
+    let currentIdx = 0;
+    let currentZoom = 1;
+    let objectURLs = [];
+
+    document.getElementById('fileInput').addEventListener('change', function(e){
+      if(!e.target.files.length) return;
+      loadFiles(Array.from(e.target.files));
+    });
+
+    function addMoreFiles(newFiles){
+      const arr = Array.from(newFiles);
+      files = [...files, ...arr];
+      renderThumbs();
+      updateNavButtons();
+    }
+
+    function loadFiles(arr){
+      // Revoke old URLs
+      objectURLs.forEach(u => URL.revokeObjectURL(u));
+      objectURLs = [];
+      files = arr;
+      currentIdx = 0;
+      currentZoom = 1;
+      renderThumbs();
+      showFile(0);
+      document.getElementById('viewLoader').style.display = 'none';
+      document.getElementById('viewViewer').classList.add('vis');
+    }
+
+    function renderThumbs(){
+      const strip = document.getElementById('thumbStrip');
+      strip.innerHTML = files.map((f,i)=>{
+        const isPDF = f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+        const url = URL.createObjectURL(f);
+        objectURLs.push(url);
+        const inner = isPDF
+          ? `<div class="thumb-pdf">📄</div>`
+          : `<img src="${url}" alt="${f.name}" loading="lazy" />`;
+        return `<div class="thumb ${i===currentIdx?'active':''}" id="th${i}" onclick="showFile(${i})">
+          <div class="thumb-num">${i+1}</div>
+          ${inner}
+          <div class="thumb-name">${f.name}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function showFile(idx){
+      if(idx<0||idx>=files.length) return;
+      // Update active thumb
+      document.querySelectorAll('.thumb').forEach((t,i)=>t.classList.toggle('active',i===idx));
+      const th = document.getElementById('th'+idx);
+      if(th) th.scrollIntoView({block:'nearest',behavior:'smooth'});
+
+      currentIdx = idx;
+      const f = files[idx];
+      const isPDF = f.type==='application/pdf' || f.name.toLowerCase().endsWith('.pdf');
+      const url = URL.createObjectURL(f);
+
+      const img = document.getElementById('viewerImg');
+      const pdf = document.getElementById('pdfFrame');
+      const cont = document.getElementById('imgContainer');
+
+      if(isPDF){
+        img.style.display='none';
+        cont.style.display='none';
+        pdf.style.display='block';
+        pdf.src = url + '#toolbar=1&navpanes=1&scrollbar=1&view=FitH';
+      } else {
+        pdf.src='about:blank';
+        pdf.style.display='none';
+        cont.style.display='flex';
+        img.style.display='block';
+        img.src = url;
+        img.onload = () => fitToWindow();
+      }
+
+      document.getElementById('vtTitle').textContent = f.name;
+      document.getElementById('vtCounter').textContent = `${idx+1} / ${files.length}`;
+      document.getElementById('navCounter').textContent = `${idx+1} / ${files.length}`;
+      updateNavButtons();
+    }
+
+    function navigate(dir){
+      const next = currentIdx + dir;
+      if(next>=0 && next<files.length) showFile(next);
+    }
+
+    function updateNavButtons(){
+      document.getElementById('btnPrev').disabled = currentIdx<=0;
+      document.getElementById('btnNext').disabled = currentIdx>=files.length-1;
+    }
+
+    function changeZoom(delta){
+      const img = document.getElementById('viewerImg');
+      if(img.style.display==='none') return;
+      currentZoom = Math.max(0.25, Math.min(5, currentZoom + delta));
+      applyZoom();
+    }
+
+    function applyZoom(){
+      const img = document.getElementById('viewerImg');
+      img.style.transform = `scale(${currentZoom})`;
+      document.getElementById('zoomDisplay').textContent = Math.round(currentZoom*100)+'%';
+    }
+
+    function resetZoom(){
+      currentZoom = 1;
+      applyZoom();
+      document.getElementById('imgContainer').scrollTop = 0;
+      document.getElementById('imgContainer').scrollLeft = 0;
+    }
+
+    function fitToWindow(){
+      const img = document.getElementById('viewerImg');
+      const cont = document.getElementById('imgContainer');
+      if(!img.naturalWidth || img.style.display==='none') return;
+      const availW = cont.clientWidth - 48;
+      const availH = cont.clientHeight - 48;
+      const scaleW = availW / img.naturalWidth;
+      const scaleH = availH / img.naturalHeight;
+      currentZoom = Math.min(scaleW, scaleH, 1);
+      applyZoom();
+    }
+
+    function closeViewer(){
+      document.getElementById('viewViewer').classList.remove('vis');
+      document.getElementById('viewLoader').style.display = 'flex';
+      document.getElementById('viewerImg').src = '';
+      document.getElementById('pdfFrame').src = 'about:blank';
+      objectURLs.forEach(u => URL.revokeObjectURL(u));
+      objectURLs = []; files = [];
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', e=>{
+      if(!document.getElementById('viewViewer').classList.contains('vis')) return;
+      if(e.key==='ArrowRight' || e.key==='ArrowDown') navigate(1);
+      if(e.key==='ArrowLeft'  || e.key==='ArrowUp')   navigate(-1);
+      if(e.key==='+' || e.key==='=') changeZoom(0.25);
+      if(e.key==='-')                changeZoom(-0.25);
+      if(e.key==='0')                fitToWindow();
+      if(e.key==='Escape')           closeViewer();
+    });
+
+    // Drag and drop on loader
+    const loader = document.getElementById('viewLoader');
+    loader.addEventListener('dragover', e=>{ e.preventDefault(); });
+    loader.addEventListener('drop', e=>{
+      e.preventDefault();
+      const arr = Array.from(e.dataTransfer.files).filter(f=>
+        f.type.startsWith('image/')||f.type==='application/pdf'||f.name.match(/\.(jpg|jpeg|png|gif|webp|pdf)$/i)
+      );
+      if(arr.length) loadFiles(arr);
+    });
+
+    // Scroll-to-zoom on image
+    document.getElementById('imgContainer').addEventListener('wheel', e=>{
+      if(e.ctrlKey){
+        e.preventDefault();
+        changeZoom(e.deltaY<0 ? 0.1 : -0.1);
+      }
+    }, {passive:false});
+  </script>
+<style>
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-brand span{color:#39ff14}
+.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#39ff14}
+</style>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
+  <div class="sb-section">Estudo</div>
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <div class="sb-section">Mapas</div>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  
+  <div class="sb-section">Comunidade</div>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="agenda.html">📅 Agenda</a>
+  <a class="sb-link" href="grupo.html">👥 Grupos</a>
+  <div class="sb-section">2ª Fase</div>
+  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
+  <div class="sb-section">Admin</div>
+  <a class="sb-link" href="admin.html">⚙️ Admin</a>
+</aside>
+<script>
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+document.querySelectorAll('.sb-link').forEach(function(a){
+  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
+});
+</script>
+</body>
+</html>

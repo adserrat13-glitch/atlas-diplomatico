@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Radar Diplomático — Atlas CACD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080a0f;--surface:rgba(255,255,255,.035);--surface2:rgba(255,255,255,.055);
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --accent:#8ea7ff;--neon:#39ff14;--amber:#f5e642;--red:#ff4545;
+  --muted:#5a6070;--text:#dde2ee;--tag-bg:rgba(142,167,255,.12);
+  --mono:'JetBrains Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── TICKER ── */
+#ticker{position:sticky;top:0;z-index:300;height:28px;background:#000;
+  border-bottom:1px solid rgba(57,255,20,.18);display:flex;align-items:center;overflow:hidden;
+  font-family:var(--mono);font-size:10px;letter-spacing:.5px}
+#tickerTrack{display:flex;gap:24px;padding:0 16px;white-space:nowrap;animation:ticker 40s linear infinite;align-items:center}
+#tickerTrack:hover{animation-play-state:paused}
+@keyframes ticker{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.tick-src{color:var(--neon);font-weight:600}
+.tick-sep{color:var(--muted);margin:0 4px}
+#tickerMeta{margin-left:auto;padding:0 16px;color:var(--muted);flex-shrink:0;font-family:var(--mono);font-size:10px}
+
+/* ── NAV ── */
+nav{position:sticky;top:28px;z-index:200;height:52px;background:#000;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{color:var(--neon)}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;
+  transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0}
+nav a:hover{color:#fff;background:rgba(255,255,255,.06)}
+nav a.active{color:var(--neon);border-bottom:2px solid var(--neon);border-radius:0;padding-bottom:3px}
+#sbToggle{background:none;border:none;cursor:pointer;color:#888;font-size:20px;padding:8px;margin-right:4px}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100vh;background:#000;
+  border-right:1px solid var(--border);z-index:400;transform:translateX(-100%);transition:.25s;padding-top:80px}
+.sidebar.open{transform:translateX(0)}
+.sb-link{display:block;padding:10px 20px;color:#888;text-decoration:none;font-size:13px;font-weight:500;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.06)}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:399}
+.sb-overlay.open{display:block}
+
+/* ── SKELETONS ── */
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skel{background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.09) 37%,rgba(255,255,255,.04) 63%);
+  background-size:800px 100%;animation:shimmer 1.4s infinite;border-radius:4px}
+.skel-line{height:12px;margin-bottom:8px;border-radius:3px}
+.skel-line.w-30{width:30%}.skel-line.w-50{width:50%}.skel-line.w-75{width:75%}.skel-line.w-90{width:90%}
+.skel-title{height:16px;margin-bottom:10px;border-radius:3px}
+
+/* ── PAGE SHELL ── */
+.page{max-width:1400px;margin:0 auto;padding:24px 20px 80px}
+
+/* ── RADAR HEADER ── */
+.radar-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.radar-title{display:flex;align-items:center;gap:12px}
+.radar-title h1{font-size:22px;font-weight:900;letter-spacing:1px;color:#fff}
+.radar-title h1 span{color:var(--neon)}
+.radar-badge{font-family:var(--mono);font-size:10px;background:rgba(57,255,20,.1);
+  border:1px solid rgba(57,255,20,.3);color:var(--neon);padding:3px 8px;border-radius:4px;letter-spacing:.5px}
+.radar-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.search-box{background:var(--surface);border:1px solid var(--border2);color:var(--text);
+  padding:7px 12px;border-radius:8px;font-size:13px;width:220px;outline:none;font-family:Inter,sans-serif}
+.search-box::placeholder{color:var(--muted)}
+.search-box:focus{border-color:var(--accent)}
+.btn-refresh{background:var(--surface);border:1px solid var(--border2);color:var(--text);
+  padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600;transition:.15s;
+  display:flex;align-items:center;gap:6px}
+.btn-refresh:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+.btn-refresh:disabled{opacity:.4;cursor:default}
+.last-update{font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:24px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-pill{border:1px solid var(--border2);background:var(--surface);color:var(--muted);
+  padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;
+  transition:.15s;white-space:nowrap;letter-spacing:.5px;font-family:var(--mono)}
+.filter-pill:hover{color:var(--text)}
+.filter-pill.active{color:#fff;border-color:transparent}
+
+/* ── HERO + TOP STORIES ── */
+.hero-section{display:grid;grid-template-columns:5fr 7fr;gap:20px;margin-bottom:28px}
+@media(max-width:768px){.hero-section{grid-template-columns:1fr}}
+
+.hero-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;
+  padding:24px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden;
+  cursor:pointer;transition:.2s}
+.hero-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--neon))}
+.hero-card:hover{border-color:var(--accent);background:var(--surface2)}
+@keyframes scanline{0%{top:-10%}100%{top:110%}}
+.hero-card::after{content:'';position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(57,255,20,.15),transparent);
+  animation:scanline 4s linear infinite;pointer-events:none}
+.hero-label{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--neon);font-weight:600;text-transform:uppercase}
+.hero-title{font-size:20px;font-weight:800;line-height:1.25;color:#fff}
+.hero-desc{font-size:14px;color:var(--muted);line-height:1.55;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hero-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:auto}
+.btn-analysis{background:rgba(142,167,255,.12);border:1px solid rgba(142,167,255,.3);color:var(--accent);
+  padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;letter-spacing:.5px}
+.btn-analysis:hover{background:rgba(142,167,255,.22);border-color:var(--accent)}
+
+.top-stories{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:10px}
+@media(max-width:520px){.top-stories{grid-template-columns:1fr}}
+
+/* ── NEWS CARD ── */
+.news-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:.2s}
+.news-card:hover{border-color:var(--border2);background:var(--surface2)}
+.card-header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.src-badge{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.8px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  padding:2px 7px;border-radius:4px;color:var(--muted);text-transform:uppercase}
+.ts{font-family:var(--mono);font-size:10px;color:var(--muted)}
+.card-title{font-size:13px;font-weight:700;line-height:1.35;color:#eef0f6;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-desc{font-size:12px;color:var(--muted);line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:auto}
+.cat-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;font-family:var(--mono);letter-spacing:.4px}
+.relevance{display:flex;gap:2px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%}
+.dot.on{background:var(--accent)}.dot.off{background:rgba(255,255,255,.12)}
+.btn-analysis-sm{font-size:10px;font-weight:700;color:var(--accent);background:none;border:none;
+  cursor:pointer;padding:2px 6px;border-radius:4px;transition:.15s;letter-spacing:.3px}
+.btn-analysis-sm:hover{background:rgba(142,167,255,.12)}
+.save-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;transition:.15s;padding:2px 4px}
+.save-btn.saved{color:var(--amber)}.save-btn:hover{color:var(--amber)}
+
+/* ── GRID ── */
+.grid-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.grid-hdr h2{font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.article-count{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:900px){.news-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.news-grid{grid-template-columns:1fr}}
+
+/* ── LOAD MORE ── */
+.load-more-sentinel{height:1px;margin-top:20px}
+.load-more-spinner{display:flex;justify-content:center;padding:24px}
+.spinner{width:28px;height:28px;border:2px solid rgba(255,255,255,.08);border-top-color:var(--neon);
+  border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:80px 20px;color:var(--muted)}
+.empty-state .big{font-size:36px;margin-bottom:12px}
+.empty-state p{font-size:14px;line-height:1.6}
+.empty-state .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px}
+
+/* ── ANALYSIS PANEL ── */
+.panel-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;
+  align-items:flex-start;justify-content:flex-end}
+.panel{background:#0d1018;border-left:1px solid var(--border2);width:420px;max-width:95vw;
+  height:100vh;overflow-y:auto;padding:28px 24px;display:flex;flex-direction:column;gap:18px}
+.panel::-webkit-scrollbar{width:4px}
+.panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.panel-close{position:sticky;top:0;align-self:flex-end;background:rgba(13,16,24,.95);border:none;
+  color:var(--muted);font-size:20px;cursor:pointer;transition:.15s;padding:4px 8px;border-radius:4px;z-index:1}
+.panel-close:hover{color:#fff}
+.panel-mono{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--neon);font-weight:700;text-transform:uppercase}
+.panel-title{font-size:16px;font-weight:800;color:#fff;line-height:1.3}
+.panel-source{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.panel-sec-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--mono)}
+.rel-row{display:flex;align-items:center;gap:10px}
+.rel-track{flex:1;height:6px;background:rgba(255,255,255,.1);border-radius:3px}
+.rel-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--neon));transition:.5s}
+.rel-lbl{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text)}
+.pill-row{display:flex;flex-wrap:wrap;gap:6px}
+.concept-pill{font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid var(--border2);
+  background:var(--tag-bg);color:var(--text);font-family:var(--mono)}
+.country-pill{font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid rgba(251,191,36,.2);
+  background:rgba(251,191,36,.08);color:#fbbf24;font-family:var(--mono)}
+.fc-topic{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;
+  background:var(--surface);border:1px solid var(--border);font-size:13px;cursor:pointer;transition:.15s;text-decoration:none;color:var(--text)}
+.fc-topic:hover{border-color:var(--accent);color:var(--accent)}
+.discursiva-box{background:var(--surface);border:1px solid var(--border2);border-left:3px solid var(--accent);
+  border-radius:8px;padding:12px;font-size:13px;line-height:1.6;font-style:italic}
+.panel-divider{height:1px;background:var(--border)}
+.panel-actions{display:flex;gap:10px;flex-wrap:wrap}
+.panel-btn{flex:1;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:700;
+  cursor:pointer;transition:.15s;border:1px solid var(--border2);text-align:center;text-decoration:none;display:block}
+.panel-btn-save{background:rgba(245,230,66,.1);border-color:rgba(245,230,66,.3);color:var(--amber)}
+.panel-btn-save:hover{background:rgba(245,230,66,.2)}
+.panel-btn-open{background:rgba(142,167,255,.1);border-color:rgba(142,167,255,.3);color:var(--accent)}
+.panel-btn-open:hover{background:rgba(142,167,255,.2)}
+</style>
+</head>
+<body>
+
+<!-- Ticker -->
+<div id="ticker">
+  <div id="tickerTrack">
+    <span class="tick-src">● BBC WORLD</span><span class="tick-sep">·</span>
+    <span class="tick-src">● AL JAZEERA</span><span class="tick-sep">·</span>
+    <span class="tick-src">● DEUTSCHE WELLE</span><span class="tick-sep">·</span>
+    <span class="tick-src">● THE GUARDIAN</span><span class="tick-sep">·</span>
+    <span class="tick-src">● CFR</span>
+    <span class="tick-sep" style="margin:0 16px">│</span>
+    <span class="tick-src">● BBC WORLD</span><span class="tick-sep">·</span>
+    <span class="tick-src">● AL JAZEERA</span><span class="tick-sep">·</span>
+    <span class="tick-src">● DEUTSCHE WELLE</span><span class="tick-sep">·</span>
+    <span class="tick-src">● THE GUARDIAN</span><span class="tick-sep">·</span>
+    <span class="tick-src">● CFR</span>
+  </div>
+  <div id="tickerMeta">–</div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <button id="sbToggle" onclick="document.getElementById('sidebar').classList.toggle('open');document.getElementById('sbOverlay').classList.toggle('open')">☰</button>
+  <div class="nav-logo">ATLAS<span>.</span>CACD</div>
+  <a href="index.html">🏠 Início</a>
+  <a href="flashcards.html">🃏 Flashcards</a>
+  <a href="analise.html">📊 Análise</a>
+  <a href="leaderboard.html">🏆 Ranking</a>
+  <a href="agenda.html">📅 Agenda</a>
+  <a href="grupo.html">👥 Grupo</a>
+  <a href="segunda-fase.html">✍️ 2ª Fase</a>
+  <a href="mapas.html">🗺️ Mapas</a>
+  <a href="noticias.html" class="active">📰 Notícias</a>
+  <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+</nav>
+
+<!-- Sidebar -->
+<div class="sb-overlay" id="sbOverlay" onclick="this.classList.remove('open');document.getElementById('sidebar').classList.remove('open')"></div>
+<div class="sidebar" id="sidebar">
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+</div>
+
+<!-- React root -->
+<div id="radar-root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ── CACD data (mirrors backend rssFeeds.js) ──────────────────────────
+const CACD_CATS = [
+  { id:'PI',  label:'Pol. Internacional',    color:'#8ea7ff' },
+  { id:'PEB', label:'Pol. Externa Brasileira', color:'#fb923c' },
+  { id:'ECO', label:'Economia',              color:'#6ee7b7' },
+  { id:'SEG', label:'Segurança',             color:'#f87171' },
+  { id:'DIR', label:'Direito Internacional', color:'#c084fc' },
+  { id:'GEO', label:'Geopolítica',           color:'#fbbf24' },
+  { id:'OI',  label:'Org. Internacionais',   color:'#38bdf8' },
+];
+
+const DISCURSIVA_TMPL = {
+  PI:  (a) => `"${a.title.split(' ').slice(0,8).join(' ')}…: implicações para a ordem multipolar e a inserção internacional do Brasil"`,
+  PEB: (a) => `"A política externa brasileira diante de novos desafios globais: análise do caso em ${(a.detected_entities||[]).slice(0,2).join(' e ') || 'perspectiva'}"`,
+  ECO: (a) => `"Dinâmica da economia global e seus reflexos sobre o Brasil: análise crítica das recentes tendências"`,
+  SEG: (a) => `"Segurança internacional e o papel das organizações multilaterais diante do conflito: perspectivas para o Brasil"`,
+  DIR: (a) => `"Direito Internacional e soberania: normas, precedentes e desafios contemporâneos"`,
+  GEO: (a) => `"Geopolítica dos recursos e território: desdobramentos para a inserção internacional do Brasil"`,
+  OI:  (a) => `"Organizações internacionais e governança global: eficácia e limites na nova ordem multipolar"`,
+};
+
+const PAGE_SIZE = 21;
+
+// ── Helpers ──────────────────────────────────────────────────────────
+function getCat(id) { return CACD_CATS.find(c => c.id === id) || CACD_CATS[0]; }
+
+function relTime(str) {
+  if (!str) return '–';
+  const d = new Date(str);
+  if (isNaN(d)) return '–';
+  const m = Math.floor((Date.now() - d) / 60000);
+  if (m < 1)  return 'agora';
+  if (m < 60) return `há ${m}min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h/24)}d`;
+}
+
+function Dots({ n }) {
+  return (
+    <span className="relevance">
+      {[1,2,3,4,5].map(i => <span key={i} className={`dot ${i<=n?'on':'off'}`}/>)}
+    </span>
+  );
+}
+
+function CatPill({ id }) {
+  const c = getCat(id);
+  return (
+    <span className="cat-pill" style={{background:`${c.color}22`,color:c.color,border:`1px solid ${c.color}44`}}>
+      {c.id}
+    </span>
+  );
+}
+
+// ── SkeletonCard ──────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="news-card" style={{gap:12}}>
+      <div style={{display:'flex',justifyContent:'space-between'}}>
+        <div className="skel skel-line w-30"/>
+        <div className="skel skel-line" style={{width:'15%'}}/>
+      </div>
+      <div className="skel skel-title w-90"/>
+      <div className="skel skel-title w-75"/>
+      <div className="skel skel-line w-50"/>
+    </div>
+  );
+}
+
+// ── NewsCard ──────────────────────────────────────────────────────────
+function NewsCard({ article: a, isFav, onFav, onPanel, compact }) {
+  return (
+    <div className="news-card">
+      <div className="card-header">
+        <span className="src-badge">{a.source_name}</span>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <span className="ts">{relTime(a.published_at)}</span>
+          <button className={`save-btn ${isFav?'saved':''}`} onClick={e=>{e.stopPropagation();onFav(a.id)}}
+            title={isFav?'Remover dos salvos':'Salvar'}>
+            {isFav ? '⭐' : '☆'}
+          </button>
+        </div>
+      </div>
+      <div className="card-title">{a.title}</div>
+      {!compact && <div className="card-desc">{a.description}</div>}
+      <div className="card-footer">
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <CatPill id={a.cacd_category}/>
+          <Dots n={a.cacd_relevance}/>
+        </div>
+        <button className="btn-analysis-sm" onClick={()=>onPanel(a)}>→ CACD</button>
+      </div>
+    </div>
+  );
+}
+
+// ── HeroSection ───────────────────────────────────────────────────────
+function HeroSection({ articles, favIds, onFav, onPanel }) {
+  if (!articles.length) return null;
+  const hero = articles[0];
+  const top  = articles.slice(1, 7);
+  const cat  = getCat(hero.cacd_category);
+
+  return (
+    <div className="hero-section">
+      <div className="hero-card" onClick={()=>onPanel(hero)}>
+        <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+          <span style={{fontFamily:'var(--mono)',fontSize:'9px',letterSpacing:'2px',color:cat.color,fontWeight:700,
+            background:`${cat.color}11`,border:`1px solid ${cat.color}44`,padding:'3px 8px',borderRadius:4}}>
+            {cat.label.toUpperCase()}
+          </span>
+          <span className="hero-label">{hero.source_name}</span>
+        </div>
+        <div className="hero-title">{hero.title}</div>
+        <div className="hero-desc">{hero.description}</div>
+        <div className="hero-footer">
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span className="ts">{relTime(hero.published_at)}</span>
+            <Dots n={hero.cacd_relevance}/>
+          </div>
+          <button className="btn-analysis" onClick={e=>{e.stopPropagation();onPanel(hero)}}>
+            → Análise CACD
+          </button>
+        </div>
+      </div>
+
+      <div className="top-stories">
+        {top.map(a => (
+          <NewsCard key={a.id} article={a} isFav={favIds.has(a.id)}
+            onFav={onFav} onPanel={onPanel} compact={true}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── AnalysisPanel ─────────────────────────────────────────────────────
+function AnalysisPanel({ article: a, isFav, onFav, onClose }) {
+  if (!a) return null;
+  const cat = getCat(a.cacd_category);
+  const sec = a.cacd_secondary ? getCat(a.cacd_secondary) : null;
+  const pct = Math.round((a.cacd_relevance / 5) * 100);
+  const discursiva = (DISCURSIVA_TMPL[a.cacd_category] || DISCURSIVA_TMPL.PI)(a);
+
+  return (
+    <div className="panel-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div className="panel">
+        <button className="panel-close" onClick={onClose}>✕</button>
+
+        <div className="panel-mono">📡 Análise CACD</div>
+        <div className="panel-title">{a.title}</div>
+        <div className="panel-source">{a.source_name} · {relTime(a.published_at)}</div>
+        <div className="panel-divider"/>
+
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <div className="panel-sec-label">🎯 Relevância CACD</div>
+          <div className="rel-row">
+            <div className="rel-track"><div className="rel-fill" style={{width:`${pct}%`}}/></div>
+            <div className="rel-lbl">{a.cacd_relevance}/5</div>
+          </div>
+        </div>
+
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <div className="panel-sec-label">📚 Disciplinas</div>
+          <div className="pill-row">
+            <span className="cat-pill" style={{background:`${cat.color}22`,color:cat.color,
+              border:`1px solid ${cat.color}44`,fontSize:12,padding:'4px 12px'}}>
+              {cat.id} – {cat.label}
+            </span>
+            {sec && (
+              <span className="cat-pill" style={{background:`${sec.color}22`,color:sec.color,
+                border:`1px solid ${sec.color}44`,fontSize:12,padding:'4px 12px'}}>
+                {sec.id} – {sec.label}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {(a.cacd_concepts||[]).length > 0 && (
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <div className="panel-sec-label">💡 Conceitos-Chave</div>
+            <div className="pill-row">
+              {a.cacd_concepts.map(c => <span key={c} className="concept-pill">{c}</span>)}
+            </div>
+          </div>
+        )}
+
+        {(a.fc_topics||[]).length > 0 && (
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <div className="panel-sec-label">🃏 Flashcards Relacionados</div>
+            <div style={{display:'flex',flexDirection:'column',gap:6}}>
+              {a.fc_topics.map(t => (
+                <a key={t} className="fc-topic" href="flashcards.html" target="_blank">🃏 {t}</a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(a.detected_entities||[]).length > 0 && (
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            <div className="panel-sec-label">🌍 Países / Regiões</div>
+            <div className="pill-row">
+              {a.detected_entities.map(e => <span key={e} className="country-pill">{e}</span>)}
+            </div>
+          </div>
+        )}
+
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <div className="panel-sec-label">📖 Possível Discursiva</div>
+          <div className="discursiva-box">{discursiva}</div>
+        </div>
+
+        <div className="panel-divider"/>
+        <div className="panel-actions">
+          <button className="panel-btn panel-btn-save" onClick={()=>onFav(a.id)}>
+            {isFav ? '⭐ Salvo' : '☆ Salvar'}
+          </button>
+          <a className="panel-btn panel-btn-open" href={a.url} target="_blank" rel="noopener">
+            🔗 Abrir Artigo
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── InfiniteLoader ────────────────────────────────────────────────────
+function InfiniteLoader({ onLoad, hasMore, loading }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !loading) onLoad();
+    }, { rootMargin: '200px' });
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [hasMore, loading, onLoad]);
+
+  return (
+    <div ref={ref} className="load-more-sentinel">
+      {loading && (
+        <div className="load-more-spinner"><div className="spinner"/></div>
+      )}
+    </div>
+  );
+}
+
+// ── RadarApp (root) ───────────────────────────────────────────────────
+function RadarApp() {
+  const [articles,    setArticles]    = useState([]);
+  const [favIds,      setFavIds]      = useState(new Set());
+  const [filter,      setFilter]      = useState('ALL');
+  const [search,      setSearch]      = useState('');
+  const [loading,     setLoading]     = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore,     setHasMore]     = useState(true);
+  const [page,        setPage]        = useState(0);
+  const [panelItem,   setPanelItem]   = useState(null);
+  const [lastUpdate,  setLastUpdate]  = useState('');
+  const [totalCount,  setTotalCount]  = useState(0);
+  const [dbEmpty,     setDbEmpty]     = useState(false);
+
+  const searchRef = useRef('');
+  const filterRef = useRef('ALL');
+  const debounceRef = useRef(null);
+
+  // Fetch a page from Supabase
+  const fetchPage = useCallback(async (pg, cat, q, reset) => {
+    if (reset) setLoading(true); else setLoadingMore(true);
+
+    const isFav = cat === 'SAV';
+    const data = await DB.getNews({
+      category: isFav ? null : cat,
+      search: q || null,
+      page: pg,
+      limit: PAGE_SIZE,
+      favoritesOnly: isFav,
+    });
+
+    if (reset) {
+      setArticles(data);
+      setDbEmpty(pg === 0 && data.length === 0);
+    } else {
+      setArticles(prev => {
+        const ids = new Set(prev.map(a => a.id));
+        return [...prev, ...data.filter(a => !ids.has(a.id))];
+      });
+    }
+
+    setHasMore(data.length === PAGE_SIZE);
+    setTotalCount(prev => reset ? data.length : prev + data.length);
+    if (reset) setLoading(false); else setLoadingMore(false);
+
+    const now = new Date();
+    setLastUpdate(`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`);
+    document.getElementById('tickerMeta').textContent =
+      `${reset ? data.length : (totalCount + data.length)} artigos · ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  }, [totalCount]);
+
+  // Initial load + auth
+  useEffect(() => {
+    (async () => {
+      try { await DB.requireAuth(); } catch { return; }
+      try {
+        const isAdmin = await DB.isAdmin();
+        if (isAdmin) document.getElementById('navAdmin').style.display = '';
+      } catch {}
+
+      // Load favorites
+      const fids = await DB.getNewsFavoriteIds().catch(() => new Set());
+      setFavIds(fids);
+
+      // Load first page
+      await fetchPage(0, 'ALL', '', true);
+
+      // Realtime subscription
+      DB.subscribeToNews(payload => {
+        if (payload.new) {
+          setArticles(prev => [payload.new, ...prev]);
+          setTotalCount(prev => prev + 1);
+        }
+      });
+    })();
+  }, []);
+
+  // Re-fetch when filter or search changes
+  useEffect(() => {
+    filterRef.current = filter;
+    setPage(0);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchPage(0, filter, searchRef.current, true);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [filter]);
+
+  const handleSearchChange = (val) => {
+    setSearch(val);
+    searchRef.current = val;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(0);
+      fetchPage(0, filterRef.current, val, true);
+    }, 500);
+  };
+
+  const handleLoadMore = useCallback(() => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchPage(nextPage, filterRef.current, searchRef.current, false);
+  }, [page, fetchPage]);
+
+  const handleFav = async (articleId) => {
+    // Optimistic toggle
+    setFavIds(prev => {
+      const next = new Set(prev);
+      if (next.has(articleId)) next.delete(articleId); else next.add(articleId);
+      return next;
+    });
+    try {
+      await DB.toggleNewsFavorite(articleId);
+    } catch {
+      // Revert on error
+      setFavIds(prev => {
+        const next = new Set(prev);
+        if (next.has(articleId)) next.delete(articleId); else next.add(articleId);
+        return next;
+      });
+    }
+  };
+
+  const handleRefresh = async () => {
+    setPage(0);
+    await fetchPage(0, filterRef.current, searchRef.current, true);
+  };
+
+  const mainGrid = articles.slice(7);
+
+  return (
+    <>
+      <div className="page">
+        {/* Header */}
+        <div className="radar-header">
+          <div className="radar-title">
+            <h1>📡 RADAR <span>DIPLOMÁTICO</span></h1>
+            <span className="radar-badge">LIVE DB</span>
+          </div>
+          <div className="radar-controls">
+            <input className="search-box" type="text" placeholder="🔍 Buscar notícias…"
+              value={search} onChange={e=>handleSearchChange(e.target.value)}/>
+            <button className="btn-refresh" onClick={handleRefresh} disabled={loading}>
+              🔄 Atualizar
+            </button>
+            {lastUpdate && <span className="last-update">↻ {lastUpdate}</span>}
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="filter-bar">
+          {[{id:'ALL',label:'TODOS',color:'var(--accent)'}, ...CACD_CATS,
+            {id:'SAV',label:'⭐ SALVOS',color:'var(--amber)'}].map(cat => (
+            <button key={cat.id} className={`filter-pill ${filter===cat.id?'active':''}`}
+              style={filter===cat.id ? {color:cat.color||'var(--accent)',borderColor:cat.color||'var(--accent)'} : {}}
+              onClick={()=>setFilter(cat.id)}>
+              {cat.label || cat.id}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading skeleton — hero + 6 cards */}
+        {loading && (
+          <div className="hero-section" style={{marginBottom:28}}>
+            <div className="news-card" style={{padding:24,gap:16}}>
+              <div className="skel skel-line w-30"/>
+              <div className="skel" style={{height:24,borderRadius:4,marginBottom:8,width:'90%'}}/>
+              <div className="skel" style={{height:24,borderRadius:4,marginBottom:8,width:'75%'}}/>
+              <div className="skel skel-line w-50"/>
+            </div>
+            <div className="top-stories">
+              {[...Array(6)].map((_,i) => <SkeletonCard key={i}/>)}
+            </div>
+          </div>
+        )}
+
+        {/* DB empty state — prompt to run ingest */}
+        {!loading && dbEmpty && (
+          <div className="empty-state">
+            <div className="big">📭</div>
+            <p>Nenhum artigo no banco de dados ainda.</p>
+            <p className="sub">Execute o backend para popular: <code>npm run ingest</code></p>
+          </div>
+        )}
+
+        {/* Hero + Top Stories */}
+        {!loading && !dbEmpty && (
+          <HeroSection articles={articles} favIds={favIds}
+            onFav={handleFav} onPanel={setPanelItem}/>
+        )}
+
+        {/* Grid header */}
+        {!loading && !dbEmpty && mainGrid.length > 0 && (
+          <div className="grid-hdr">
+            <h2>// TRANSMISSÃO AO VIVO</h2>
+            <span className="article-count">{totalCount} artigos</span>
+          </div>
+        )}
+
+        {/* News grid */}
+        {!loading && !dbEmpty && (
+          <>
+            <div className="news-grid">
+              {mainGrid.map(a => (
+                <NewsCard key={a.id} article={a} isFav={favIds.has(a.id)}
+                  onFav={handleFav} onPanel={setPanelItem} compact={false}/>
+              ))}
+              {loadingMore && [...Array(3)].map((_,i) => <SkeletonCard key={`sk-${i}`}/>)}
+            </div>
+
+            {mainGrid.length === 0 && !loading && filter !== 'ALL' && (
+              <div className="empty-state" style={{padding:'40px 0'}}>
+                <div className="big">🔭</div>
+                <p>Nenhum artigo para este filtro.</p>
+              </div>
+            )}
+
+            <InfiniteLoader onLoad={handleLoadMore} hasMore={hasMore} loading={loadingMore}/>
+          </>
+        )}
+      </div>
+
+      {/* Analysis Panel */}
+      {panelItem && (
+        <AnalysisPanel article={panelItem} isFav={favIds.has(panelItem.id)}
+          onFav={handleFav} onClose={()=>setPanelItem(null)}/>
+      )}
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('radar-root')).render(<RadarApp/>);
+</script>
+</body>
+</html>

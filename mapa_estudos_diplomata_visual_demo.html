@@ -1,0 +1,361 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atlas Diplomático</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Inter, Arial, sans-serif;
+    }
+
+    body {
+      background: #0f1117;
+      overflow: hidden;
+      color: #e8e8e8;
+    }
+
+    .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.6;
+    }
+
+    .title {
+      position: absolute;
+      top: 20px;
+      left: 30px;
+      z-index: 100;
+    }
+
+    .title h1 {
+      font-size: 32px;
+      letter-spacing: 2px;
+      font-weight: 700;
+    }
+
+    .title p {
+      color: #a0a0a0;
+      margin-top: 5px;
+      font-size: 14px;
+    }
+
+    .map {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .district {
+      position: absolute;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(4px);
+      border-radius: 18px;
+      padding: 18px;
+      transition: 0.3s ease;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .district:hover {
+      transform: scale(1.03);
+      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.06);
+      box-shadow: 0 0 25px rgba(255,255,255,0.08);
+    }
+
+    .district h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    .district ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      color: #cfcfcf;
+    }
+
+    .progress {
+      margin-top: 14px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: 20px;
+      background: linear-gradient(90deg, #8ea7ff, #d7e0ff);
+    }
+
+    .stats {
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #9f9f9f;
+    }
+
+    .languages {
+      width: 320px;
+      height: 250px;
+      left: 8%;
+      top: 18%;
+    }
+
+    .law {
+      width: 280px;
+      height: 200px;
+      right: 10%;
+      top: 20%;
+    }
+
+    .history {
+      width: 300px;
+      height: 220px;
+      left: 18%;
+      bottom: 12%;
+    }
+
+    .strategy {
+      width: 350px;
+      height: 250px;
+      right: 16%;
+      bottom: 14%;
+    }
+
+    .center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      backdrop-filter: blur(5px);
+      box-shadow: 0 0 40px rgba(255,255,255,0.08);
+    }
+
+    .center h2 {
+      font-size: 20px;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    .center p {
+      font-size: 13px;
+      color: #b9b9b9;
+      text-align: center;
+      width: 80%;
+      line-height: 1.5;
+    }
+
+    svg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    line {
+      stroke: rgba(255,255,255,0.12);
+      stroke-width: 2;
+      stroke-dasharray: 6 6;
+      animation: pulse 8s linear infinite;
+    }
+
+    @keyframes pulse {
+      from {
+        stroke-dashoffset: 0;
+      }
+      to {
+        stroke-dashoffset: 100;
+      }
+    }
+
+    .sidebar {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 240px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 20px;
+      backdrop-filter: blur(5px);
+      z-index: 100;
+    }
+
+    .sidebar h3 {
+      margin-bottom: 14px;
+      font-size: 16px;
+    }
+
+    .task {
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #8f8f8f;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid"></div>
+
+  <div class="title">
+    <h1>ATLAS DIPLOMÁTICO</h1>
+    <p>Centro Estratégico de Formação Intelectual</p>
+  </div>
+
+  <div class="sidebar">
+    <h3>MISSÕES PRIORITÁRIAS</h3>
+
+    <div class="task">Revisar Revolução Francesa</div>
+    <div class="task">Flashcards de Russo</div>
+    <div class="task">Simulado de Direito Internacional</div>
+    <div class="task">Mapa Mental de Economia</div>
+    <div class="task">Treino de Essay em Inglês</div>
+  </div>
+
+  <div class="map">
+    <svg>
+      <line x1="320" y1="250" x2="760" y2="380" />
+      <line x1="1000" y1="250" x2="760" y2="380" />
+      <line x1="340" y1="620" x2="760" y2="380" />
+      <line x1="980" y1="640" x2="760" y2="380" />
+    </svg>
+
+    <div class="district languages">
+      <h2>DISTRITO DAS LÍNGUAS</h2>
+      <ul>
+        <li>Português</li>
+        <li>Inglês</li>
+        <li>Russo</li>
+        <li>Espanhol</li>
+        <li>Alemão</li>
+        <li>Grego</li>
+      </ul>
+
+      <div class="progress">
+        <div class="progress-bar">
+          <div class="fill" style="width: 67%"></div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <span>Domínio: 67%</span>
+        <span>Nível 14</span>
+      </div>
+    </div>
+
+    <div class="district law">
+      <h2>DISTRITO JURÍDICO</h2>
+      <ul>
+        <li>Direito Constitucional</li>
+        <li>Direito Internacional</li>
+        <li>Tratados</li>
+        <li>Organizações Internacionais</li>
+      </ul>
+
+      <div class="progress">
+        <div class="progress-bar">
+          <div class="fill" style="width: 52%"></div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <span>Domínio: 52%</span>
+        <span>Nível 10</span>
+      </div>
+    </div>
+
+    <div class="district history">
+      <h2>DISTRITO HISTÓRICO</h2>
+      <ul>
+        <li>História do Brasil</li>
+        <li>História Mundial</li>
+        <li>Linhas do Tempo</li>
+        <li>Grandes Guerras</li>
+      </ul>
+
+      <div class="progress">
+        <div class="progress-bar">
+          <div class="fill" style="width: 74%"></div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <span>Domínio: 74%</span>
+        <span>Nível 17</span>
+      </div>
+    </div>
+
+    <div class="district strategy">
+      <h2>DISTRITO ESTRATÉGICO</h2>
+      <ul>
+        <li>Política Internacional</li>
+        <li>Geografia</li>
+        <li>Economia</li>
+        <li>Geopolítica</li>
+      </ul>
+
+      <div class="progress">
+        <div class="progress-bar">
+          <div class="fill" style="width: 61%"></div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <span>Domínio: 61%</span>
+        <span>Nível 13</span>
+      </div>
+    </div>
+
+    <div class="center">
+      <h2>NÚCLEO CENTRAL</h2>
+      <p>
+        Painel de inteligência acadêmica, cronograma estratégico,
+        metas diárias, simulados e controle de progresso.
+      </p>
+    </div>
+  </div>
+
+  <div class="footer">
+    SISTEMA DE FORMAÇÃO DIPLOMÁTICA • MAPA INTELECTUAL INTERATIVO
+  </div>
+</body>
+</html>

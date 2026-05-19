@@ -1,0 +1,346 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Mental PL - Preparação e Sobrevivência</title>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        canvas {
+            border-radius: 10px;
+            background-color: #f4f6f8;
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            height: auto;
+            max-width: 900px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #666;
+            text-align: center;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+        }
+        .color-box {
+            width: 15px;
+            height: 15px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Mind Map: "PL" (Preparação & Logística)</h1>
+    
+    <div class="legend">
+        <div class="legend-item"><div class="color-box" style="background-color: #4CAF50;"></div> Saúde & Finanças</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #009688;"></div> Médico & Saneamento</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #2196F3;"></div> Água & Bug In</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #9C27B0;"></div> Comida & Proteção</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #FF9800;"></div> Energia & Planos</div>
+        <div class="legend-item"><div class="color-box" style="background-color: #673AB7;"></div> Estoque & Bug Out</div>
+    </div>
+
+    <div class="container">
+        <canvas id="mindmapCanvas" width="900" height="900"></canvas>
+    </div>
+
+    <div class="footer">
+        Visualização radial interativa baseada na imagem. (Categorias principais e estrutura lógica).
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mindmapCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configuração do Canvas
+        const W = canvas.width;
+        const H = canvas.height;
+        const CX = W / 2;
+        const CY = H / 2;
+
+        // Cores baseadas na imagem original
+        const COLORS = {
+            HEALTH: '#4CAF50', // Verde
+            MEDICAL: '#009688', // Ciano/Teal
+            WATER: '#2196F3', // Azul
+            FOOD: '#9C27B0', // Roxo
+            PROTECTION: '#673AB7', // Roxo Escuro
+            ENERGY: '#FF9800', // Laranja
+            FINANCIAL: '#2E7D32', // Verde Escuro (finanças)
+            BUG_OUT: '#D32F2F', // Vermelho
+            STORAGE: '#5E35B1', // Roxo Médio
+            DEFAULT: '#607D8B'
+        };
+
+        // Definição dos Nós Principais (Dados do mapa)
+        const categories = [
+            {
+                label: "SAÚDE & CORPO",
+                color: COLORS.HEALTH,
+                angle: -135, // Cima Esquerda
+                subs: ["Checkups", "Dentista", "Olhos", "Exercícios", "Dieta"]
+            },
+            {
+                label: "FINANÇAS & TECH",
+                color: COLORS.FINANCIAL,
+                angle: -160, // Esquerda
+                subs: ["Dinheiro", "Ouro", "Baterias", "Geradores", "Rádios"]
+            },
+            {
+                label: "MÉDICO & KITS",
+                color: COLORS.MEDICAL,
+                angle: -80, // Cima
+                subs: ["FAK (First Aid Kit)", "Medicamentos", "Curativos", "Treinamento"]
+            },
+            {
+                label: "ÁGUA & HIGIENE",
+                color: COLORS.WATER,
+                angle: -40, // Cima Direita
+                subs: ["Filtros", "Armazenamento", "Banhos", "Sabão", "Lavar Roupas"]
+            },
+            {
+                label: "COMIDA & JARDIM",
+                color: COLORS.FOOD,
+                angle: 20, // Direita Superior
+                subs: ["Horta", "Sementes", "Ferramentas", "Forrageio", "Criação"]
+            },
+            {
+                label: "PROTEÇÃO & SEG.",
+                color: COLORS.PROTECTION,
+                angle: 80, // Direita
+                subs: ["Armas", "Munição", "Cercas", "Alarmes", "Cães"]
+            },
+            {
+                label: "ARMAZENAMENTO",
+                color: COLORS.STORAGE,
+                angle: 120, // Direita Inferior
+                subs: ["Latas", "Potes", "Prateleiras", "Etiquetas", "Rotação"]
+            },
+            {
+                label: "ENERGIA & COMMS",
+                color: COLORS.ENERGY,
+                angle: 180, // Baixo
+                subs: ["Painéis Solar", "Baterias", "Radio CB", "Geradores"]
+            },
+            {
+                label: "BUG OUT (EVACUAÇÃO)",
+                color: COLORS.BUG_OUT,
+                angle: 220, // Baixo Esquerda
+                subs: ["Mochila Tática", "Veículo", "Mapas", "Kit Emergência"]
+            }
+        ];
+
+        // Função para desenhar nós e linhas
+        function drawNode(x, y, label, color, radius) {
+            // Desenha a linha de conexão
+            ctx.beginPath();
+            ctx.moveTo(CX, CY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Desenha o nó
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Adiciona o Texto
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Quebra o texto se for muito longo
+            if (label.length > 10) {
+                const words = label.split(' ');
+                let lines = [];
+                let currentLine = '';
+                for (let i = 0; i < words.length; i++) {
+                    let testLine = currentLine + words[i] + ' ';
+                    if (testLine.length > 10 && currentLine !== '') {
+                        lines.push(currentLine.trim());
+                        currentLine = words[i] + ' ';
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                lines.push(currentLine.trim());
+                
+                let lineY = y - (lines.length - 1) * 6;
+                lines.forEach(line => {
+                    ctx.fillText(line, x, lineY);
+                    lineY += 12;
+                });
+            } else {
+                ctx.fillText(label, x, y);
+            }
+        }
+
+        function drawSubNode(x, y, label, color, radius) {
+            // Desenha nó secundário
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.7;
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Texto Secundário (Menor)
+            ctx.fillStyle = '#fff';
+            ctx.font = '9px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x, y);
+        }
+
+        // Função Principal de Renderização
+        function renderMindMap() {
+            ctx.clearRect(0, 0, W, H);
+
+            // 1. Desenha o Centro (Logo PL)
+            ctx.beginPath();
+            ctx.arc(CX, CY, 60, 0, Math.PI * 2);
+            ctx.fillStyle = '#111';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 32px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('PL', CX, CY);
+
+            ctx.fillStyle = '#aaa';
+            ctx.font = '10px Arial';
+            ctx.fillText('CORE', CX, CY + 25);
+
+            // 2. Desenha as Categorias Principais
+            const mainRadius = 180;
+            const subRadius = 280;
+
+            categories.forEach(cat => {
+                const rad = (cat.angle * Math.PI) / 180;
+                const x = CX + mainRadius * Math.cos(rad);
+                const y = CY + mainRadius * Math.sin(rad);
+
+                // Desenha a conexão principal
+                ctx.beginPath();
+                ctx.moveTo(CX, CY);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = cat.color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Desenha o nó principal
+                drawNode(x, y, cat.label, cat.color, 35);
+
+                // 3. Desenha os Sub-nós (Subcategorias)
+                const subCount = cat.subs.length;
+                const angleSpread = 30; // Quanto de ângulo entre os subs
+                const startAngle = cat.angle - (subCount - 1) * (angleSpread / 2);
+                
+                cat.subs.forEach((sub, index) => {
+                    const subRad = ( (startAngle + (index * angleSpread)) * Math.PI ) / 180;
+                    const sx = CX + subRadius * Math.cos(subRad);
+                    const sy = CY + subRadius * Math.sin(subRad);
+
+                    // Linha do Principal para o Sub
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(sx, sy);
+                    ctx.strokeStyle = cat.color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Desenha o Sub
+                    drawSubNode(sx, sy, sub, cat.color, 18);
+                });
+            });
+
+            // Adiciona alguns conectores entre sub-nós para simular a complexidade
+            ctx.globalAlpha = 0.2;
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            
+            // Conexões aleatórias para visual "mapa complexo"
+            const randConnect = [
+                [0, 1], [1, 3], [2, 5], [4, 7], [3, 6], [5, 8]
+            ];
+            randConnect.forEach(pair => {
+                // Simula uma conexão cruzada simples
+                const c1 = categories[pair[0]];
+                const c2 = categories[pair[1]];
+                if (c1 && c2) {
+                    const rad1 = (c1.angle * Math.PI) / 180;
+                    const rad2 = (c2.angle * Math.PI) / 180;
+                    const x1 = CX + (mainRadius + 60) * Math.cos(rad1);
+                    const y1 = CY + (mainRadius + 60) * Math.sin(rad1);
+                    const x2 = CX + (mainRadius + 60) * Math.cos(rad2);
+                    const y2 = CY + (mainRadius + 60) * Math.sin(rad2);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.strokeStyle = '#888';
+                    ctx.stroke();
+                }
+            });
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Renderiza o mapa
+        renderMindMap();
+
+        // Adiciona interatividade (Redimensionar suavemente)
+        window.addEventListener('resize', () => {
+            // Apenas re-renderiza se o tamanho mudar drasticamente (mantém a proporção)
+        });
+
+    </script>
+</body>
+</html>

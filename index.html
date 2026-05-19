@@ -1,0 +1,647 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atlas Diplomático — CACD 2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#000; --surface:#0d0d0d; --surface2:#141414;
+      --border:rgba(255,255,255,0.07); --text:#fff;
+      --muted:#555; --muted2:#888;
+      --neon-green:#39ff14; --neon-yellow:#f5e642;
+      --neon-orange:#ff6a00; --neon-pink:#ff1f71;
+      --neon-blue:#00cfff;  --neon-purple:#b060ff;
+      --lp:#b060ff; --ing:#00cfff; --hb:#f5e642; --hm:#ff6a00;
+      --geo:#39ff14; --pi:#00cfff; --eco:#f5e642; --dir:#ff1f71; --ling:#ff1f71;
+    }
+    body { background:var(--bg); color:var(--text);
+      font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace; min-height:100vh; }
+
+    /* ── NAV ── */
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid var(--border); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:var(--neon-green); }
+    nav a { color:var(--muted2); text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:var(--neon-green); border-bottom:2px solid var(--neon-green);
+      border-radius:0; padding-bottom:3px; }
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:var(--neon-yellow);
+      background:rgba(245,230,66,.1); border:1px solid rgba(245,230,66,.25);
+      padding:3px 10px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:var(--muted2); }
+
+    /* ── MAIN ── */
+    main { padding:20px 20px; max-width:1400px; margin:0 auto;
+      display:flex; flex-direction:column; gap:16px; }
+
+    /* ── HERO ── */
+    .hero { background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; display:flex; align-items:stretch; overflow:hidden; min-height:90px; }
+    .hero-bar { width:4px; flex-shrink:0; }
+    .hero-body { flex:1; padding:16px 20px; min-width:0; }
+    .hero-lbl { font-size:9px; font-weight:900; letter-spacing:2.5px; color:var(--muted2);
+      text-transform:uppercase; margin-bottom:5px; }
+    .hero-title { font-size:18px; font-weight:900; line-height:1.2; margin-bottom:4px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hero-meta { font-size:11px; color:var(--muted2); }
+    .hero-right { padding:16px 20px; display:flex; flex-direction:column;
+      align-items:flex-end; justify-content:center; gap:8px; flex-shrink:0; }
+    .hero-days { text-align:right; }
+    .hero-days strong { font-size:28px; font-weight:900; color:var(--neon-yellow);
+      display:block; line-height:1; }
+    .hero-days small { font-size:9px; color:var(--muted2); letter-spacing:.5px;
+      text-transform:uppercase; }
+    .hero-btn { display:inline-block; padding:8px 18px; background:var(--neon-green);
+      color:#000; font-size:11px; font-weight:900; border-radius:8px;
+      text-decoration:none; transition:.15s; letter-spacing:.5px; white-space:nowrap; }
+    .hero-btn:hover { opacity:.85; }
+    .hero-btn.empty { background:rgba(255,255,255,.07); color:var(--muted2); }
+
+    /* ── SECTION LABEL ── */
+    .sec-lbl { font-size:9px; font-weight:900; letter-spacing:2.5px;
+      color:var(--muted2); text-transform:uppercase; margin-bottom:10px; }
+
+    /* ── ISLANDS GRID ── */
+    .islands-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+
+    /* ── ISLAND WIDGET ── */
+    .island { background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; overflow:hidden; position:relative;
+      transition:border-color .2s, transform .2s; }
+    .island:hover { border-color:rgba(255,255,255,.15); transform:translateY(-2px); }
+    .island-inner { padding:14px; display:block; text-decoration:none; color:inherit; }
+    .island-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .island-code { font-size:10px; font-weight:900; letter-spacing:2px;
+      text-transform:uppercase; color:var(--subject-color); }
+    .island-streak { font-size:10px; font-weight:900; color:#000;
+      padding:2px 7px; border-radius:20px;
+      background:var(--neon-yellow); letter-spacing:.3px; }
+
+    /* Neon fill bar — the big widget element */
+    .island-fill-wrap { position:relative; height:44px; border-radius:8px;
+      background:rgba(255,255,255,.05); overflow:hidden; margin-bottom:10px; }
+    .island-fill { height:100%; border-radius:8px; background:var(--subject-color);
+      transition:width 1s cubic-bezier(.4,0,.2,1); width:0%;
+      position:relative; display:flex; align-items:center; justify-content:flex-end;
+      padding-right:10px; min-width:0; }
+    .island-pct-overlay { font-size:18px; font-weight:900; color:#000;
+      line-height:1; white-space:nowrap; position:absolute; right:10px; top:50%;
+      transform:translateY(-50%); pointer-events:none; }
+    .island-pct-empty { font-size:14px; font-weight:900; color:var(--muted);
+      position:absolute; left:12px; top:50%; transform:translateY(-50%); }
+
+    .island-bottom { display:flex; justify-content:space-between; align-items:center; }
+    .island-name { font-size:11px; font-weight:700; color:#fff; letter-spacing:.2px; }
+    .island-last { font-size:10px; color:var(--muted2); }
+
+    .island-toggle { padding:7px 14px; font-size:10px; color:var(--muted);
+      cursor:pointer; border-top:1px solid var(--border); transition:.15s;
+      user-select:none; letter-spacing:.3px; font-weight:600; }
+    .island-toggle:hover { color:#fff; background:rgba(255,255,255,.03); }
+    .island-files { padding:8px 12px 10px; border-top:1px solid var(--border);
+      display:flex; flex-wrap:wrap; gap:4px; }
+    .fchip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px;
+      border-radius:5px; font-size:10px; font-weight:700; text-decoration:none;
+      transition:.15s; white-space:nowrap; letter-spacing:.3px; }
+    .fchip-fc  { background:rgba(0,207,255,.08); border:1px solid rgba(0,207,255,.2); color:#00cfff; }
+    .fchip-fc:hover  { background:rgba(0,207,255,.18); }
+    .fchip-sim { background:rgba(57,255,20,.08); border:1px solid rgba(57,255,20,.2); color:#39ff14; }
+    .fchip-sim:hover { background:rgba(57,255,20,.18); }
+    .fchip-rep { background:rgba(176,96,255,.08); border:1px solid rgba(176,96,255,.2); color:#b060ff; }
+    .fchip-rep:hover { background:rgba(176,96,255,.18); }
+
+    /* ── SKELETON ── */
+    .skeleton { background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
+      background-size:200%; animation:shimmer 1.5s infinite; border-radius:4px; }
+    @keyframes shimmer { 0%{background-position:200%}100%{background-position:-200%} }
+
+    /* ── WIDGET ROW (streak / hours / next task) ── */
+    .widget-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+    .widget { background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:14px 16px; }
+    .wgt-lbl { font-size:9px; font-weight:900; letter-spacing:2px; color:var(--muted2);
+      text-transform:uppercase; margin-bottom:6px; }
+    .wgt-val { font-size:26px; font-weight:900; line-height:1; margin-bottom:3px; }
+    .wgt-sub { font-size:10px; color:var(--muted2); }
+    .wgt-bar-wrap { height:5px; background:rgba(255,255,255,.07); border-radius:20px;
+      overflow:hidden; margin-top:8px; }
+    .wgt-bar { height:100%; border-radius:20px; background:var(--neon-green);
+      transition:width 1.2s cubic-bezier(.4,0,.2,1); width:0%; }
+    .wgt-next-name { font-size:13px; font-weight:900; margin-bottom:4px; }
+    .wgt-next-meta { font-size:10px; color:var(--muted2); margin-bottom:10px; }
+    .wgt-next-btn { display:block; text-align:center; padding:8px;
+      background:var(--neon-green); color:#000; font-size:11px; font-weight:900;
+      border-radius:7px; text-decoration:none; transition:.15s; letter-spacing:.3px; }
+    .wgt-next-btn:hover { opacity:.85; }
+
+    /* ── TPS ── */
+    .tps-section { background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:16px; }
+    .tps-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .tps-head h3 { font-size:11px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; }
+    .tps-head p { font-size:10px; color:var(--muted2); }
+    .tps-chips { display:flex; flex-wrap:wrap; gap:5px; }
+    .tps-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 11px;
+      background:rgba(245,230,66,.06); border:1px solid rgba(245,230,66,.2);
+      color:var(--neon-yellow); border-radius:7px; font-size:10px; font-weight:700;
+      text-decoration:none; transition:.15s; letter-spacing:.3px; }
+    .tps-chip:hover { background:rgba(245,230,66,.15); }
+
+    /* ── SESSIONS ── */
+    .sessions-row { display:flex; gap:10px; flex-direction:column; }
+    .session-item { display:flex; align-items:center; gap:10px; padding:8px 0;
+      border-bottom:1px solid var(--border); }
+    .session-item:last-child { border-bottom:none; }
+    .session-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .session-info { flex:1; min-width:0; }
+    .session-name { font-size:11px; font-weight:700;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .session-date { font-size:10px; color:var(--muted2); }
+    .session-score { font-size:12px; font-weight:900; flex-shrink:0; }
+
+    /* ── ANNOUNCEMENTS ── */
+    .ann-item { padding:9px 0; border-bottom:1px solid var(--border); }
+    .ann-item:last-child { border-bottom:none; }
+    .ann-title { font-size:12px; font-weight:700; margin-bottom:3px; }
+    .ann-body  { font-size:11px; color:var(--muted2); line-height:1.5; }
+    .ann-date  { font-size:10px; color:var(--muted); margin-top:4px; }
+
+    .empty-msg { color:var(--muted2); font-size:11px; text-align:center; padding:14px 0; }
+
+    /* ── BOTTOM GRID ── */
+    .bottom-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+    .bottom-card { background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:16px; }
+    .bottom-card h3 { font-size:9px; font-weight:900; letter-spacing:2px;
+      color:var(--muted2); text-transform:uppercase; margin-bottom:12px; }
+
+    /* ── QUICK ACTIONS ── */
+    .btn-action { display:flex; align-items:center; gap:8px; padding:9px 12px;
+      background:rgba(255,255,255,.03); border:1px solid var(--border);
+      border-radius:7px; color:#fff; text-decoration:none; font-size:11px;
+      font-weight:600; transition:.15s; margin-bottom:5px; letter-spacing:.2px; }
+    .btn-action:last-child { margin-bottom:0; }
+    .btn-action:hover { background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.15); }
+    .btn-action .arr { margin-left:auto; color:var(--muted); }
+
+    @media(max-width:1000px) { .widget-row{grid-template-columns:repeat(2,1fr);} .bottom-grid{grid-template-columns:1fr 1fr;} }
+    @media(max-width:760px)  { .islands-grid{grid-template-columns:repeat(2,1fr);} }
+    @media(max-width:520px)  { .islands-grid{grid-template-columns:1fr;} .widget-row{grid-template-columns:1fr 1fr;} .bottom-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <button class="nav-ham" onclick="openSidebar()">☰</button>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html" class="active">🏠 Início</a>
+    <a href="flashcards.html">🃏 Flashcards</a>
+    <a href="analise.html">📊 Análise</a>
+    <a href="leaderboard.html">🏆 Ranking</a>
+    <a href="agenda.html">📅 Agenda</a>
+    <a href="grupo.html">👥 Grupo</a>
+    <a href="segunda-fase.html">✍️ 2ª Fase</a>
+    <a href="mapas.html">🗺️ Mapas</a>
+  <a href="noticias.html">📰 Notícias</a>
+    
+    <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <main>
+
+    <!-- HERO -->
+    <div class="hero" id="heroCard">
+      <div class="hero-bar" id="heroBar" style="background:var(--neon-green)"></div>
+      <div class="hero-body">
+        <div class="hero-lbl">Continuar Estudando</div>
+        <div class="hero-title" id="heroTitle">Carregando...</div>
+        <div class="hero-meta" id="heroMeta"></div>
+      </div>
+      <div class="hero-right">
+        <div class="hero-days">
+          <strong id="heroDays">—</strong>
+          <small>dias para o CACD</small>
+        </div>
+        <a class="hero-btn empty" id="heroBtn" href="flashcards.html">Começar →</a>
+      </div>
+    </div>
+
+    <!-- ISLANDS -->
+    <div>
+      <div class="sec-lbl">Ilhas de Estudo</div>
+      <div class="islands-grid" id="islandsGrid"></div>
+    </div>
+
+    <!-- WIDGET ROW -->
+    <div class="widget-row">
+      <div class="widget">
+        <div class="wgt-lbl">Sequência</div>
+        <div class="wgt-val" id="streakVal" style="color:var(--neon-yellow)">—</div>
+        <div class="wgt-sub">dias seguidos 🔥</div>
+      </div>
+      <div class="widget">
+        <div class="wgt-lbl">Esta Semana</div>
+        <div class="wgt-val" id="weekHours" style="color:var(--neon-blue)">—</div>
+        <div class="wgt-sub" id="weekSub">de 25h meta</div>
+        <div class="wgt-bar-wrap"><div class="wgt-bar" id="weekFill"></div></div>
+      </div>
+      <div class="widget">
+        <div class="wgt-lbl">Próxima Tarefa</div>
+        <div class="wgt-next-name" id="nextTask">—</div>
+        <div class="wgt-next-meta" id="nextMeta"></div>
+        <a class="wgt-next-btn" id="nextTaskBtn" href="flashcards.html">Iniciar →</a>
+      </div>
+      <div class="widget">
+        <div class="wgt-lbl">Ações Rápidas</div>
+        <a href="flashcards.html" class="btn-action" style="margin-bottom:4px">🃏 Flashcards <span class="arr">›</span></a>
+        <a href="simulados.html"  class="btn-action" style="margin-bottom:4px">📝 Simulado <span class="arr">›</span></a>
+        <a href="leaderboard.html"class="btn-action">🏆 Ranking <span class="arr">›</span></a>
+      </div>
+    </div>
+
+    <!-- TPS -->
+    <div class="tps-section">
+      <div class="tps-head">
+        <span style="font-size:18px">📋</span>
+        <div>
+          <h3>Provas Anteriores — TPS</h3>
+          <p>Questões Certo/Errado · 2016–2026</p>
+        </div>
+      </div>
+      <div class="tps-chips" id="tpsChips"></div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="bottom-grid">
+      <div class="bottom-card">
+        <h3>Sessões Recentes</h3>
+        <div id="recentSessions"><div class="empty-msg">Nenhuma sessão ainda.</div></div>
+      </div>
+      <div class="bottom-card" id="announcementsCard" style="display:none">
+        <h3>Avisos</h3>
+        <div id="announcementsList"></div>
+      </div>
+      <div class="bottom-card">
+        <h3>Mais Ações</h3>
+        <a href="agenda.html"      class="btn-action">📅 Agenda <span class="arr">›</span></a>
+        <a href="grupo.html"       class="btn-action">👥 Grupo <span class="arr">›</span></a>
+        <a href="segunda-fase.html"class="btn-action">✍️ 2ª Fase <span class="arr">›</span></a>
+        
+        <a href="analise.html"     class="btn-action">📊 Análise <span class="arr">›</span></a>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const SUBJECTS = [
+      { id:'LP',   name:'Língua Portuguesa',  color:'#b060ff', icon:'📝', cssVar:'--lp',
+        files:[{name:'Literatura',path:'FLASHCARDS/LITERATURA.csv',type:'fc'},{name:'Literatura Bosi',path:'FLASHCARDS/LITERATURA BOSI.csv',type:'fc'}] },
+      { id:'ING',  name:'Língua Inglesa',      color:'#00cfff', icon:'🇬🇧', cssVar:'--ing',
+        files:[{name:'Grammar',path:'FLASHCARDS/GRAMMAR ING.csv',type:'fc'},{name:'Dict. Diplomacy',path:'FLASHCARDS/DICTIONARY OF DIPLOMACY .csv',type:'fc'}] },
+      { id:'HB',   name:'História do Brasil',  color:'#f5e642', icon:'🏛️', cssVar:'--hb',
+        files:[{name:'Brasil Nação 1',path:'FLASHCARDS/Nova pasta/BRASIL NAÇÃO 1 .csv',type:'fc'},{name:'Brasil Nação 2',path:'FLASHCARDS/Nova pasta/BRASIL NAÇÃO 2.csv',type:'fc'},{name:'Brasil Nação 3',path:'FLASHCARDS/Nova pasta/BRASIL NAÇÃO 3.csv',type:'fc'},{name:'Giambiagi',path:'FLASHCARDS/GIAMBIAGI.csv',type:'fc'},{name:'HPEB',path:'REPOSITÓRIO/3 HPEB.csv',type:'rep'}] },
+      { id:'HM',   name:'História Mundial',    color:'#ff6a00', icon:'🌍', cssVar:'--hm',
+        files:[{name:'Diplomatas HM',path:'FLASHCARDS/DIPLOMTAS HM CCONCEITOS.csv',type:'fc'},{name:'Portela',path:'FLASHCARDS/PORTELA  CONCCEITOS.csv',type:'fc'},{name:'Cronologia',path:'LINHA DO TEMPO/CRONOLOGIA 2.csv',type:'fc'}] },
+      { id:'GEO',  name:'Geografia',           color:'#39ff14', icon:'🗺️', cssVar:'--geo',
+        files:[{name:'Geografia Manual',path:'FLASHCARDS/GEOGRAFIA MANUAL.csv',type:'fc'},{name:'Questões CACD',path:'QUESTÕES ESPECIFICAS/GEOGRAFIA.csv',type:'sim'}] },
+      { id:'PI',   name:'Política Internacional', color:'#00cfff', icon:'🌐', cssVar:'--pi',
+        files:[{name:'Lessa PI',path:'FLASHCARDS/LESSA PI .csv',type:'fc'},{name:'Lessa PI (ext)',path:'FLASHCARDS/LESSA AAAAAA PI.csv',type:'fc'},{name:'1001 Conceitos',path:'FLASHCARDS/1001 CONCCEITOS .csv',type:'fc'},{name:'Questões Política',path:'QUESTÕES ESPECIFICAS/POLITICA.csv',type:'sim'},{name:'BRICS/IBAS',path:'REPOSITÓRIO/16 BRICS.csv',type:'rep'},{name:'ONU',path:'REPOSITÓRIO/17 ONU.csv',type:'rep'},{name:'MERCOSUL',path:'REPOSITÓRIO/11 MERCOSUL .csv',type:'rep'},{name:'União Europeia',path:'REPOSITÓRIO/6 UNIÃO EUROPEIA .csv',type:'rep'}] },
+      { id:'ECO',  name:'Economia',            color:'#f5e642', icon:'📊', cssVar:'--eco',
+        files:[{name:'Mankiw',path:'FLASHCARDS/MANKIW.csv',type:'fc'},{name:'Pindyck',path:'FLASHCARDS/pyndick .csv',type:'fc'},{name:'Giambiagi',path:'FLASHCARDS/GIAMBIAGI.csv',type:'fc'},{name:'Questões Economia',path:'QUESTÕES ESPECIFICAS/ECONOMIA.csv',type:'sim'}] },
+      { id:'DIR',  name:'Direito',             color:'#ff1f71', icon:'⚖️', cssVar:'--dir',
+        files:[{name:'Dir. Constitucional',path:'QUESTÕES ESPECIFICAS/DIREITO CONSTITUCIONAL.csv',type:'sim'},{name:'Dir. Administrativo',path:'QUESTÕES ESPECIFICAS/DIREITO ADM.csv',type:'sim'},{name:'DIP',path:'QUESTÕES ESPECIFICAS/DIP.csv',type:'sim'}] },
+      { id:'LING', name:'Espanhol / Francês',  color:'#ff1f71', icon:'💬', cssVar:'--ling',
+        files:[{name:'2000 Espanhol',path:'LINGUAS/2000 ESPANISH.csv',type:'fc'},{name:'2000 Francês',path:'LINGUAS/2000 FRENCH.csv',type:'fc'}] },
+    ];
+
+    const TPS_FILES = [
+      {name:'TPS 2016',path:'TPS/TPS 2016.csv'},{name:'TPS 2017',path:'TPS/TPS 2017.csv'},
+      {name:'TPS 2018',path:'TPS/TPS 2018.csv'},{name:'TPS 2019',path:'TPS/TPS 2019.csv'},
+      {name:'TPS 2021',path:'TPS/TPS 2021.csv'},{name:'TPS 2022',path:'TPS/TPS 2022.csv'},
+      {name:'TPS 2023',path:'TPS/TPS 2023.csv'},{name:'TPS 2024',path:'TPS/TPS 2024.csv'},
+      {name:'TPS 2025',path:'TPS/TPS 2025.csv'},{name:'TPS 2026',path:'TPS/TPS 2026.csv'},
+    ];
+
+    const PAGE_FOR = { fc:'flashcards.html', sim:'simulados.html', rep:'repositorio.html' };
+    let _sessions = [], _activity = {};
+
+    function computeStreak(activity) {
+      const today = new Date();
+      let streak = 0;
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        if ((activity[key] || 0) > 0) streak++;
+        else if (i > 0) break;
+      }
+      return streak;
+    }
+
+    function computeWeekHours(sessions) {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
+      const cutStr = cutoff.toISOString().split('T')[0];
+      return sessions.filter(s => s.date >= cutStr)
+        .reduce((a, s) => a + (s.time_seconds || 0), 0) / 3600;
+    }
+
+    function relativeDate(dateStr) {
+      if (!dateStr) return '';
+      const diff = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
+      if (diff === 0) return 'hoje';
+      if (diff === 1) return 'ontem';
+      return `${diff}d atrás`;
+    }
+
+    function subjectStreak(subjectId) {
+      const today = new Date();
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        const found = _sessions.find(s => s.date === key && s.subject === subjectId);
+        if (!found && i > 0) return i;
+        if (!found && i === 0) return 0;
+      }
+      return 30;
+    }
+
+    function getSubjectStats(id) {
+      const ss = _sessions.filter(s => s.subject === id);
+      if (!ss.length) return { pct:0, total:0, sessions:0, lastDate:null };
+      const pct = Math.round(ss.reduce((a,s) => a + (s.correct/s.total*100), 0) / ss.length);
+      const lastDate = ss[0]?.date || null;
+      return { pct, total: ss.reduce((a,s)=>a+s.total,0), sessions:ss.length, lastDate };
+    }
+
+    // ── RENDER ────────────────────────────────────────────────────────────
+    function renderIslands(filesMap) {
+      document.getElementById('islandsGrid').innerHTML = SUBJECTS.map(s => {
+        const files = filesMap ? (filesMap.get(s.id) || []) : [];
+        const st = getSubjectStats(s.id);
+        const sStreak = subjectStreak(s.id);
+        const streakHtml = sStreak >= 2 ? `<span class="island-streak">🔥${sStreak}</span>` : '';
+        const chips = files.map(f => {
+          const cls  = {fc:'fchip-fc',sim:'fchip-sim',rep:'fchip-rep'}[f.type];
+          const icon = {fc:'🃏',sim:'📝',rep:'📚'}[f.type];
+          return `<a href="${PAGE_FOR[f.type]}?file=${encodeURIComponent(f.path)}&subject=${s.id}" class="fchip ${cls}">${icon} ${f.name}</a>`;
+        }).join('');
+        const mainLink = `flashcards.html?subject=${s.id}`;
+
+        const hasPct = st.pct > 0;
+        const pctOverlay = hasPct
+          ? `<div class="island-pct-overlay">${st.pct}%</div>`
+          : `<div class="island-pct-empty">0%</div>`;
+
+        return `<div class="island" style="--subject-color:${s.color}">
+          <a class="island-inner" href="${mainLink}">
+            <div class="island-top">
+              <span class="island-code">${s.id}</span>
+              ${streakHtml}
+            </div>
+            <div class="island-fill-wrap">
+              <div class="island-fill skeleton" id="fill-${s.id}" style="width:0%"></div>
+              ${pctOverlay}
+            </div>
+            <div class="island-bottom">
+              <span class="island-name">${s.name}</span>
+              <span class="island-last skeleton" id="last-${s.id}" style="width:48px;height:10px">&nbsp;</span>
+            </div>
+          </a>
+          <div class="island-toggle" onclick="toggleFiles('${s.id}')">Ver arquivos (${files.length}) ⌄</div>
+          <div class="island-files" id="ifiles-${s.id}" style="display:none">${chips}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function updateIslandStats() {
+      SUBJECTS.forEach(s => {
+        const st = getSubjectStats(s.id);
+        const fillEl = document.getElementById('fill-'+s.id);
+        const lastEl = document.getElementById('last-'+s.id);
+        // Update fill bar
+        if (fillEl) {
+          fillEl.classList.remove('skeleton');
+          fillEl.style.width = st.pct + '%';
+          // Update overlay pct
+          const overlay = fillEl.parentElement.querySelector('.island-pct-overlay,.island-pct-empty');
+          if (overlay) {
+            overlay.className = st.pct > 0 ? 'island-pct-overlay' : 'island-pct-empty';
+            overlay.textContent = st.pct + '%';
+          }
+        }
+        if (lastEl) {
+          lastEl.classList.remove('skeleton');
+          lastEl.style.width = ''; lastEl.style.height = '';
+          lastEl.textContent = st.lastDate ? relativeDate(st.lastDate) : 'sem sessões';
+        }
+      });
+    }
+
+    function toggleFiles(id) {
+      const el = document.getElementById('ifiles-'+id);
+      const tog = el.previousElementSibling;
+      const open = el.style.display === 'none';
+      el.style.display = open ? 'flex' : 'none';
+      tog.textContent = open ? `Ocultar arquivos ⌃` : `Ver arquivos (${el.children.length}) ⌄`;
+    }
+
+    function renderTPS() {
+      document.getElementById('tpsChips').innerHTML = TPS_FILES.map(f =>
+        `<a href="simulados.html?file=${encodeURIComponent(f.path)}" class="tps-chip">📋 ${f.name}</a>`
+      ).join('');
+    }
+
+    function renderHero(examDate) {
+      const last = _sessions[0];
+      const days = Math.ceil((examDate - Date.now()) / 86400000);
+      document.getElementById('heroDays').textContent = days;
+      const heroBar   = document.getElementById('heroBar');
+      const heroTitle = document.getElementById('heroTitle');
+      const heroMeta  = document.getElementById('heroMeta');
+      const heroBtn   = document.getElementById('heroBtn');
+      heroTitle.classList.remove('skeleton');
+      if (last) {
+        const subj = SUBJECTS.find(s => s.id === last.subject);
+        heroBar.style.background = subj?.color || 'var(--neon-green)';
+        heroTitle.textContent = subj ? subj.name : last.deck;
+        const pct = Math.round(last.correct / last.total * 100);
+        heroMeta.textContent = `Última sessão: ${relativeDate(last.date)} · ${last.total} itens · ${pct}% de acerto`;
+        const href = last.type==='flashcard'
+          ? `flashcards.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`
+          : `simulados.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`;
+        heroBtn.href = href;
+        heroBtn.textContent = 'Retomar →';
+        heroBtn.className = 'hero-btn';
+      } else {
+        heroTitle.textContent = 'Bem-vindo ao Atlas Diplomático';
+        heroMeta.textContent  = 'Selecione uma ilha para começar seus estudos';
+        heroBtn.textContent   = 'Começar →';
+        heroBtn.className     = 'hero-btn empty';
+      }
+    }
+
+    function renderMotivation(examDate) {
+      const streak  = computeStreak(_activity);
+      const weekH   = computeWeekHours(_sessions);
+      const target  = 25;
+      const fillPct = Math.min(100, (weekH / target) * 100);
+      document.getElementById('streakVal').textContent = streak;
+      document.getElementById('weekHours').textContent = weekH.toFixed(1) + 'h';
+      document.getElementById('weekSub').textContent   = `de ${target}h meta`;
+      document.getElementById('weekFill').style.width  = fillPct + '%';
+      const days = Math.ceil((examDate - Date.now()) / 86400000);
+      const el = document.getElementById('navCountdown');
+      if (el) el.textContent = `${days}d CACD`;
+    }
+
+    function renderNextTask() {
+      const today = new Date().toISOString().split('T')[0];
+      const studiedToday = new Set(_sessions.filter(s => s.date === today).map(s => s.subject));
+      const notStudied = SUBJECTS.filter(s => !studiedToday.has(s.id));
+      const candidates = notStudied.length ? notStudied : SUBJECTS;
+      const sorted = candidates.map(s => ({ ...s, pct: getSubjectStats(s.id).pct }))
+        .sort((a,b) => a.pct - b.pct);
+      const pick = sorted[0];
+      if (pick) {
+        const firstFile = pick.files.find(f => f.type === 'fc') || pick.files[0];
+        const href = firstFile
+          ? `${PAGE_FOR[firstFile.type]}?file=${encodeURIComponent(firstFile.path)}&subject=${pick.id}`
+          : `flashcards.html?subject=${pick.id}`;
+        document.getElementById('nextTask').textContent = pick.name;
+        document.getElementById('nextMeta').textContent = `${pick.pct}% acerto`;
+        document.getElementById('nextTaskBtn').href = href;
+      }
+    }
+
+    function renderRecentSessions() {
+      const recent = _sessions.slice(0,5);
+      const el = document.getElementById('recentSessions');
+      if (!recent.length) { el.innerHTML = '<div class="empty-msg">Nenhuma sessão ainda.</div>'; return; }
+      const subMap = Object.fromEntries(SUBJECTS.map(s => [s.id, s]));
+      el.innerHTML = recent.map(s => {
+        const subj = subMap[s.subject] || { color:'var(--neon-blue)', name: s.subject||s.deck };
+        const pct  = Math.round((s.correct/s.total)*100);
+        const scoreColor = pct>=70 ? 'var(--neon-green)' : pct>=50 ? 'var(--neon-yellow)' : 'var(--neon-pink)';
+        return `<div class="session-item">
+          <div class="session-dot" style="background:${subj.color}"></div>
+          <div class="session-info">
+            <div class="session-name">${s.type==='flashcard'?'🃏':'📝'} ${s.deck||subj.name}</div>
+            <div class="session-date">${relativeDate(s.date)} · ${s.total} itens</div>
+          </div>
+          <div class="session-score" style="color:${scoreColor}">${pct}%</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderAnnouncements(list) {
+      if (!list.length) return;
+      document.getElementById('announcementsCard').style.display = '';
+      document.getElementById('announcementsList').innerHTML = list.map(a => `
+        <div class="ann-item">
+          <div class="ann-title">${a.title}</div>
+          <div class="ann-body">${a.body||''}</div>
+          <div class="ann-date">${new Date(a.created_at).toLocaleDateString('pt-BR')}</div>
+        </div>`).join('');
+    }
+
+    // ── INIT ─────────────────────────────────────────────────────────────
+    renderIslands(null);
+    renderTPS();
+
+    (async () => {
+      const user = await DB.requireAuth();
+      const profile = await DB.getProfile();
+      const initials = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+      document.getElementById('navUser').textContent = initials;
+      const isAdm = await DB.isAdmin();
+      if (isAdm) document.getElementById('navAdmin').style.display = '';
+
+      const [sessions, activity, announcements, examDate, subjectFilesArr] = await Promise.all([
+        DB.getSessions(user.id),
+        DB.getActivity(user.id),
+        DB.getAnnouncements(),
+        DB.getExamDate(),
+        DB.getSubjectFiles()
+      ]);
+      _sessions = sessions;
+      _activity = activity;
+
+      // Build filesMap from DB
+      const filesMap = new Map();
+      subjectFilesArr.forEach(f => {
+        if (!filesMap.has(f.subject_id)) filesMap.set(f.subject_id, []);
+        filesMap.get(f.subject_id).push(f);
+      });
+      renderIslands(filesMap);
+
+      renderHero(examDate);
+      renderMotivation(examDate);
+      updateIslandStats();
+      renderNextTask();
+      renderRecentSessions();
+      renderAnnouncements(announcements);
+    })();
+  </script>
+<style>
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-brand span{color:#39ff14}
+.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#39ff14}
+</style>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
+  <div class="sb-section">Estudo</div>
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="simulados.html">📋 Simulados</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <div class="sb-section">Mapas</div>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  
+  <div class="sb-section">Comunidade</div>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="agenda.html">📅 Agenda</a>
+  <a class="sb-link" href="grupo.html">👥 Grupos</a>
+  <div class="sb-section">2ª Fase</div>
+  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
+  <div class="sb-section">Admin</div>
+  <a class="sb-link" href="admin.html">⚙️ Admin</a>
+</aside>
+<script>
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+document.querySelectorAll('.sb-link').forEach(function(a){
+  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
+});
+</script>
+</body>
+</html>

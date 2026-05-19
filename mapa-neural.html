@@ -1,0 +1,678 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mapa Neural — Atlas Diplomático</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000; --surface:#0d0d0d; --border:rgba(255,255,255,0.07);
+  --text:#fff; --muted:#555; --muted2:#888;
+  --neon-green:#39ff14; --neon-yellow:#f5e642; --neon-orange:#ff6a00;
+  --neon-pink:#ff1f71; --neon-blue:#00cfff; --neon-purple:#b060ff;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:200;height:52px;background:#000;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2px;margin-right:14px;
+  white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{color:var(--neon-green)}
+nav a{color:var(--muted2);text-decoration:none;font-size:11px;font-weight:600;
+  padding:5px 9px;border-radius:6px;transition:.15s;white-space:nowrap;
+  display:flex;align-items:center;gap:4px;flex-shrink:0;letter-spacing:.3px}
+nav a:hover{color:#fff;background:rgba(255,255,255,0.06)}
+nav a.active{color:var(--neon-green);border-bottom:2px solid var(--neon-green);border-radius:0}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:var(--neon-yellow);
+  background:rgba(245,230,66,.1);border:1px solid rgba(245,230,66,.25);
+  padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:center;font-size:11px;
+  font-weight:700;flex-shrink:0;margin-left:6px;color:var(--muted2)}
+
+/* ── CONTROLS ── */
+.controls{display:flex;align-items:center;gap:10px;padding:10px 16px;
+  background:#000;border-bottom:1px solid var(--border);flex-wrap:wrap;
+  position:sticky;top:52px;z-index:100}
+.ctrl-group{display:flex;align-items:center;gap:6px}
+.ctrl-label{font-size:10px;font-weight:700;color:var(--muted2);letter-spacing:.8px;
+  text-transform:uppercase;white-space:nowrap}
+.ctrl-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted2);
+  font-size:11px;font-weight:700;padding:6px 12px;border-radius:6px;cursor:pointer;
+  font-family:inherit;transition:.15s;letter-spacing:.3px}
+.ctrl-btn:hover{border-color:rgba(255,255,255,.2);color:#fff}
+.ctrl-btn.active{border-color:var(--neon-green);color:var(--neon-green);
+  background:rgba(57,255,20,.06)}
+.ctrl-btn.neon-btn{background:var(--neon-green);border-color:var(--neon-green);
+  color:#000;font-weight:900}
+.ctrl-btn.neon-btn:hover{opacity:.85}
+input[type=file]{display:none}
+select.ctrl-sel{background:var(--surface);border:1px solid var(--border);
+  color:var(--muted2);font-size:11px;font-weight:700;padding:6px 10px;
+  border-radius:6px;cursor:pointer;font-family:inherit;outline:none}
+select.ctrl-sel:focus{border-color:rgba(255,255,255,.2);color:#fff}
+select.ctrl-sel option{background:#111}
+input[type=range]{accent-color:var(--neon-green);width:80px;cursor:pointer}
+.freq-val{font-size:11px;font-weight:700;color:var(--neon-green);min-width:16px}
+.ctrl-divider{width:1px;height:20px;background:var(--border)}
+.stats-pill{font-size:10px;font-weight:700;color:var(--muted2);
+  background:rgba(255,255,255,.04);border:1px solid var(--border);
+  padding:4px 10px;border-radius:20px;white-space:nowrap}
+.stats-pill span{color:#fff}
+
+/* ── GRAPH AREA ── */
+#graphWrap{position:relative;width:100%;height:calc(100vh - 104px);overflow:hidden}
+svg{width:100%;height:100%;background:#000}
+
+/* ── EMPTY STATE ── */
+#emptyState{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;pointer-events:none}
+#emptyState.hidden{display:none}
+.empty-icon{font-size:48px}
+.empty-title{font-size:18px;font-weight:800;color:#fff}
+.empty-sub{font-size:13px;color:var(--muted2);text-align:center;max-width:320px;line-height:1.6}
+.empty-arrow{font-size:24px;color:var(--neon-green);animation:bounce .8s ease-in-out infinite alternate}
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-8px)}}
+
+/* ── TOOLTIP ── */
+#tooltip{position:fixed;background:#111;border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;padding:10px 14px;font-size:12px;pointer-events:none;
+  z-index:500;opacity:0;transition:opacity .15s;min-width:140px}
+#tooltip.visible{opacity:1}
+.tt-word{font-size:15px;font-weight:800;color:#fff;margin-bottom:4px}
+.tt-row{display:flex;justify-content:space-between;gap:16px;
+  font-size:11px;color:var(--muted2);margin-top:2px}
+.tt-row span{color:#fff;font-weight:600}
+
+/* ── LEGEND ── */
+#legend{position:absolute;bottom:16px;left:16px;display:flex;flex-wrap:wrap;
+  gap:6px;max-width:280px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;
+  color:var(--muted2);letter-spacing:.5px}
+.leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* D3 elements */
+.link{stroke-opacity:.4}
+.node-circle{stroke:#000;stroke-width:1.5;cursor:pointer;transition:filter .15s}
+.node-circle:hover{filter:drop-shadow(0 0 10px currentColor)}
+.node-label{pointer-events:none;dominant-baseline:central;text-anchor:middle;
+  fill:#fff;font-family:ui-monospace,monospace;font-weight:700}
+.node-group.dimmed .node-circle{opacity:.08}
+.node-group.dimmed .node-label{opacity:.04}
+.link.dimmed{opacity:.04}
+.node-group.highlighted .node-circle{filter:drop-shadow(0 0 12px currentColor)}
+</style>
+</head>
+<body>
+
+<nav id="mainNav">
+  <button class="nav-ham" onclick="openSidebar()">☰</button>
+  <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+  <a href="index.html">🏠 Início</a>
+  <a href="flashcards.html">🃏 Flashcards</a>
+  <a href="analise.html">📊 Análise</a>
+  <a href="leaderboard.html">🏆 Ranking</a>
+  <a href="agenda.html">📅 Agenda</a>
+  <a href="grupo.html">👥 Grupo</a>
+  <a href="segunda-fase.html">✍️ 2ª Fase</a>
+  <a href="mapas.html">🗺️ Mapas</a>
+  <a href="noticias.html">📰 Notícias</a>
+  <a href="mapa-neural.html" class="active">🧠 Neural</a>
+  <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+  <div class="nav-spacer"></div>
+  <div class="nav-cd" id="navCd"></div>
+  <div class="nav-user" id="navUser">?</div>
+</nav>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <button class="ctrl-btn neon-btn" onclick="document.getElementById('csvInput').click()">
+      ＋ Carregar CSV
+    </button>
+    <input type="file" id="csvInput" accept=".csv" multiple/>
+  </div>
+  <div class="ctrl-divider"></div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Matéria</span>
+    <select class="ctrl-sel" id="subjectFilter" onchange="applyFilters()">
+      <option value="">Todas</option>
+      <option value="LP">LP</option>
+      <option value="ING">ING</option>
+      <option value="HB">HB</option>
+      <option value="HM">HM</option>
+      <option value="GEO">GEO</option>
+      <option value="PI">PI</option>
+      <option value="ECO">ECO</option>
+      <option value="DIR">DIR</option>
+      <option value="LING">LING</option>
+    </select>
+  </div>
+  <div class="ctrl-divider"></div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Min. freq.</span>
+    <input type="range" id="freqSlider" min="1" max="15" value="2" oninput="onFreqChange(this)"/>
+    <span class="freq-val" id="freqVal">2</span>
+  </div>
+  <div class="ctrl-divider"></div>
+  <div class="ctrl-group">
+    <button class="ctrl-btn" id="btnPhysics" onclick="togglePhysics()">⏸ Pausar</button>
+    <button class="ctrl-btn" onclick="resetView()">⟳ Reset</button>
+    <button class="ctrl-btn" onclick="clearGraph()">✕ Limpar</button>
+  </div>
+  <div class="ctrl-divider"></div>
+  <div class="stats-pill" id="statsInfo">0 palavras · 0 conexões</div>
+</div>
+
+<div id="graphWrap">
+  <svg id="svg"></svg>
+  <div id="emptyState">
+    <div class="empty-arrow">↑</div>
+    <div class="empty-icon">🧠</div>
+    <div class="empty-title">Mapa Neural de Flashcards</div>
+    <div class="empty-sub">Carregue um arquivo CSV de flashcards para visualizar as conexões entre palavras como uma rede neural.</div>
+  </div>
+  <div id="legend"></div>
+</div>
+
+<div id="tooltip">
+  <div class="tt-word" id="ttWord"></div>
+  <div class="tt-row"><span class="tt-lbl">Frequência</span><span id="ttFreq"></span></div>
+  <div class="tt-row"><span class="tt-lbl">Conexões</span><span id="ttConns"></span></div>
+  <div class="tt-row"><span class="tt-lbl">Matéria</span><span id="ttSubj"></span></div>
+  <div class="tt-row"><span class="tt-lbl">Deck</span><span id="ttDeck"></span></div>
+</div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const SUBJECT_COLORS = {
+  LP:'#b060ff', ING:'#00cfff', HB:'#f5e642', HM:'#ff6a00',
+  GEO:'#39ff14', PI:'#00cfff', ECO:'#f5e642', DIR:'#ff1f71', LING:'#ff1f71',
+  '?':'rgba(255,255,255,0.4)'
+};
+
+const SUBJECT_MAP = {
+  'literatura':'LP','grammar':'ING','dictionary':'ING','brasil':'HB','giambiagi':'HB',
+  'diplomtas':'HM','portela':'HM','cronologia':'HM','geografia':'GEO','lessa':'PI',
+  '1001':'PI','mankiw':'ECO','pyndick':'ECO','direito':'DIR','espanish':'LING','french':'LING',
+  'tps':'PI','cacd':'PI','mercosul':'PI','onu':'PI','brics':'PI','hpeb':'HB',
+};
+
+const STOPWORDS = new Set([
+  'o','a','e','é','de','do','da','em','no','na','para','com','que','se','os','as',
+  'um','uma','são','foi','pelo','pela','por','mais','mas','não','ao','ou','nas','nos',
+  'seu','sua','entre','como','quando','sobre','isso','ele','ela','eles','elas','isso',
+  'este','esta','estes','estas','esse','essa','esses','essas','seu','sua','seus','suas',
+  'ter','ser','tem','também','já','até','então','ainda','assim','onde','pela','pelos',
+  'the','of','in','to','and','is','are','was','were','that','this','for','also','can',
+  'be','have','has','had','but','from','an','they','at','its','it','which','with','by',
+  'their','as','on','not','or','we','you','he','she','there','than','so','if','would',
+  'after','before','when','while','though','about','into','out','up','what','how',
+  'all','any','both','each','few','more','most','other','some','such','very','just',
+  'dos','das','num','numa','uns','umas','seu','desta','deste','neste','nesta','após',
+  'ante','sob','per','via','sem','nem','cada','todo','toda','todos','todas','muito',
+]);
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let allNodes = [], allLinks = [];
+let simulation = null;
+let svg = null, g = null, linkSel = null, nodeSel = null;
+let physicsRunning = true;
+let loadedDecks = []; // { name, subject, cards }
+let minFreq = 2;
+let subjectFilter = '';
+
+// ── D3 SETUP ─────────────────────────────────────────────────────────────────
+function initSVG() {
+  const el = document.getElementById('svg');
+  const W = el.clientWidth || window.innerWidth;
+  const H = el.clientHeight || window.innerHeight - 104;
+
+  svg = d3.select('#svg');
+  svg.selectAll('*').remove();
+
+  // Defs: glow filter
+  const defs = svg.append('defs');
+  Object.entries(SUBJECT_COLORS).forEach(([subj, color]) => {
+    const filter = defs.append('filter').attr('id', `glow-${subj}`).attr('x','-50%').attr('y','-50%').attr('width','200%').attr('height','200%');
+    filter.append('feGaussianBlur').attr('stdDeviation','4').attr('result','coloredBlur');
+    const merge = filter.append('feMerge');
+    merge.append('feMergeNode').attr('in','coloredBlur');
+    merge.append('feMergeNode').attr('in','SourceGraphic');
+  });
+
+  g = svg.append('g').attr('class','graph-root');
+
+  // Zoom
+  const zoom = d3.zoom()
+    .scaleExtent([0.05, 8])
+    .on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoom);
+
+  // Double-click on background = reset zoom
+  svg.on('dblclick.zoom', null);
+  svg.on('dblclick', () => {
+    svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+  });
+
+  return { W, H };
+}
+
+// ── CSV LOADING ───────────────────────────────────────────────────────────────
+document.getElementById('csvInput').addEventListener('change', function(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  let pending = files.length;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      let text = ev.target.result;
+      // Strip BOM
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const result = Papa.parse(text, { delimiter:';', skipEmptyLines:true });
+      const cards = result.data
+        .filter(r => r[0] && r[1] && r[0].trim() && r[1].trim())
+        .map(r => ({ q: r[0].trim(), a: r[1].trim() }));
+      if (cards.length) {
+        const deckName = file.name.replace(/\.csv$/i,'').trim();
+        const subject = detectSubject(deckName);
+        loadedDecks.push({ name: deckName, subject, cards });
+      }
+      pending--;
+      if (pending === 0) rebuildGraph();
+    };
+    reader.readAsText(file, 'utf-8');
+  });
+  e.target.value = '';
+});
+
+function detectSubject(deckName) {
+  const lower = deckName.toLowerCase();
+  for (const [key, subj] of Object.entries(SUBJECT_MAP)) {
+    if (lower.includes(key)) return subj;
+  }
+  return '?';
+}
+
+// ── GRAPH BUILDING ────────────────────────────────────────────────────────────
+function buildGraph(decks) {
+  const wordFreq = new Map();    // word → { freq, subjects: Set, decks: Set }
+  const cooc = new Map();        // `wordA|wordB` → count
+
+  decks.forEach(deck => {
+    deck.cards.forEach(card => {
+      const qWords = tokenize(card.q);
+      const aWords = tokenize(card.a);
+      const allWords = [...new Set([...qWords, ...aWords])];
+
+      allWords.forEach(w => {
+        if (!wordFreq.has(w)) wordFreq.set(w, { freq:0, subjects:new Set(), decks:new Set() });
+        const wf = wordFreq.get(w);
+        wf.freq++;
+        wf.subjects.add(deck.subject);
+        wf.decks.add(deck.name);
+      });
+
+      // Co-occurrence edges: words in same sentence
+      [qWords, aWords].forEach(sentence => {
+        const uniq = [...new Set(sentence)];
+        for (let i = 0; i < uniq.length; i++) {
+          for (let j = i+1; j < uniq.length; j++) {
+            const key = [uniq[i], uniq[j]].sort().join('|');
+            cooc.set(key, (cooc.get(key)||0) + 1);
+          }
+        }
+      });
+    });
+  });
+
+  // Filter by min frequency
+  const validWords = new Set([...wordFreq.entries()]
+    .filter(([,v]) => v.freq >= minFreq)
+    .sort((a,b) => b[1].freq - a[1].freq)
+    .slice(0, 400)
+    .map(([w]) => w));
+
+  const nodes = [];
+  wordFreq.forEach((v, word) => {
+    if (!validWords.has(word)) return;
+    // subject: most common
+    const subjArr = [...v.subjects];
+    const subject = subjArr.length === 1 ? subjArr[0] : '?';
+    nodes.push({
+      id: word,
+      freq: v.freq,
+      subject,
+      decks: [...v.decks].join(', '),
+      color: SUBJECT_COLORS[subject] || SUBJECT_COLORS['?'],
+      r: Math.max(5, Math.min(28, 4 + Math.sqrt(v.freq) * 2.8)),
+    });
+  });
+
+  const links = [];
+  const edgeThreshold = 2;
+  cooc.forEach((count, key) => {
+    if (count < edgeThreshold) return;
+    const [a, b] = key.split('|');
+    if (!validWords.has(a) || !validWords.has(b)) return;
+    links.push({ source: a, target: b, value: count });
+  });
+
+  return { nodes, links };
+}
+
+function tokenize(text) {
+  return text.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove accents
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length >= 3 && !STOPWORDS.has(w));
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function rebuildGraph() {
+  const filteredDecks = subjectFilter
+    ? loadedDecks.filter(d => d.subject === subjectFilter)
+    : loadedDecks;
+
+  const { nodes, links } = buildGraph(filteredDecks);
+  allNodes = nodes;
+  allLinks = links;
+
+  document.getElementById('statsInfo').innerHTML =
+    `<span>${nodes.length}</span> palavras · <span>${links.length}</span> conexões`;
+
+  if (nodes.length === 0) {
+    document.getElementById('emptyState').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('emptyState').classList.add('hidden');
+
+  const { W, H } = initSVG();
+  renderD3(nodes, links, W, H);
+  renderLegend(filteredDecks);
+}
+
+function renderD3(nodes, links, W, H) {
+  // Links layer
+  linkSel = g.append('g').attr('class','links')
+    .selectAll('line')
+    .data(links)
+    .join('line')
+    .attr('class','link')
+    .attr('stroke', d => {
+      const srcNode = nodes.find(n => n.id === (d.source.id || d.source));
+      return srcNode ? srcNode.color : 'rgba(255,255,255,0.2)';
+    })
+    .attr('stroke-width', d => Math.min(3, 0.5 + Math.sqrt(d.value) * 0.4));
+
+  // Nodes layer
+  const nodeGroups = g.append('g').attr('class','nodes')
+    .selectAll('g')
+    .data(nodes, d => d.id)
+    .join('g')
+    .attr('class','node-group')
+    .call(d3.drag()
+      .on('start', dragStart)
+      .on('drag',  dragged)
+      .on('end',   dragEnd));
+
+  nodeSel = nodeGroups;
+
+  nodeGroups.append('circle')
+    .attr('class','node-circle')
+    .attr('r', d => d.r)
+    .attr('fill', d => d.color)
+    .attr('fill-opacity', 0.85);
+
+  nodeGroups.append('text')
+    .attr('class','node-label')
+    .attr('font-size', d => Math.max(8, Math.min(13, d.r * 0.8)))
+    .text(d => d.r > 10 ? d.id : '')
+    .attr('fill','#000')
+    .attr('font-weight','900');
+
+  // Hover interactions
+  nodeGroups
+    .on('mouseenter', (event, d) => {
+      showTooltip(event, d, links);
+      highlightNode(d.id);
+    })
+    .on('mousemove', moveTooltip)
+    .on('mouseleave', () => {
+      hideTooltip();
+      unhighlight();
+    })
+    .on('dblclick', (event, d) => {
+      event.stopPropagation();
+      zoomToNode(d);
+    });
+
+  // Simulation
+  simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d => d.id).distance(d => 40 + d.value * 2).strength(0.3))
+    .force('charge', d3.forceManyBody().strength(d => -Math.pow(d.r, 1.8) * 2.5))
+    .force('collide', d3.forceCollide().radius(d => d.r + 4).strength(0.7))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('x', d3.forceX(W/2).strength(0.04))
+    .force('y', d3.forceY(H/2).strength(0.04))
+    .alphaDecay(0.02)
+    .on('tick', ticked);
+
+  if (!physicsRunning) simulation.stop();
+}
+
+function ticked() {
+  linkSel
+    .attr('x1', d => d.source.x)
+    .attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x)
+    .attr('y2', d => d.target.y);
+
+  nodeSel.attr('transform', d => `translate(${d.x},${d.y})`);
+}
+
+// ── DRAG ─────────────────────────────────────────────────────────────────────
+function dragStart(event, d) {
+  if (!simulation) return;
+  if (!event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x; d.fy = d.y;
+}
+function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+function dragEnd(event, d) {
+  if (!simulation) return;
+  if (!event.active) simulation.alphaTarget(0);
+  d.fx = null; d.fy = null;
+}
+
+// ── HIGHLIGHT ────────────────────────────────────────────────────────────────
+function highlightNode(nodeId) {
+  if (!nodeSel || !linkSel) return;
+  const connected = new Set([nodeId]);
+  linkSel.each(d => {
+    const s = d.source.id || d.source;
+    const t = d.target.id || d.target;
+    if (s === nodeId) connected.add(t);
+    if (t === nodeId) connected.add(s);
+  });
+
+  nodeSel.classed('dimmed', d => !connected.has(d.id));
+  nodeSel.classed('highlighted', d => connected.has(d.id));
+  linkSel.classed('dimmed', d => {
+    const s = d.source.id || d.source;
+    const t = d.target.id || d.target;
+    return !(s === nodeId || t === nodeId);
+  });
+}
+
+function unhighlight() {
+  if (!nodeSel || !linkSel) return;
+  nodeSel.classed('dimmed', false).classed('highlighted', false);
+  linkSel.classed('dimmed', false);
+}
+
+// ── TOOLTIP ──────────────────────────────────────────────────────────────────
+function showTooltip(event, d, links) {
+  const connCount = links.filter(l => {
+    const s = l.source.id || l.source;
+    const t = l.target.id || l.target;
+    return s === d.id || t === d.id;
+  }).length;
+  document.getElementById('ttWord').textContent = d.id;
+  document.getElementById('ttFreq').textContent = d.freq;
+  document.getElementById('ttConns').textContent = connCount;
+  document.getElementById('ttSubj').textContent = d.subject;
+  document.getElementById('ttDeck').textContent = d.decks.slice(0, 40) + (d.decks.length > 40 ? '…' : '');
+  moveTooltip(event);
+  document.getElementById('tooltip').classList.add('visible');
+}
+function moveTooltip(event) {
+  const tt = document.getElementById('tooltip');
+  const x = event.clientX + 14;
+  const y = event.clientY - 10;
+  tt.style.left = Math.min(x, window.innerWidth - 180) + 'px';
+  tt.style.top  = Math.min(y, window.innerHeight - 120) + 'px';
+}
+function hideTooltip() {
+  document.getElementById('tooltip').classList.remove('visible');
+}
+
+// ── ZOOM TO NODE ──────────────────────────────────────────────────────────────
+function zoomToNode(d) {
+  const el = document.getElementById('svg');
+  const W = el.clientWidth;
+  const H = el.clientHeight;
+  const scale = 3;
+  const tx = W/2 - scale * d.x;
+  const ty = H/2 - scale * d.y;
+  d3.select('#svg').transition().duration(600)
+    .call(d3.zoom().transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
+}
+
+// ── CONTROLS ─────────────────────────────────────────────────────────────────
+function togglePhysics() {
+  physicsRunning = !physicsRunning;
+  const btn = document.getElementById('btnPhysics');
+  if (physicsRunning) {
+    simulation?.alphaTarget(0.1).restart();
+    btn.textContent = '⏸ Pausar';
+  } else {
+    simulation?.stop();
+    btn.textContent = '▶ Continuar';
+  }
+}
+
+function resetView() {
+  d3.select('#svg').transition().duration(400)
+    .call(d3.zoom().transform, d3.zoomIdentity);
+  if (simulation) simulation.alphaTarget(0.3).restart();
+  setTimeout(() => simulation?.alphaTarget(0), 2000);
+}
+
+function clearGraph() {
+  loadedDecks = [];
+  allNodes = []; allLinks = [];
+  if (simulation) { simulation.stop(); simulation = null; }
+  d3.select('#svg').selectAll('*').remove();
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('statsInfo').innerHTML = '0 palavras · 0 conexões';
+  document.getElementById('legend').innerHTML = '';
+}
+
+function onFreqChange(el) {
+  minFreq = parseInt(el.value);
+  document.getElementById('freqVal').textContent = minFreq;
+  if (loadedDecks.length > 0) rebuildGraph();
+}
+
+function applyFilters() {
+  subjectFilter = document.getElementById('subjectFilter').value;
+  if (loadedDecks.length > 0) rebuildGraph();
+}
+
+// ── LEGEND ────────────────────────────────────────────────────────────────────
+function renderLegend(decks) {
+  const subjects = [...new Set(decks.map(d => d.subject))].filter(s => s !== '?');
+  const NAMES = { LP:'Português', ING:'Inglês', HB:'História BR', HM:'História Mundial',
+    GEO:'Geografia', PI:'Política Int.', ECO:'Economia', DIR:'Direito', LING:'Espanhol/FR' };
+  document.getElementById('legend').innerHTML = subjects.map(s =>
+    `<div class="leg-item">
+      <div class="leg-dot" style="background:${SUBJECT_COLORS[s]}"></div>
+      ${NAMES[s]||s}
+    </div>`
+  ).join('');
+}
+
+// ── AUTH + NAV ─────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    const user = await DB.requireAuth();
+    const profile = await DB.getProfile();
+    const initials = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+    document.getElementById('navUser').textContent = initials;
+    if (await DB.isAdmin()) document.getElementById('navAdmin').style.display = '';
+    const examDate = await DB.getExamDate();
+    const days = Math.ceil((examDate - Date.now()) / 86400000);
+    document.getElementById('navCd').textContent = `${days}d CACD`;
+  } catch(e) {}
+})();
+
+// Resize handler
+window.addEventListener('resize', () => {
+  if (allNodes.length > 0) rebuildGraph();
+});
+</script>
+<style>
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-brand span{color:#39ff14}
+.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#39ff14}
+</style>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
+  <div class="sb-section">Estudo</div>
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <div class="sb-section">Mapas</div>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  
+  <div class="sb-section">Comunidade</div>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="agenda.html">📅 Agenda</a>
+  <a class="sb-link" href="grupo.html">👥 Grupos</a>
+  <div class="sb-section">2ª Fase</div>
+  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
+  <div class="sb-section">Admin</div>
+  <a class="sb-link" href="admin.html">⚙️ Admin</a>
+</aside>
+<script>
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+document.querySelectorAll('.sb-link').forEach(function(a){
+  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
+});
+</script>
+</body>
+</html>

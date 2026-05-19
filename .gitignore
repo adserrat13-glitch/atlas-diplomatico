@@ -1,0 +1,19 @@
+# AI cache
+deepseek_*.json
+deepseek_*.html
+deepseek_*.md
+result.md
+
+# Backend secrets
+backend/.env
+backend/.env.local
+backend/node_modules/
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+*.code-workspace

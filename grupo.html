@@ -1,0 +1,768 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Grupo — Atlas Diplomático</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="https://unpkg.com/mammoth@1.8.0/mammoth.browser.min.js"></script>
+<style>
+:root {
+  --bg:#0b0d14; --surface:#13151f; --card:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.08); --text:#e8eaf2; --muted:#6b7280; --muted2:#9ca3af;
+  --blue:#6b8cff; --green:#34d399; --amber:#f59e0b; --red:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:#fff;font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace;min-height:100vh}
+
+nav{position:sticky;top:0;z-index:200;height:52px;background:#000;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{color:#39ff14}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0;letter-spacing:.3px}
+nav a:hover{color:#fff;background:rgba(255,255,255,0.06)}
+nav a.active{color:#39ff14;border-bottom:2px solid #39ff14;border-radius:0;padding-bottom:3px}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-left:6px;color:#888}
+
+main{padding:32px;max-width:900px}
+
+/* ONBOARDING */
+.page-header{margin-bottom:28px}
+.page-header h1{font-size:22px;font-weight:800}
+.page-header p{font-size:13px;color:var(--muted2);margin-top:4px}
+.onboard-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:700px}
+.onboard-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px}
+.onboard-card h3{font-size:16px;font-weight:700;margin-bottom:6px}
+.onboard-card p{font-size:13px;color:var(--muted2);margin-bottom:18px;line-height:1.5}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--muted2);margin-bottom:5px}
+.form-group input,.form-group textarea,.form-group select{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:14px;font-family:inherit}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{outline:none;border-color:var(--blue)}
+.form-group textarea{resize:vertical;min-height:56px}
+.form-group select option{background:#1a1a2e;color:#fff}
+.btn-primary{background:var(--blue);border:none;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;transition:opacity 0.15s}
+.btn-primary:hover{opacity:0.85}
+.btn-secondary{background:var(--card);border:1px solid var(--border);color:var(--muted2);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:4px;transition:all 0.15s}
+.btn-secondary:hover{border-color:var(--text);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:6px;border:none;cursor:pointer;font-weight:600;transition:.15s}
+.btn-sm-primary{background:var(--blue);color:#fff}
+.btn-sm-primary:hover{opacity:.85}
+.btn-sm-danger{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.25)}
+.btn-sm-danger:hover{background:rgba(248,113,113,.22)}
+.form-note{font-size:12px;color:var(--muted2);margin-top:8px}
+.form-error{font-size:12px;color:var(--red);margin-top:6px}
+
+/* GROUP HEADER */
+#groupView{display:none}
+.group-header{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.group-icon{width:52px;height:52px;border-radius:12px;background:rgba(107,140,255,0.15);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.group-info{flex:1;min-width:120px}
+.group-info h2{font-size:18px;font-weight:800}
+.group-info p{font-size:13px;color:var(--muted2);margin-top:3px}
+.invite-badge{background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--green);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.invite-badge:hover{background:rgba(52,211,153,0.18)}
+.btn-leave{background:none;border:1px solid var(--border);color:var(--muted2);padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s}
+.btn-leave:hover{border-color:var(--red);color:var(--red)}
+
+/* TABS */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:10px 16px;font-size:12px;font-weight:600;color:var(--muted2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;flex-shrink:0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* OVERVIEW */
+.overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ov-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
+.ov-card h4{font-size:12px;font-weight:700;color:var(--muted2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px}
+.topic-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.topic-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;font-size:13px}
+.topic-item span{flex:1}
+.topic-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px;line-height:1;transition:.15s}
+.topic-del:hover{color:var(--red)}
+.topic-add-row{display:flex;gap:8px}
+.topic-add-row input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-size:13px;font-family:inherit}
+.topic-add-row input:focus{outline:none;border-color:var(--blue)}
+.topic-readonly{color:var(--muted2);font-size:13px;font-style:italic}
+.member-count-chip{display:inline-flex;align-items:center;gap:5px;background:rgba(107,140,255,.1);border:1px solid rgba(107,140,255,.2);color:var(--blue);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600}
+
+/* MEMBERS */
+.member-list{display:flex;flex-direction:column;gap:10px}
+.member-row{display:flex;align-items:center;gap:14px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.member-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#a78bfa);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0}
+.member-info{flex:1}
+.member-name{font-size:14px;font-weight:700}
+.member-meta{font-size:12px;color:var(--muted2);margin-top:2px}
+.role-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.3px}
+.role-owner{background:rgba(245,158,11,0.15);color:var(--amber)}
+.role-member{background:var(--card);color:var(--muted2)}
+.you-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(107,140,255,0.15);color:var(--blue)}
+
+/* CALENDAR */
+.add-event-form{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:20px}
+.add-event-form h4{font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.agenda-items-list{display:flex;flex-direction:column;gap:8px}
+.ag-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:9px}
+.ag-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ag-title{font-size:14px;font-weight:600}
+.ag-meta{font-size:12px;color:var(--muted2);margin-top:2px}
+.ag-date{font-size:12px;color:var(--muted2);font-weight:600;white-space:nowrap}
+
+/* FILES */
+.file-upload-area{background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:.15s;margin-bottom:16px}
+.file-upload-area:hover{border-color:var(--blue);background:rgba(107,140,255,.04)}
+.file-upload-area input{display:none}
+.file-upload-icon{font-size:28px;margin-bottom:8px}
+.file-upload-label{font-size:13px;color:var(--muted2)}
+.file-upload-label strong{color:var(--blue)}
+.file-upload-hint{font-size:11px;color:var(--muted);margin-top:4px}
+.file-list{display:flex;flex-direction:column;gap:8px}
+.file-row{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:9px}
+.file-icon{font-size:20px;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:11px;color:var(--muted2);margin-top:2px}
+.file-dl{color:var(--blue);text-decoration:none;font-size:12px;font-weight:600;flex-shrink:0}
+.file-dl:hover{text-decoration:underline}
+
+/* EDITAL */
+.edital-content{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;max-height:600px;overflow-y:auto}
+.edital-content h1,.edital-content h2,.edital-content h3{color:#e8eaf2;margin:12px 0 6px;font-size:14px;font-weight:700}
+.edital-content p{font-size:13px;color:var(--muted2);line-height:1.6;margin-bottom:8px}
+.edital-content ul,.edital-content ol{padding-left:20px;font-size:13px;color:var(--muted2);line-height:1.7;margin-bottom:8px}
+.edital-content li{margin-bottom:3px}
+.edital-checklist{display:flex;flex-direction:column;gap:4px}
+.edital-item{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border-radius:7px;cursor:pointer;transition:.15s}
+.edital-item:hover{background:rgba(255,255,255,.03)}
+.edital-item input[type=checkbox]{width:15px;height:15px;margin-top:2px;flex-shrink:0;accent-color:var(--green)}
+.edital-item label{font-size:13px;color:var(--muted2);cursor:pointer;line-height:1.5}
+.edital-item.checked label{text-decoration:line-through;color:var(--muted)}
+
+/* RANKING */
+.rank-table-wrap{overflow-x:auto}
+.rank-table{width:100%;border-collapse:collapse}
+.rank-table thead tr{border-bottom:1px solid var(--border)}
+.rank-table th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--muted2);letter-spacing:0.5px;text-transform:uppercase}
+.rank-table td{padding:11px 12px;font-size:14px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.rank-table tr:hover td{background:rgba(255,255,255,0.02)}
+.rank-table tr.is-you td{background:rgba(107,140,255,0.07)}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:11px;font-weight:800;background:var(--card);border:1px solid var(--border)}
+.rank-badge.top3{background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.3);color:var(--amber)}
+.score-green{color:var(--green);font-weight:700}
+.muted-text{color:var(--muted2);font-size:13px}
+
+.loading-msg{color:var(--muted2);font-size:13px;padding:20px 0}
+.empty-msg{text-align:center;padding:40px;color:var(--muted2);font-size:13px}
+.section-label{font-size:11px;font-weight:600;color:var(--muted2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.upload-progress{font-size:12px;color:var(--blue);margin-top:6px;display:none}
+
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none}
+.toast.show{opacity:1}
+
+@media(max-width:700px){
+  main{padding:16px}
+  .onboard-grid{grid-template-columns:1fr}
+  .overview-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="nav-ham" onclick="openSidebar()">☰</button>
+  <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+  <a href="index.html">🏠 Início</a>
+  <a href="flashcards.html">🃏 Flashcards</a>
+  <a href="analise.html">📊 Análise</a>
+  <a href="leaderboard.html">🏆 Ranking</a>
+  <a href="agenda.html">📅 Agenda</a>
+  <a href="grupo.html" class="active">👥 Grupo</a>
+  <a href="segunda-fase.html">✍️ 2ª Fase</a>
+  <a href="mapas.html">🗺️ Mapas</a>
+  <a href="noticias.html">📰 Notícias</a>
+  
+  <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+  <div class="nav-spacer"></div>
+  <div class="nav-cd" id="navCountdown"></div>
+  <div class="nav-user" id="navUser">?</div>
+</nav>
+
+<main>
+  <!-- NO GROUP: onboarding -->
+  <div id="noGroupView">
+    <div class="page-header">
+      <h1>👥 Grupos de Estudo</h1>
+      <p>Estude junto com outros candidatos, compare progresso e compartilhe agenda.</p>
+    </div>
+    <div class="onboard-grid">
+      <div class="onboard-card">
+        <h3>Criar Grupo</h3>
+        <p>Crie um novo grupo e convide colegas com o código gerado automaticamente.</p>
+        <div class="form-group">
+          <label>Nome do Grupo</label>
+          <input type="text" id="newGroupName" placeholder="Ex: CACD Warriors 2026"/>
+        </div>
+        <div class="form-group">
+          <label>Descrição (opcional)</label>
+          <textarea id="newGroupDesc" placeholder="Foco em PI e Inglês..."></textarea>
+        </div>
+        <button class="btn-primary" onclick="createGroup()">Criar Grupo →</button>
+        <div class="form-error" id="createError"></div>
+      </div>
+      <div class="onboard-card">
+        <h3>Entrar com Código</h3>
+        <p>Recebeu um código de convite? Cole aqui para entrar no grupo.</p>
+        <div class="form-group">
+          <label>Código de Convite</label>
+          <input type="text" id="inviteCodeInput" placeholder="Ex: A3F7B2C1" style="text-transform:uppercase;letter-spacing:2px;font-size:16px;font-weight:700"/>
+        </div>
+        <button class="btn-primary" onclick="joinGroup()">Entrar no Grupo →</button>
+        <div class="form-error" id="joinError"></div>
+        <p class="form-note">Peça o código ao líder do seu grupo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP VIEW -->
+  <div id="groupView">
+    <div class="group-header">
+      <div class="group-icon">👥</div>
+      <div class="group-info">
+        <h2 id="groupName">—</h2>
+        <p id="groupDesc">—</p>
+      </div>
+      <div class="invite-badge" id="inviteBadge" onclick="copyInvite()" title="Clique para copiar">
+        🔗 <span id="inviteCode">—</span>
+      </div>
+      <button class="btn-leave" onclick="leaveGroup()">Sair</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('overview',this)">📋 Visão Geral</div>
+      <div class="tab" onclick="switchTab('members',this)">👤 Membros</div>
+      <div class="tab" onclick="switchTab('calendar',this)">📅 Calendário</div>
+      <div class="tab" onclick="switchTab('files',this)">📁 Arquivos</div>
+      <div class="tab" onclick="switchTab('edital',this)">📄 Edital</div>
+      <div class="tab" onclick="switchTab('ranking',this)">🏆 Ranking</div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-pane active" id="tab-overview">
+      <div class="overview-grid">
+        <div class="ov-card">
+          <h4>Tópicos de Estudo</h4>
+          <div class="topic-list" id="topicList"></div>
+          <div class="topic-add-row" id="topicAddRow" style="display:none">
+            <input type="text" id="topicInput" placeholder="Ex: Política Internacional" maxlength="80"
+              onkeydown="if(event.key==='Enter')addTopic()"/>
+            <button class="btn-sm btn-sm-primary" onclick="addTopic()">+</button>
+          </div>
+          <p class="topic-readonly" id="topicReadonly" style="display:none">Apenas o líder pode editar os tópicos.</p>
+        </div>
+        <div class="ov-card">
+          <h4>Sobre o Grupo</h4>
+          <p id="ovDesc" style="font-size:13px;color:var(--muted2);line-height:1.6;margin-bottom:14px">—</p>
+          <div class="member-count-chip" id="ovMemberCount">0 membros</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEMBERS TAB -->
+    <div class="tab-pane" id="tab-members">
+      <div class="member-list" id="memberList">
+        <div class="loading-msg">Carregando membros...</div>
+      </div>
+    </div>
+
+    <!-- CALENDAR TAB -->
+    <div class="tab-pane" id="tab-calendar">
+      <div class="add-event-form">
+        <h4>Adicionar Evento</h4>
+        <div class="form-row">
+          <div class="form-group" style="margin:0">
+            <label>Título</label>
+            <input type="text" id="evTitle" placeholder="Ex: Revisão de PI"/>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Data</label>
+            <input type="date" id="evDate"/>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:10px">
+          <div class="form-group" style="margin:0">
+            <label>Tipo</label>
+            <select id="evType">
+              <option value="study">📚 Estudo</option>
+              <option value="review">🔁 Revisão</option>
+              <option value="exam">📝 Simulado</option>
+              <option value="event">📌 Evento</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label>Hora (opcional)</label>
+            <input type="time" id="evTime"/>
+          </div>
+        </div>
+        <button class="btn-primary" style="margin-top:12px;width:auto;padding:9px 22px" onclick="addGroupEvent()">Adicionar →</button>
+      </div>
+      <p class="section-label">Próximos 14 dias</p>
+      <div class="agenda-items-list" id="groupAgendaList">
+        <div class="loading-msg">Carregando agenda...</div>
+      </div>
+    </div>
+
+    <!-- FILES TAB -->
+    <div class="tab-pane" id="tab-files">
+      <div class="file-upload-area" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" onchange="uploadFile(this.files[0])"/>
+        <div class="file-upload-icon">📎</div>
+        <div class="file-upload-label"><strong>Clique para enviar</strong> um arquivo</div>
+        <div class="file-upload-hint">PDFs, imagens, documentos — máx. 50 MB</div>
+      </div>
+      <div class="upload-progress" id="uploadProgress">Enviando...</div>
+      <div class="file-list" id="fileList">
+        <div class="loading-msg">Carregando arquivos...</div>
+      </div>
+    </div>
+
+    <!-- EDITAL TAB -->
+    <div class="tab-pane" id="tab-edital">
+      <div id="editalContent">
+        <div class="loading-msg">Carregando edital...</div>
+      </div>
+    </div>
+
+    <!-- RANKING TAB -->
+    <div class="tab-pane" id="tab-ranking">
+      <div class="rank-table-wrap">
+        <table class="rank-table" id="groupRankTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Membro</th>
+              <th>Média TPS</th>
+              <th>Simulados</th>
+              <th>Sessões Semana</th>
+            </tr>
+          </thead>
+          <tbody id="groupRankBody">
+            <tr><td colspan="5" class="loading-msg">Carregando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let _userId = null;
+let _myName = '';
+let _currentGroup = null;
+let _members = [];
+let _topics = [];
+let _isOwner = false;
+let _editalLoaded = false;
+let _filesLoaded = false;
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
+  t.style.color = isError ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function createGroup() {
+  const name = document.getElementById('newGroupName').value.trim();
+  if (!name) { document.getElementById('newGroupName').focus(); return; }
+  const desc = document.getElementById('newGroupDesc').value.trim();
+  document.getElementById('createError').textContent = '';
+  const result = await DB.createGroup(name, desc);
+  if (result?.error) {
+    document.getElementById('createError').textContent = result.error;
+    return;
+  }
+  if (result) { _currentGroup = result; await loadGroupView(result); }
+}
+
+async function joinGroup() {
+  const code = document.getElementById('inviteCodeInput').value.trim().toUpperCase();
+  if (!code) { document.getElementById('inviteCodeInput').focus(); return; }
+  document.getElementById('joinError').textContent = '';
+  const result = await DB.joinGroup(code);
+  if (result?.error || !result) {
+    document.getElementById('joinError').textContent = result?.error || 'Código inválido ou grupo não encontrado';
+    return;
+  }
+  const groups = await DB.getMyGroups();
+  if (groups && groups.length > 0) { _currentGroup = groups[0]; await loadGroupView(_currentGroup); }
+}
+
+async function loadGroupView(group) {
+  _currentGroup = group;
+  _topics = group.topics || [];
+  document.getElementById('noGroupView').style.display = 'none';
+  document.getElementById('groupView').style.display = '';
+  document.getElementById('groupName').textContent = group.name;
+  document.getElementById('groupDesc').textContent = group.description || 'Grupo de estudos CACD';
+  document.getElementById('ovDesc').textContent = group.description || 'Grupo de estudos CACD';
+  document.getElementById('inviteCode').textContent = (group.invite_code || '').toUpperCase();
+  document.getElementById('evDate').valueAsDate = new Date();
+
+  const members = await DB.getGroupMembers(group.id);
+  _members = members || [];
+  const myMember = _members.find(m => m.user_id === _userId);
+  _isOwner = myMember?.role === 'owner' || group.created_by === _userId;
+
+  renderTopics();
+  renderMembers();
+  loadGroupAgenda(group.id);
+  document.getElementById('ovMemberCount').textContent = _members.length + ' membro' + (_members.length !== 1 ? 's' : '');
+}
+
+// ── TOPICS ──────────────────────────────────────────────────────────
+
+function renderTopics() {
+  const list = document.getElementById('topicList');
+  const addRow = document.getElementById('topicAddRow');
+  const readonly = document.getElementById('topicReadonly');
+  addRow.style.display = _isOwner ? 'flex' : 'none';
+  readonly.style.display = _isOwner ? 'none' : (_topics.length ? 'none' : 'block');
+  if (!_topics.length) {
+    list.innerHTML = _isOwner ? '' : '<p class="topic-readonly">Nenhum tópico definido ainda.</p>';
+    return;
+  }
+  list.innerHTML = _topics.map((t, i) => `
+    <div class="topic-item">
+      <span>📌 ${t}</span>
+      ${_isOwner ? `<button class="topic-del" onclick="removeTopic(${i})" title="Remover">✕</button>` : ''}
+    </div>`).join('');
+}
+
+async function addTopic() {
+  const input = document.getElementById('topicInput');
+  const val = input.value.trim();
+  if (!val) return;
+  _topics = [..._topics, val];
+  input.value = '';
+  renderTopics();
+  await DB.updateGroupTopics(_currentGroup.id, _topics);
+}
+
+async function removeTopic(idx) {
+  _topics = _topics.filter((_, i) => i !== idx);
+  renderTopics();
+  await DB.updateGroupTopics(_currentGroup.id, _topics);
+}
+
+// ── MEMBERS ──────────────────────────────────────────────────────────
+
+function renderMembers() {
+  const container = document.getElementById('memberList');
+  if (!_members.length) {
+    container.innerHTML = '<div class="empty-msg">Nenhum membro encontrado</div>';
+    return;
+  }
+  container.innerHTML = _members.map(m => {
+    const isYou = m.user_id === _userId;
+    const name = m.profiles?.name || 'Usuário';
+    const initials = name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const roleBadge = m.role === 'owner'
+      ? '<span class="role-badge role-owner">Líder</span>'
+      : '<span class="role-badge role-member">Membro</span>';
+    const youBadge = isYou ? '<span class="you-badge">você</span>' : '';
+    return `<div class="member-row">
+      <div class="member-avatar">${initials}</div>
+      <div class="member-info">
+        <div class="member-name">${name} ${youBadge} ${roleBadge}</div>
+        <div class="member-meta">Entrou em ${m.joined_at ? new Date(m.joined_at).toLocaleDateString('pt-BR') : '—'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────────────
+
+async function loadGroupAgenda(groupId) {
+  const today = new Date();
+  const from = today.toISOString().slice(0,10);
+  const to14 = new Date(today.getTime() + 14*86400000).toISOString().slice(0,10);
+  const items = await DB.getAgendaItems(from, to14, groupId) || [];
+  const TYPE_LABELS = { study:'Estudo', review:'Revisão', exam:'Simulado', event:'Evento' };
+  const DOT_COLORS  = { study:'var(--blue)', review:'var(--amber)', exam:'var(--red)', event:'var(--green)' };
+  const container = document.getElementById('groupAgendaList');
+  if (!items.length) {
+    container.innerHTML = '<div class="empty-msg">Nenhum evento nos próximos 14 dias</div>';
+    return;
+  }
+  items.sort((a,b)=>a.date.localeCompare(b.date));
+  container.innerHTML = items.map(i => {
+    const d = new Date(i.date+'T12:00');
+    const dateLabel = d.toLocaleDateString('pt-BR',{weekday:'short',day:'numeric',month:'short'});
+    const timeStr = i.time_start ? i.time_start.slice(0,5) : '';
+    const dotColor = DOT_COLORS[i.type] || 'var(--green)';
+    return `<div class="ag-item">
+      <div class="ag-dot" style="background:${dotColor}"></div>
+      <div style="flex:1">
+        <div class="ag-title">${i.title}</div>
+        <div class="ag-meta">${TYPE_LABELS[i.type]||i.type} ${timeStr ? '· ' + timeStr : ''}</div>
+      </div>
+      <div class="ag-date">${dateLabel}</div>
+    </div>`;
+  }).join('');
+}
+
+async function addGroupEvent() {
+  const title = document.getElementById('evTitle').value.trim();
+  const date  = document.getElementById('evDate').value;
+  const type  = document.getElementById('evType').value;
+  const time  = document.getElementById('evTime').value || null;
+  if (!title || !date) { showToast('Preencha título e data', true); return; }
+  const item = { title, date, type, group_id: _currentGroup.id };
+  if (time) item.time_start = time;
+  const result = await DB.addAgendaItem(item);
+  if (result) {
+    showToast('Evento adicionado!');
+    document.getElementById('evTitle').value = '';
+    document.getElementById('evTime').value = '';
+    loadGroupAgenda(_currentGroup.id);
+  } else {
+    showToast('Erro ao adicionar evento', true);
+  }
+}
+
+// ── FILES ──────────────────────────────────────────────────────────
+
+async function loadGroupFiles() {
+  if (!_currentGroup) return;
+  _filesLoaded = true;
+  const files = await DB.getGroupFiles(_currentGroup.id);
+  const list = document.getElementById('fileList');
+  if (!files.length) {
+    list.innerHTML = '<div class="empty-msg">Nenhum arquivo compartilhado ainda</div>';
+    return;
+  }
+  const FILE_ICONS = { pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊', png:'🖼', jpg:'🖼', jpeg:'🖼', gif:'🖼', mp4:'🎬', mp3:'🎵', zip:'🗜', rar:'🗜' };
+  list.innerHTML = files.map(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const icon = FILE_ICONS[ext] || '📎';
+    const uploader = f.profiles?.name || 'Usuário';
+    const date = new Date(f.created_at).toLocaleDateString('pt-BR');
+    return `<div class="file-row">
+      <div class="file-icon">${icon}</div>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">${uploader} · ${date}</div>
+      </div>
+      <a class="file-dl" href="${f.url}" target="_blank" download="${f.name}">⬇ Baixar</a>
+      ${f.uploaded_by === _userId || _isOwner
+        ? `<button class="btn-sm btn-sm-danger" style="margin-left:8px" onclick="deleteFile('${f.id}')">✕</button>`
+        : ''}
+    </div>`;
+  }).join('');
+}
+
+async function uploadFile(file) {
+  if (!file || !_currentGroup) return;
+  const progress = document.getElementById('uploadProgress');
+  progress.style.display = 'block';
+  progress.textContent = 'Enviando "' + file.name + '"...';
+  const result = await DB.uploadGroupFile(_currentGroup.id, file);
+  progress.style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  if (result?.error) { showToast('Erro: ' + result.error, true); return; }
+  showToast('Arquivo enviado!');
+  loadGroupFiles();
+}
+
+async function deleteFile(fileId) {
+  if (!confirm('Remover este arquivo?')) return;
+  const result = await DB.deleteGroupFile(fileId);
+  if (result?.error) { showToast('Erro: ' + result.error, true); return; }
+  showToast('Arquivo removido');
+  loadGroupFiles();
+}
+
+// ── EDITAL ──────────────────────────────────────────────────────────
+
+async function loadEdital() {
+  if (_editalLoaded) return;
+  _editalLoaded = true;
+  const container = document.getElementById('editalContent');
+  const EDITAL_KEY = 'edital_checks_' + (_currentGroup?.id || 'global');
+  const savedChecks = JSON.parse(localStorage.getItem(EDITAL_KEY) || '{}');
+
+  try {
+    const res = await fetch(encodeURI('EDITAL/Documento sem título.docx'));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const buf = await res.arrayBuffer();
+    const result = await mammoth.convertToHtml({ arrayBuffer: buf });
+    const html = result.value;
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const paragraphs = Array.from(doc.querySelectorAll('p, li, h1, h2, h3'))
+      .map(el => el.textContent.trim()).filter(t => t.length > 3);
+
+    if (!paragraphs.length) throw new Error('Sem conteúdo');
+
+    container.innerHTML = `
+      <p style="font-size:12px;color:var(--muted2);margin-bottom:14px">
+        ${paragraphs.length} tópicos carregados. Marque os que já estudou.
+      </p>
+      <div class="edital-checklist" id="editalChecklist">
+        ${paragraphs.map((p, i) => {
+          const checked = !!savedChecks[i];
+          return `<div class="edital-item${checked ? ' checked' : ''}" id="ei_${i}">
+            <input type="checkbox" id="ec_${i}" ${checked ? 'checked' : ''} onchange="toggleEditalItem(${i}, this.checked, '${EDITAL_KEY}')"/>
+            <label for="ec_${i}">${p}</label>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    container.innerHTML = `
+      <div style="color:var(--muted2);font-size:13px;padding:20px">
+        <p style="margin-bottom:12px">Não foi possível carregar o arquivo DOCX.</p>
+        <a href="EDITAL/Documento sem título.docx" target="_blank" class="file-dl">📄 Abrir Edital (DOCX)</a>
+        <a href="${encodeURI('EDITAL/EDITAL Nº 1, DE 28 DE JANEIRO DE 2026 - EDITAL Nº 1, DE 28 DE JANEIRO DE 2026 - DOU - Imprensa Nacional.pdf')}"
+           target="_blank" class="file-dl" style="margin-left:12px">📄 Abrir Edital (PDF)</a>
+      </div>`;
+  }
+}
+
+function toggleEditalItem(idx, checked, key) {
+  const saves = JSON.parse(localStorage.getItem(key) || '{}');
+  if (checked) saves[idx] = true; else delete saves[idx];
+  localStorage.setItem(key, JSON.stringify(saves));
+  const item = document.getElementById('ei_' + idx);
+  if (item) item.classList.toggle('checked', checked);
+}
+
+// ── RANKING ──────────────────────────────────────────────────────────
+
+async function loadGroupRanking() {
+  const activity = await DB.getGroupActivity(_currentGroup.id) || [];
+  const stats = {};
+  for (const session of activity) {
+    const uid = session.user_id;
+    if (!stats[uid]) stats[uid] = { sessions:0, tps:0, tpsTotal:0, weekSessions:0 };
+    stats[uid].sessions++;
+    if (new Date(session.created_at).getTime() >= Date.now() - 7*86400000) stats[uid].weekSessions++;
+    if (session.type === 'simulado') {
+      stats[uid].tps++;
+      stats[uid].tpsTotal += session.total > 0 ? Math.round(session.correct / session.total * 100) : 0;
+    }
+  }
+  const ranked = _members.map(m => {
+    const uid = m.user_id;
+    const s = stats[uid] || {};
+    return { name: m.profiles?.name || 'Usuário', uid, avgTps: s.tps > 0 ? Math.round(s.tpsTotal/s.tps) : 0, tps: s.tps||0, weekSessions: s.weekSessions||0 };
+  }).sort((a,b) => b.avgTps - a.avgTps);
+
+  const tbody = document.getElementById('groupRankBody');
+  tbody.innerHTML = ranked.length ? ranked.map((r, i) => {
+    const isYou = r.uid === _userId;
+    return `<tr class="${isYou?'is-you':''}">
+      <td><span class="rank-badge${i<3?' top3':''}">${i+1}</span></td>
+      <td style="font-weight:600">${r.name}${isYou?' <span style="font-size:10px;color:var(--blue);margin-left:6px">você</span>':''}</td>
+      <td><span class="score-green">${r.avgTps}%</span></td>
+      <td class="muted-text">${r.tps}</td>
+      <td class="muted-text">${r.weekSessions}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty-msg">Sem dados ainda</td></tr>';
+}
+
+function copyInvite() {
+  const code = document.getElementById('inviteCode').textContent;
+  navigator.clipboard.writeText(code).then(() => showToast('Código copiado: ' + code));
+}
+
+async function leaveGroup() {
+  if (!_currentGroup) return;
+  if (!confirm('Sair do grupo "' + _currentGroup.name + '"?')) return;
+  await DB.leaveGroup(_currentGroup.id);
+  _currentGroup = null;
+  document.getElementById('groupView').style.display = 'none';
+  document.getElementById('noGroupView').style.display = '';
+  showToast('Você saiu do grupo');
+}
+
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'files' && !_filesLoaded) loadGroupFiles();
+  if (id === 'edital') loadEdital();
+  if (id === 'ranking') loadGroupRanking();
+}
+
+(async () => {
+  const user = await DB.requireAuth();
+  _userId = user.id;
+  const [profile, isAdm, examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
+  _myName = profile?.name || user.email || '';
+  if (isAdm) document.getElementById('navAdmin').style.display = '';
+  const navUser = document.getElementById('navUser');
+  if (navUser) navUser.textContent = (_myName || user.email || '?').slice(0,2).toUpperCase();
+  const cd = document.getElementById('navCountdown');
+  if (cd) cd.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+  const groups = await DB.getMyGroups();
+  if (groups && groups.length > 0) await loadGroupView(groups[0]);
+})();
+</script>
+<style>
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-brand span{color:#39ff14}
+.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#39ff14}
+</style>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
+  <div class="sb-section">Estudo</div>
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <div class="sb-section">Mapas</div>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  
+  <div class="sb-section">Comunidade</div>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="agenda.html">📅 Agenda</a>
+  <a class="sb-link" href="grupo.html">👥 Grupos</a>
+  <div class="sb-section">2ª Fase</div>
+  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
+  <div class="sb-section">Admin</div>
+  <a class="sb-link" href="admin.html">⚙️ Admin</a>
+</aside>
+<script>
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+document.querySelectorAll('.sb-link').forEach(function(a){
+  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
+});
+</script>
+</body>
+</html>

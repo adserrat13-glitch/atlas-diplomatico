@@ -1,0 +1,998 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flashcards — Atlas Diplomático</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1117; --card:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.09);
+      --text:#e8e8e8; --muted:#8f8f8f; --accent:#8ea7ff;
+      --green:#6ee7b7; --red:#f87171;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
+    .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; }
+
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:#39ff14; }
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:#39ff14; border-bottom:2px solid #39ff14; border-radius:0; padding-bottom:3px; }
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
+      border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+
+    main { position:relative; z-index:1; max-width:800px; margin:0 auto; padding:32px 24px; }
+
+    /* ===== LOADER VIEW ===== */
+    .view { display:none; }
+    .view.active { display:flex; flex-direction:column; align-items:center; }
+
+    #viewLoader { gap:24px; }
+    .loader-title { font-size:28px; font-weight:700; letter-spacing:1px; }
+    .loader-sub { color:var(--muted); font-size:14px; }
+
+    .file-browser { width:100%; max-width:640px; display:flex; flex-direction:column; gap:8px; }
+    .fb-loading, .fb-empty { color:var(--muted); font-size:14px; padding:24px; text-align:center; }
+    .fb-subject { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    .fb-subject-header { display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; transition:.15s; user-select:none; }
+    .fb-subject-header:hover { background:rgba(255,255,255,.04); }
+    .fb-subject-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .fb-subject-name { font-size:13px; font-weight:600; color:#e8e8e8; flex:1; }
+    .fb-subject-count { font-size:11px; color:var(--muted); background:rgba(255,255,255,.08); padding:2px 8px; border-radius:10px; }
+    .fb-chevron { font-size:12px; color:var(--muted); transition:transform .2s; }
+    .fb-subject.collapsed .fb-chevron { transform:rotate(-90deg); }
+    .fb-subject.collapsed .fb-subject-files { display:none; }
+    .fb-subject-files { border-top:1px solid var(--border); }
+    .fb-file-row { display:flex; align-items:center; padding:10px 16px 10px 34px; cursor:pointer; transition:.15s; gap:10px; }
+    .fb-file-row:hover { background:rgba(255,255,255,.04); }
+    .fb-file-name { flex:1; font-size:13px; color:#aaa; }
+    .fb-file-row:hover .fb-file-name { color:#e8e8e8; }
+    .fb-file-arrow { font-size:12px; color:var(--muted); }
+    .fb-file-row:hover .fb-file-arrow { color:var(--accent); }
+    .fb-study-all { display:block; width:100%; padding:14px 16px; margin-bottom:10px;
+      background:rgba(255,255,255,.04); border:1px solid; border-radius:12px;
+      font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+      text-align:left; transition:.15s; letter-spacing:.3px; }
+    .fb-study-all:hover { background:rgba(255,255,255,.08); }
+
+    /* ===== OPTIONS VIEW ===== */
+    #viewOptions { gap:20px; text-align:center; }
+    .opt-title { font-size:22px; font-weight:700; }
+    .opt-sub { color:var(--muted); font-size:14px; }
+    .opt-count { font-size:42px; font-weight:700; color:var(--accent); }
+    .opt-label { font-size:13px; color:var(--muted); }
+    .opt-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+    .btn {
+      padding:12px 28px; border-radius:12px; font-size:14px; font-weight:600;
+      cursor:pointer; border:none; transition:0.2s; font-family:inherit;
+    }
+    .btn-primary { background:var(--accent); color:#0f1117; }
+    .btn-primary:hover { opacity:0.85; }
+    .btn-secondary { background:rgba(255,255,255,0.07); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { background:rgba(255,255,255,0.12); }
+    .btn-small { padding:8px 18px; font-size:13px; }
+
+    /* ===== STUDY VIEW ===== */
+    #viewStudy { gap:20px; width:100%; }
+    .study-header { width:100%; display:flex; align-items:center; gap:12px; }
+    .study-deck-name { font-size:13px; color:var(--muted); font-weight:500; }
+    .study-spacer { flex:1; }
+    .study-counter { font-size:13px; color:var(--muted); }
+    .study-exit { background:none; border:1px solid var(--border); color:var(--muted);
+      padding:5px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+    .study-exit:hover { color:var(--text); border-color:rgba(255,255,255,0.3); }
+
+    .progress-bar { width:100%; height:5px; background:rgba(255,255,255,0.07); border-radius:20px; overflow:hidden; }
+    .progress-fill { height:100%; background:var(--accent); border-radius:20px; transition:width 0.4s ease; }
+
+    .card-area { width:100%; display:flex; flex-direction:column; align-items:center; gap:20px; }
+    .card-wrap { perspective:1200px; width:100%; max-width:600px; height:280px; cursor:pointer; }
+    .card-inner {
+      width:100%; height:100%; position:relative;
+      transform-style:preserve-3d; transition:transform 0.55s cubic-bezier(0.4,0.2,0.2,1);
+    }
+    .card-inner.flipped { transform:rotateY(180deg); }
+    .card-face {
+      position:absolute; inset:0; backface-visibility:hidden;
+      background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      border-radius:20px; padding:36px 40px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+    }
+    .card-back-face { transform:rotateY(180deg); background:rgba(142,167,255,0.07); border-color:rgba(142,167,255,0.2); }
+    .card-face-label { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; }
+    .card-face-text { font-size:17px; line-height:1.6; text-align:center; }
+    .card-back-face .card-face-text { font-size:16px; color:#c5d5ff; }
+    .card-hint { font-size:12px; color:var(--muted); margin-top:12px; }
+
+    .card-actions { display:flex; gap:12px; }
+    .btn-know { background:rgba(110,231,183,0.15); border:1px solid var(--green); color:var(--green); }
+    .btn-know:hover { background:rgba(110,231,183,0.25); }
+    .btn-dontknow { background:rgba(248,113,113,0.15); border:1px solid var(--red); color:var(--red); }
+    .btn-dontknow:hover { background:rgba(248,113,113,0.25); }
+    .btn-skip { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--muted); }
+    .btn-skip:hover { color:var(--text); }
+
+    .shortcut-hint { font-size:11px; color:var(--muted); }
+    .edital-tag { display:inline-flex; align-items:center; gap:5px; margin-top:10px;
+      font-size:11px; font-weight:600; color:rgba(142,167,255,0.8);
+      background:rgba(142,167,255,0.1); border:1px solid rgba(142,167,255,0.2);
+      border-radius:20px; padding:3px 10px; max-width:90%; text-align:center; }
+    .edital-section { width:100%; max-width:520px; margin-top:8px; }
+    .edital-section h4 { font-size:12px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
+    .edital-tree-list { display:flex; flex-direction:column; gap:4px; }
+    .edital-tree-btn { display:flex; align-items:center; gap:8px; padding:8px 14px;
+      background:var(--card); border:1px solid var(--border); border-radius:10px;
+      color:var(--text); font-size:13px; cursor:pointer; text-align:left;
+      font-family:inherit; transition:0.15s; }
+    .edital-tree-btn:hover { border-color:var(--accent); color:var(--accent); background:rgba(142,167,255,0.07); }
+    .edital-tree-btn .etb-code { font-size:10px; color:var(--muted); font-weight:700; min-width:40px; }
+    .edital-tree-btn .etb-count { font-size:11px; color:var(--muted); margin-left:auto; }
+
+    /* ===== TTS BAR ===== */
+    .tts-bar { width:100%; max-width:600px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);
+      border-radius:12px; padding:10px 16px; }
+    .tts-group { display:flex; align-items:center; gap:6px; }
+    .tts-btn { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+      color:#ccc; padding:5px 11px; border-radius:7px; font-size:12px; cursor:pointer;
+      font-family:inherit; transition:.15s; }
+    .tts-btn:hover { background:rgba(255,255,255,.15); color:#fff; }
+    .tts-label { font-size:10px; color:#555; white-space:nowrap; font-weight:600; letter-spacing:.5px; }
+    .tts-opt { background:transparent; border:1px solid rgba(255,255,255,.1); color:#666;
+      padding:4px 9px; border-radius:6px; font-size:11px; cursor:pointer; font-family:inherit; transition:.15s; }
+    .tts-opt:hover { color:#aaa; border-color:rgba(255,255,255,.25); }
+    .tts-opt.active { background:rgba(142,167,255,.15); border-color:rgba(142,167,255,.4); color:var(--accent); }
+    .tts-auto { font-size:11px; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer; margin-left:auto; }
+    .tts-auto input { cursor:pointer; accent-color:var(--accent); }
+
+    /* ===== SUMMARY VIEW ===== */
+    #viewSummary { gap:24px; text-align:center; }
+    .summary-icon { font-size:56px; }
+    .summary-title { font-size:26px; font-weight:700; }
+    .summary-sub { color:var(--muted); font-size:14px; }
+    .summary-stats { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+    .s-stat { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 24px; min-width:100px; }
+    .s-stat-val { font-size:28px; font-weight:700; }
+    .s-stat-lbl { font-size:12px; color:var(--muted); margin-top:2px; }
+    .s-green { color:var(--green); }
+    .s-red { color:var(--red); }
+    .summary-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+
+    .error-list { width:100%; max-width:600px; text-align:left; }
+    .error-list h3 { font-size:13px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; }
+    .error-item { background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.2);
+      border-radius:12px; padding:14px 16px; margin-bottom:8px; }
+    .error-q { font-size:14px; margin-bottom:6px; }
+    .error-a { font-size:13px; color:#c5d5ff; }
+    .error-a::before { content:'→ '; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <button class="nav-ham" onclick="openSidebar()">☰</button>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">🏠 Início</a>
+    <a href="flashcards.html" class="active">🃏 Flashcards</a>
+    <a href="analise.html">📊 Análise</a>
+    <a href="leaderboard.html">🏆 Ranking</a>
+    <a href="agenda.html">📅 Agenda</a>
+    <a href="grupo.html">👥 Grupo</a>
+    <a href="segunda-fase.html">✍️ 2ª Fase</a>
+    <a href="mapas.html">🗺️ Mapas</a>
+  <a href="noticias.html">📰 Notícias</a>
+    
+    <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <main>
+    <!-- VIEW: loader -->
+    <div class="view active" id="viewLoader">
+      <div class="loader-title">FLASHCARDS</div>
+      <div class="loader-sub">Selecione um deck para começar</div>
+      <div class="file-browser" id="fileBrowser">
+        <div class="fb-loading">Carregando decks...</div>
+      </div>
+    </div>
+
+    <!-- VIEW: options -->
+    <div class="view" id="viewOptions">
+      <div class="opt-title" id="deckTitle"></div>
+      <div class="opt-sub" id="deckSub"></div>
+      <div class="opt-count" id="deckCount"></div>
+      <div class="opt-label">cards disponíveis</div>
+      <div class="opt-btns">
+        <button class="btn btn-primary" onclick="startStudy('all')">Estudar tudo</button>
+        <button class="btn btn-secondary" onclick="startStudy('unknown')" id="btnUnknown">Revisar não sei</button>
+        <button class="btn btn-secondary btn-small" onclick="startStudy('random')">Aleatório (20)</button>
+        <button class="btn btn-secondary btn-small" onclick="showView('viewLoader')">← Outro deck</button>
+      </div>
+      <div class="edital-section" id="editalSection" style="display:none">
+        <h4>Estudar por Edital</h4>
+        <div class="edital-tree-list" id="editalTreeList"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: study -->
+    <div class="view" id="viewStudy">
+      <div class="study-header">
+        <span class="study-deck-name" id="studyDeckName"></span>
+        <div class="study-spacer"></div>
+        <span class="study-counter" id="studyCounter"></span>
+        <button class="study-exit" onclick="confirmExit()">✕ Sair</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="card-area">
+        <div class="card-wrap" id="cardWrap" onclick="flipCard()">
+          <div class="card-inner" id="cardInner">
+            <div class="card-face">
+              <div class="card-face-label">Pergunta</div>
+              <div class="card-face-text" id="cardFront"></div>
+              <div class="edital-tag" id="editalTag" style="display:none"></div>
+              <div class="card-hint">Clique para revelar a resposta</div>
+            </div>
+            <div class="card-face card-back-face">
+              <div class="card-face-label">Resposta</div>
+              <div class="card-face-text" id="cardBack"></div>
+            </div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-know" onclick="answer('known')" id="btnKnow" disabled>✓ Sei <small>(K / Num 4)</small></button>
+          <button class="btn btn-dontknow" onclick="answer('unknown')" id="btnDontKnow" disabled>✗ Não sei <small>(J / Num 1)</small></button>
+          <button class="btn btn-skip" onclick="answer('skip')">→ Pular <small>(Ctrl+J)</small></button>
+        </div>
+        <div class="shortcut-hint">Enter / Espaço para virar · K ou Num4 = Sei · J ou Num1 = Não sei · Ctrl+J = Pular</div>
+        <!-- TTS Bar -->
+        <div class="tts-bar">
+          <div class="tts-group">
+            <button class="tts-btn" onclick="ttsReadCard()">▶ Ouvir</button>
+            <button class="tts-btn" id="ttsPauseBtn" onclick="ttsPauseToggle()">⏸</button>
+            <button class="tts-btn" onclick="speechSynthesis.cancel()">⏹</button>
+          </div>
+          <div class="tts-group">
+            <span class="tts-label">VEL</span>
+            <button class="tts-opt" data-rate="0.5" onclick="ttsSetRate(this)">0.5×</button>
+            <button class="tts-opt" data-rate="0.75" onclick="ttsSetRate(this)">0.75×</button>
+            <button class="tts-opt active" data-rate="1" onclick="ttsSetRate(this)">1×</button>
+            <button class="tts-opt" data-rate="1.5" onclick="ttsSetRate(this)">1.5×</button>
+            <button class="tts-opt" data-rate="2" onclick="ttsSetRate(this)">2×</button>
+          </div>
+          <div class="tts-group">
+            <span class="tts-label">IDIOMA</span>
+            <button class="tts-opt active" data-lang="auto" onclick="ttsSetLang(this)">🌐 Auto</button>
+            <button class="tts-opt" data-lang="pt-BR" onclick="ttsSetLang(this)">🇧🇷 PT</button>
+            <button class="tts-opt" data-lang="en-US" onclick="ttsSetLang(this)">🇺🇸 EN</button>
+            <button class="tts-opt" data-lang="es-ES" onclick="ttsSetLang(this)">🇪🇸 ES</button>
+          </div>
+          <label class="tts-auto">
+            <input type="checkbox" id="ttsAutoRead" /> Auto-ler
+          </label>
+          <div class="tts-auto" style="display:flex;align-items:center;gap:8px;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);cursor:pointer;">
+              <input type="checkbox" id="autoFlipCheck" /> Auto-virar
+            </label>
+            <select id="autoFlipDelay" style="background:#1e2130;border:1px solid var(--border);color:var(--text);border-radius:6px;padding:3px 8px;font-size:12px;font-family:inherit;">
+              <option value="3">3s</option>
+              <option value="5" selected>5s</option>
+              <option value="8">8s</option>
+              <option value="12">12s</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: summary -->
+    <div class="view" id="viewSummary">
+      <div class="summary-icon" id="summaryIcon"></div>
+      <div class="summary-title" id="summaryTitle"></div>
+      <div class="summary-sub" id="summarySub"></div>
+      <div class="summary-stats" id="summaryStats"></div>
+      <div class="summary-btns">
+        <button class="btn btn-primary" onclick="startStudy('unknown')" id="btnReviewWrong">Revisar não sei</button>
+        <button class="btn btn-secondary" onclick="startStudy('all')">Repetir deck</button>
+        <button class="btn btn-secondary" onclick="showView('viewLoader')">Outro deck</button>
+        <a href="index.html" class="btn btn-secondary">← Início</a>
+      </div>
+      <div class="error-list" id="errorList"></div>
+    </div>
+  </main>
+
+  <script>
+    const SUBJECTS_BY_DECK = {
+      'LITERATURA': 'LP', 'LITERATURA BOSI': 'LP',
+      'GRAMMAR ING': 'ING', 'DICTIONARY OF DIPLOMACY': 'ING',
+      'BRASIL NAÇÃO 1': 'HB', 'BRASIL NAÇÃO 2': 'HB', 'BRASIL NAÇÃO 3': 'HB', 'GIAMBIAGI': 'HB',
+      'DIPLOMTAS HM CCONCEITOS': 'HM', 'PORTELA CONCCEITOS': 'HM',
+      'GEOGRAFIA MANUAL': 'GEO',
+      'LESSA PI': 'PI', 'LESSA AAAAAA PI': 'PI', '1001 CONCCEITOS': 'PI',
+      'MANKIW': 'ECO', 'PYNDICK': 'ECO',
+      'DIREITO ADM': 'DIR', 'DIREITO CONSTITUCIONAL': 'DIR',
+      '2000 ESPANISH': 'LING', '2000 FRENCH': 'LING',
+      'CRONOLOGIA 2': 'HM',
+    };
+
+    let allCards = [], queue = [], currentIdx = 0, flipped = false;
+    let deckName = '', sessionResults = [], startTime = 0;
+    let cardStatusMap = {};
+    let autoFlipTimer = null;
+
+    (async () => {
+      const user = await DB.requireAuth();
+      const [profile, isAdm, examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
+      if (isAdm) document.getElementById('navAdmin').style.display = '';
+      const nu = document.getElementById('navUser');
+      if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+      const nc = document.getElementById('navCountdown');
+      if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+      const _params = new URLSearchParams(location.search);
+      const _sp  = _params.get('subject');
+      const _tab = _params.get('tab');
+      if (_tab === 'review') { showReviewSection(); }
+      else if (_sp && SUBJECT_META[_sp]) { loadSubjectView(_sp); }
+      else { loadFileBrowser(); }
+    })();
+
+    function getSubjectForDeck(name) {
+      const key = Object.keys(SUBJECTS_BY_DECK).find(k => name.toUpperCase().includes(k.toUpperCase()));
+      return key ? SUBJECTS_BY_DECK[key] : 'PI';
+    }
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    const FOLDER_COLORS = {
+      'DIP': '#8ea7ff', 'ECONOMIA': '#6ee7b7', 'GEOGRAFIA': '#fbbf24',
+      'HISTORIA DO BRASIL': '#f87171', 'HISTÓRIA MUNDIAL': '#c084fc',
+      'INGLÊS': '#38bdf8', 'POLITICA INTERNACIONAL': '#fb923c', 'PORTUGUÊS': '#a3e635',
+      'REPOSITÓRIO': '#f59e0b',
+    };
+
+    const SUBJECT_META = {
+      LP:   { name:'Língua Portuguesa',      folder:'PORTUGUÊS',              color:'#a3e635' },
+      ING:  { name:'Língua Inglesa',          folder:'INGLÊS',                 color:'#38bdf8' },
+      HB:   { name:'História do Brasil',      folder:'HISTORIA DO BRASIL',     color:'#f87171' },
+      HM:   { name:'História Mundial',        folder:'HISTÓRIA MUNDIAL',       color:'#c084fc' },
+      GEO:  { name:'Geografia',              folder:'GEOGRAFIA',              color:'#fbbf24' },
+      PI:   { name:'Política Internacional',  folder:'POLITICA INTERNACIONAL', color:'#fb923c' },
+      ECO:  { name:'Economia',               folder:'ECONOMIA',               color:'#6ee7b7' },
+      DIR:  { name:'Direito',                folder:'DIP',                    color:'#8ea7ff' },
+      LING: { name:'Espanhol / Francês',      folder:'ESPANHOL',               color:'#ff6a00' },
+    };
+
+    let _manifest = null;
+    async function loadManifest() {
+      if (_manifest) return _manifest;
+      try {
+        const res = await fetch('manifest.json');
+        if (!res.ok) throw new Error();
+        _manifest = await res.json();
+      } catch { _manifest = { flashcards: {}, tps: [] }; }
+      return _manifest;
+    }
+
+    async function scanFolder(folderPath) {
+      const m = await loadManifest();
+      const key = folderPath.replace(/^FLASHCARDS\//i, '');
+      return (m.flashcards[key] || []);
+    }
+
+    async function scanRootFolder() {
+      const m = await loadManifest();
+      return Object.keys(m.flashcards || {});
+    }
+
+    async function loadFileBrowser() {
+      const browser = document.getElementById('fileBrowser');
+      const folders = await scanRootFolder();
+      if (!folders.length) {
+        browser.innerHTML = '<div class="fb-empty">Nenhum deck encontrado. Verifique se o servidor está rodando na pasta correta.</div>';
+        return;
+      }
+      const results = await Promise.all(
+        folders.map(async folder => ({ folder, files: await scanFolder('FLASHCARDS/' + folder) }))
+      );
+      const active = results.filter(s => s.files.length > 0);
+      if (!active.length) {
+        browser.innerHTML = '<div class="fb-empty">Nenhum deck encontrado.</div>';
+        return;
+      }
+      browser.innerHTML = active.map(s => {
+        const color = FOLDER_COLORS[s.folder.toUpperCase()] || FOLDER_COLORS[s.folder] || '#8ea7ff';
+        const fullPath = 'FLASHCARDS/' + s.folder;
+        return `
+        <div class="fb-subject">
+          <div class="fb-subject-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="fb-subject-dot" style="background:${color}"></span>
+            <span class="fb-subject-name">${s.folder}</span>
+            <span class="fb-subject-count">${s.files.length}</span>
+            <span class="fb-chevron">▾</span>
+          </div>
+          <div class="fb-subject-files">
+            ${s.files.map(f => `<div class="fb-file-row" onclick="loadDeckFromPath('${encodeURIComponent(fullPath+'/'+f)}','${f.replace(/\.csv$/i,'').replace(/'/g,"\\'")}')">
+              <span class="fb-file-name">${f.replace(/\.csv$/i,'')}</span>
+              <span class="fb-file-arrow">→</span>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+
+      // Review decks badge at top of browser
+      const validReviews = getValidReviewDecks();
+      if (validReviews.length > 0) {
+        const badge = `<a href="flashcards.html?tab=review" class="review-nav-btn" style="margin-bottom:12px;display:inline-flex">
+          📚 Revisões TPS <span class="review-badge" style="margin-left:4px">${validReviews.length}</span>
+        </a>`;
+        document.getElementById('fileBrowser').insertAdjacentHTML('afterbegin', badge);
+      }
+    }
+
+    // ── REVIEW DECK HELPERS ──
+    function getValidReviewDecks() {
+      try {
+        const raw = localStorage.getItem('tps_review_decks');
+        if (!raw) return [];
+        const now = Date.now();
+        const all = JSON.parse(raw);
+        const valid = all.filter(d => d.expiresAt > now);
+        if (valid.length !== all.length) localStorage.setItem('tps_review_decks', JSON.stringify(valid));
+        return valid;
+      } catch { return []; }
+    }
+
+    function horasRestantes(expiresAt) {
+      const diff = expiresAt - Date.now();
+      if (diff <= 0) return '0';
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    function loadReviewDeck(id) {
+      const decks = getValidReviewDecks();
+      const deck = decks.find(d => d.id === id);
+      if (!deck) return;
+      deckName = deck.name;
+      allCards = deck.cards;
+      showOptions();
+    }
+
+    function showReviewSection() {
+      const loader = document.querySelector('#viewLoader .loader-title');
+      if (loader) loader.textContent = 'Revisões TPS';
+      const sub = document.querySelector('#viewLoader .loader-sub');
+      if (sub) sub.innerHTML = '<a href="flashcards.html" style="color:var(--muted);font-size:12px;text-decoration:none">← Todos os decks</a>';
+
+      const decks = getValidReviewDecks();
+      const browser = document.getElementById('fileBrowser');
+
+      if (!decks.length) {
+        browser.innerHTML = `
+          <div class="review-header">
+            <div class="review-header-left">📚 Revisões TPS</div>
+            <a href="flashcards.html" class="review-all-link">← Todos os decks</a>
+          </div>
+          <div class="review-empty">Nenhum deck de revisão pendente.<br>
+            <span style="font-size:12px">Complete um simulado TPS para gerar um deck automático.</span>
+          </div>
+          <div style="text-align:center;margin-top:16px">
+            <a href="index.html" style="color:var(--accent);font-size:13px;text-decoration:none">← Ir para simulados TPS</a>
+          </div>`;
+        return;
+      }
+
+      browser.innerHTML = `
+        <div class="review-header">
+          <div class="review-header-left">
+            📚 Revisões TPS
+            <span class="review-badge">${decks.length}</span>
+          </div>
+          <a href="flashcards.html" class="review-all-link">← Todos os decks</a>
+        </div>
+        ${decks.map(d => {
+          const ttl = horasRestantes(d.expiresAt);
+          const urgent = (d.expiresAt - Date.now()) < 3 * 3600 * 1000;
+          return `
+          <div class="review-deck-row" onclick="loadReviewDeck('${d.id}')">
+            <div class="rdeck-info">
+              <div class="rdeck-name">${d.name}</div>
+              <div class="rdeck-meta">${d.cards.length} cards · ${d.wrongCount} erros TPS · ${d.relatedCount} flashcards relacionados</div>
+              <div class="rdeck-ttl${urgent?' urgent':''}">⏱ Expira em ${ttl}</div>
+            </div>
+            <button class="rdeck-btn" onclick="event.stopPropagation();loadReviewDeck('${d.id}')">Estudar →</button>
+          </div>`;
+        }).join('')}`;
+    }
+
+    async function loadSubjectView(subjectId) {
+      const meta = SUBJECT_META[subjectId];
+      if (!meta) { loadFileBrowser(); return; }
+
+      document.querySelector('#viewLoader .loader-title').textContent = meta.name;
+      document.querySelector('#viewLoader .loader-sub').innerHTML =
+        `<a href="flashcards.html" style="color:var(--muted);font-size:12px;text-decoration:none">← Todos os decks</a>`;
+
+      const browser = document.getElementById('fileBrowser');
+      browser.innerHTML = '<div class="fb-loading">Carregando...</div>';
+
+      const files = await scanFolder('FLASHCARDS/' + meta.folder);
+
+      if (!files.length) {
+        browser.innerHTML = '<div class="fb-empty">Nenhum deck encontrado para esta matéria.</div>';
+        return;
+      }
+
+      const folderPath = 'FLASHCARDS/' + meta.folder;
+      browser.innerHTML = `
+        <button class="fb-study-all" onclick="loadAllFromSubject('${subjectId}')"
+          style="border-color:${meta.color};color:${meta.color}">
+          📚 Estudar todos — ${files.length} deck${files.length > 1 ? 's' : ''}
+        </button>
+        ${files.map(f => `
+          <div class="fb-file-row" style="padding-left:16px"
+            onclick="loadDeckFromPath('${encodeURIComponent(folderPath+'/'+f)}','${f.replace(/\.csv$/i,'').replace(/'/g,"\\'")}')">
+            <span class="fb-subject-dot" style="background:${meta.color}"></span>
+            <span class="fb-file-name">${f.replace(/\.csv$/i,'')}</span>
+            <span class="fb-file-arrow">→</span>
+          </div>`).join('')}`;
+    }
+
+    async function loadAllFromSubject(subjectId) {
+      const meta = SUBJECT_META[subjectId];
+      if (!meta) return;
+      const browser = document.getElementById('fileBrowser');
+      browser.innerHTML = '<div class="fb-loading">Carregando todos os decks...</div>';
+
+      const files = await scanFolder('FLASHCARDS/' + meta.folder);
+      if (!files.length) { browser.innerHTML = '<div class="fb-empty">Nenhum arquivo encontrado.</div>'; return; }
+
+      allCards = [];
+      deckName = meta.name;
+
+      for (const f of files) {
+        try {
+          const res = await fetch(encodeURI('FLASHCARDS/' + meta.folder + '/' + f));
+          if (!res.ok) continue;
+          const buf = await res.arrayBuffer();
+          let text;
+          try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+          catch { text = new TextDecoder('windows-1252').decode(buf); }
+          const parsed = Papa.parse(text, {delimiter:';', skipEmptyLines:true});
+          parsed.data
+            .filter(r => r[0]?.trim() && r[1]?.trim())
+            .forEach(r => allCards.push({q:r[0].trim(), a:r[1].trim()}));
+        } catch(e) { console.warn('loadAllFromSubject: falhou', f, e); }
+      }
+
+      if (allCards.length) { saveRecentDeck(deckName); await showOptions(); }
+      else browser.innerHTML = '<div class="fb-empty">Nenhum card encontrado.</div>';
+    }
+
+    async function loadDeckFromPath(encodedPath, name) {
+      const path = decodeURIComponent(encodedPath);
+      try {
+        const res = await fetch(encodeURI(path));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        let text;
+        try { text = new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+        catch { text = new TextDecoder('windows-1252').decode(buf); }
+        deckName = name;
+        const result = Papa.parse(text, { delimiter:';', skipEmptyLines:true });
+        allCards = result.data
+          .filter(row => row[0]&&row[0].trim()&&row[1]&&row[1].trim())
+          .map(row => ({ q:row[0].trim(), a:row[1].trim() }));
+        if (allCards.length) { saveRecentDeck(deckName); await showOptions(); }
+        else alert('Nenhum card encontrado: ' + name);
+      } catch(e) { alert('Erro ao carregar: ' + e.message); }
+    }
+
+    function saveRecentDeck(name) {
+      try {
+        const list = JSON.parse(localStorage.getItem('fc_recent')||'[]');
+        localStorage.setItem('fc_recent', JSON.stringify([name, ...list.filter(n=>n!==name)].slice(0,6)));
+      } catch {}
+    }
+
+    let editalMap = {};   // { question: [editalItem, ...] }
+
+    async function showOptions() {
+      cardStatusMap = await DB.getCardStatusMap(deckName);
+      const unknownCount = allCards.filter(c => {
+        const s = cardStatusMap[c.q];
+        return !s || s.status === 'unknown';
+      }).length;
+      document.getElementById('deckTitle').textContent = deckName;
+      document.getElementById('deckSub').textContent = `Matéria: ${getSubjectForDeck(deckName)}`;
+      document.getElementById('deckCount').textContent = allCards.length;
+      document.getElementById('btnUnknown').textContent = `Revisar não sei (${unknownCount})`;
+      showView('viewOptions');
+      loadEditalSection();
+    }
+
+    async function loadEditalSection() {
+      editalMap = await DB.getFlashcardEditalMap(deckName) || {};
+      const subject = getSubjectForDeck(deckName);
+      const tree = await DB.getEditalTree(subject) || [];
+      const section = document.getElementById('editalSection');
+      const list = document.getElementById('editalTreeList');
+      if (!tree.length) { section.style.display = 'none'; return; }
+
+      // Build a count map: editalId → how many cards in this deck are mapped to it
+      const countMap = {};
+      Object.values(editalMap).forEach(items => {
+        items.forEach(item => { countMap[item.id] = (countMap[item.id]||0) + 1; });
+      });
+
+      const rows = [];
+      for (const node of tree) {
+        const cnt = countMap[node.id] || 0;
+        if (cnt > 0) rows.push({ id: node.id, code: node.code||'', title: node.title, count: cnt });
+        for (const child of (node.children||[])) {
+          const cc = countMap[child.id] || 0;
+          if (cc > 0) rows.push({ id: child.id, code: child.code||'', title: child.title, count: cc });
+        }
+      }
+      if (!rows.length) { section.style.display = 'none'; return; }
+
+      section.style.display = '';
+      list.innerHTML = rows.map(r =>
+        `<button class="edital-tree-btn" onclick="startStudy('edital','${r.id}')">
+          <span class="etb-code">${r.code}</span>
+          <span>${r.title}</span>
+          <span class="etb-count">${r.count} cards</span>
+        </button>`
+      ).join('');
+    }
+
+    function startStudy(mode, editalId) {
+      if (mode === 'unknown') {
+        queue = allCards.filter(c => {
+          const s = cardStatusMap[c.q];
+          return !s || s.status === 'unknown';
+        });
+        if (!queue.length) { alert('Parabéns! Nenhum card marcado como "não sei".'); return; }
+      } else if (mode === 'random') {
+        const shuffled = [...allCards].sort(() => Math.random()-0.5);
+        queue = shuffled.slice(0, 20);
+      } else if (mode === 'edital' && editalId) {
+        // filter to cards mapped to this edital item
+        queue = allCards.filter(c => {
+          const items = editalMap[c.q] || [];
+          return items.some(item => item.id === editalId);
+        }).sort(() => Math.random()-0.5);
+        if (!queue.length) { alert('Nenhum card mapeado a este tópico.'); return; }
+      } else {
+        queue = [...allCards].sort(() => Math.random()-0.5);
+      }
+      currentIdx = 0; sessionResults = []; startTime = Date.now();
+      renderCard();
+      showView('viewStudy');
+      document.getElementById('studyDeckName').textContent = deckName;
+    }
+
+    function renderCard() {
+      if (currentIdx >= queue.length) { showSummary(); return; }
+      clearTimeout(autoFlipTimer);
+      speechSynthesis.cancel();
+      const card = queue[currentIdx];
+      flipped = false;
+      document.getElementById('cardInner').classList.remove('flipped');
+      document.getElementById('cardFront').textContent = card.q;
+      document.getElementById('cardBack').textContent = card.a;
+      document.getElementById('btnKnow').disabled = true;
+      document.getElementById('btnDontKnow').disabled = true;
+      // Edital tag
+      const editalItems = editalMap[card.q] || [];
+      const tagEl = document.getElementById('editalTag');
+      if (editalItems.length > 0) {
+        tagEl.textContent = '📋 ' + editalItems[0].code + ' — ' + editalItems[0].title;
+        tagEl.style.display = '';
+      } else {
+        tagEl.style.display = 'none';
+      }
+      const pct = (currentIdx / queue.length) * 100;
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('studyCounter').textContent = `${currentIdx+1} / ${queue.length}`;
+      // Auto-ler frente
+      if (document.getElementById('ttsAutoRead')?.checked) ttsSpeak(card.q);
+      // Auto-virar
+      const afSel = document.getElementById('autoFlipDelay');
+      if (document.getElementById('autoFlipCheck')?.checked && afSel) {
+        autoFlipTimer = setTimeout(flipCard, parseInt(afSel.value) * 1000);
+      }
+    }
+
+    function flipCard() {
+      clearTimeout(autoFlipTimer);
+      flipped = !flipped;
+      document.getElementById('cardInner').classList.toggle('flipped', flipped);
+      document.getElementById('btnKnow').disabled = !flipped;
+      document.getElementById('btnDontKnow').disabled = !flipped;
+      if (flipped && document.getElementById('ttsAutoRead')?.checked) {
+        ttsSpeak(document.getElementById('cardBack').textContent);
+      }
+    }
+
+    function answer(status) {
+      clearTimeout(autoFlipTimer);
+      const card = queue[currentIdx];
+      if (status !== 'skip') {
+        cardStatusMap[card.q] = { status, reviews: (cardStatusMap[card.q]?.reviews || 0) + 1 };
+        DB.upsertCard(deckName, card.q, status); // fire-and-forget
+        sessionResults.push({ q: card.q, a: card.a, status });
+      }
+      currentIdx++;
+      renderCard();
+    }
+
+    async function showSummary() {
+      const known   = sessionResults.filter(r => r.status === 'known').length;
+      const unknown = sessionResults.filter(r => r.status === 'unknown').length;
+      const total   = sessionResults.length;
+      const pct     = total > 0 ? Math.round((known / total) * 100) : 0;
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+
+      await DB.addSession({
+        type: 'flashcard',
+        deck: deckName,
+        subject: getSubjectForDeck(deckName),
+        total,
+        correct: known,
+        wrong: unknown,
+        time_seconds: elapsed
+      });
+
+      // Render summary
+      document.getElementById('summaryIcon').textContent = pct >= 70 ? '🎉' : pct >= 50 ? '💪' : '📚';
+      document.getElementById('summaryTitle').textContent = pct >= 70 ? 'Excelente!' : pct >= 50 ? 'Bom trabalho!' : 'Continue praticando!';
+      document.getElementById('summarySub').textContent = `${deckName} · ${Math.round(elapsed/60)} min`;
+      document.getElementById('summaryStats').innerHTML = `
+        <div class="s-stat"><div class="s-stat-val s-green">${known}</div><div class="s-stat-lbl">Sei</div></div>
+        <div class="s-stat"><div class="s-stat-val s-red">${unknown}</div><div class="s-stat-lbl">Não sei</div></div>
+        <div class="s-stat"><div class="s-stat-val" style="color:var(--accent)">${pct}%</div><div class="s-stat-lbl">Acerto</div></div>
+        <div class="s-stat"><div class="s-stat-val">${total}</div><div class="s-stat-lbl">Total</div></div>`;
+
+      const errors = sessionResults.filter(r => r.status === 'unknown');
+      const errorEl = document.getElementById('errorList');
+      if (errors.length) {
+        errorEl.innerHTML = `<h3>Para revisar (${errors.length})</h3>` +
+          errors.map(e => `<div class="error-item"><div class="error-q">${e.q}</div><div class="error-a">${e.a}</div></div>`).join('');
+      } else {
+        errorEl.innerHTML = '<div style="color:var(--green);font-size:14px;text-align:center;padding:16px">✓ Acertou todos!</div>';
+      }
+      document.getElementById('btnReviewWrong').textContent = `Revisar não sei (${unknown})`;
+      document.getElementById('progressFill').style.width = '100%';
+      showView('viewSummary');
+    }
+
+    function confirmExit() {
+      if (currentIdx > 0 && confirm('Sair da sessão? O progresso atual não será salvo.')) showView('viewLoader');
+      else if (currentIdx === 0) showView('viewLoader');
+    }
+
+    // TTS
+    const TTS = { rate: 1.0, lang: 'auto' };
+
+    function detectLang(text) {
+      if (/\b(the|is|are|was|were|have|has|had|will|would|can|could|should|according to|refers to|which|where|when|what|how|this|that|with|from|they|their)\b/i.test(text)) return 'en-US';
+      if (/\b(el|la|los|las|un|una|está|están|tiene|tienen|también|pero|como|más|sobre|entre|según|del|para|por)\b/i.test(text)) return 'es-ES';
+      return 'pt-BR';
+    }
+
+    function ttsSpeak(text) {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = TTS.rate;
+      u.lang = TTS.lang === 'auto' ? detectLang(text) : TTS.lang;
+      speechSynthesis.speak(u);
+    }
+
+    function ttsReadCard() {
+      const q = document.getElementById('cardFront').textContent;
+      const a = document.getElementById('cardBack').textContent;
+      ttsSpeak(flipped ? a : q);
+    }
+
+    function ttsPauseToggle() {
+      const btn = document.getElementById('ttsPauseBtn');
+      if (speechSynthesis.paused) {
+        speechSynthesis.resume();
+        btn.textContent = '⏸';
+      } else if (speechSynthesis.speaking) {
+        speechSynthesis.pause();
+        btn.textContent = '▶';
+      }
+    }
+
+    function ttsSetRate(btn) {
+      document.querySelectorAll('[data-rate]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      TTS.rate = parseFloat(btn.dataset.rate);
+    }
+
+    function ttsSetLang(btn) {
+      document.querySelectorAll('[data-lang]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      TTS.lang = btn.dataset.lang;
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      const studyActive = document.getElementById('viewStudy').classList.contains('active');
+      if (!studyActive) return;
+      // Virar card: Space ou Enter
+      if ((e.key === ' ' || e.key === 'Enter') && !e.ctrlKey) {
+        e.preventDefault(); flipCard(); return;
+      }
+      // Avançar sem rating: Ctrl+J ou ArrowRight
+      if ((e.ctrlKey && e.key.toLowerCase() === 'j') || e.key === 'ArrowRight') {
+        e.preventDefault(); answer('skip'); return;
+      }
+      // Sei: Numpad4 ou K
+      if ((e.code === 'Numpad4' || e.key.toLowerCase() === 'k') && !document.getElementById('btnKnow').disabled) {
+        answer('known'); return;
+      }
+      // Não sei: Numpad1 ou J (sem Ctrl)
+      if ((e.code === 'Numpad1' || (e.key.toLowerCase() === 'j' && !e.ctrlKey)) && !document.getElementById('btnDontKnow').disabled) {
+        answer('unknown'); return;
+      }
+    });
+
+    // URL param: pre-select subject
+    const params = new URLSearchParams(location.search);
+    if (params.get('subject')) {
+      document.getElementById('deckSub') && (document.getElementById('deckSub').textContent = 'Matéria: ' + params.get('subject'));
+    }
+
+    // Check for review deck passed from simulados.html via localStorage
+    (function loadPendingReviewDeck() {
+      const csv  = localStorage.getItem('reviewDeckPending');
+      const name = localStorage.getItem('reviewDeckName');
+      if (!csv || !name) return;
+      localStorage.removeItem('reviewDeckPending');
+      localStorage.removeItem('reviewDeckName');
+      deckName = name;
+      const rows = Papa.parse(csv, {delimiter:';', skipEmptyLines:true}).data;
+      allCards = rows
+        .filter(r => r[0] && r[0].trim() && r[1] && r[1].trim())
+        .map(r => ({q: r[0].trim(), a: r[1].trim()}));
+      if (!allCards.length) return;
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#0d1f0d;border:1px solid var(--green);color:var(--green);padding:8px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:500;white-space:nowrap;';
+      banner.textContent = `Deck de revisão carregado — ${allCards.length} cards`;
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 3500);
+      showOptions();
+    })();
+
+    // Auto-load from URL param (?file=path&subject=ID)
+    (async function autoLoad() {
+      const params = new URLSearchParams(location.search);
+      const filePath = params.get('file');
+      if (!filePath) return;
+      try {
+        const res = await fetch(encodeURI(filePath));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        let text;
+        try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+        catch { text = new TextDecoder('windows-1252').decode(buf); }
+        text = text.replace(/^﻿/, '');
+        deckName = decodeURIComponent(filePath.split('/').pop().replace(/\.csv$/i,'').trim());
+        const result = Papa.parse(text, { delimiter:';', skipEmptyLines:true });
+        allCards = result.data
+          .filter(row => row[0]&&row[0].trim()&&row[1]&&row[1].trim())
+          .map(row => ({ q:row[0].trim(), a:row[1].trim() }));
+        if (allCards.length) { saveRecentDeck(deckName); await showOptions(); }
+        else alert('Nenhum card encontrado no arquivo: ' + deckName);
+      } catch(e) {
+        console.warn('Auto-load falhou:', e);
+      }
+    })();
+  </script>
+<style>
+/* ── REVIEW DECKS ── */
+.review-section { margin-bottom:12px; }
+.review-header { display:flex; justify-content:space-between; align-items:center;
+  padding:8px 4px 10px; font-size:12px; font-weight:700; color:var(--accent);
+  text-transform:uppercase; letter-spacing:.8px; border-bottom:1px solid var(--border); margin-bottom:10px; }
+.review-header-left { display:flex; align-items:center; gap:8px; }
+.review-badge { background:rgba(248,113,113,.2); color:var(--red); font-size:11px;
+  font-weight:700; padding:2px 7px; border-radius:10px; }
+.review-all-link { font-size:11px; color:var(--muted); text-decoration:none;
+  padding:3px 8px; border-radius:6px; border:1px solid var(--border); transition:.15s; }
+.review-all-link:hover { color:var(--text); border-color:rgba(255,255,255,.2); }
+.review-empty { font-size:13px; color:var(--muted); padding:12px 4px; text-align:center; }
+.review-deck-row { display:flex; align-items:center; justify-content:space-between;
+  background:rgba(142,167,255,.06); border:1px solid rgba(142,167,255,.2);
+  border-radius:10px; padding:12px 14px; margin-bottom:8px; gap:12px;
+  cursor:pointer; transition:.15s; }
+.review-deck-row:hover { background:rgba(142,167,255,.12); border-color:rgba(142,167,255,.4); }
+.rdeck-info { flex:1; min-width:0; }
+.rdeck-name { font-size:13px; font-weight:700; margin-bottom:3px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rdeck-meta { font-size:11px; color:var(--muted); }
+.rdeck-ttl { font-size:11px; color:var(--yellow); font-weight:600; margin-top:2px; }
+.rdeck-ttl.urgent { color:var(--red); }
+.rdeck-btn { background:var(--accent); color:#0f1117; border:none; border-radius:8px;
+  padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;
+  white-space:nowrap; flex-shrink:0; transition:.15s; }
+.rdeck-btn:hover { opacity:.85; }
+.review-nav-btn { display:inline-flex; align-items:center; gap:5px;
+  background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.25);
+  color:var(--red); border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700;
+  text-decoration:none; transition:.15s; white-space:nowrap; flex-shrink:0; }
+.review-nav-btn:hover { background:rgba(248,113,113,.2); }
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-brand span{color:#39ff14}
+.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#39ff14}
+</style>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
+  <div class="sb-section">Estudo</div>
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="simulados.html">📋 Simulados</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <div class="sb-section">Mapas</div>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  
+  <div class="sb-section">Comunidade</div>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="agenda.html">📅 Agenda</a>
+  <a class="sb-link" href="grupo.html">👥 Grupos</a>
+  <div class="sb-section">2ª Fase</div>
+  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
+  <div class="sb-section">Admin</div>
+  <a class="sb-link" href="admin.html">⚙️ Admin</a>
+</aside>
+<script>
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+document.querySelectorAll('.sb-link').forEach(function(a){
+  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
+});
+</script>
+</body>
+</html>

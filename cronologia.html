@@ -1,0 +1,857 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cronologia Histórica — Atlas Diplomático</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--surface:rgba(255,255,255,.05);--surface-2:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.10);--border-2:rgba(255,255,255,.18);
+  --text:#e8e8e8;--muted:#8f8f8f;--dim:#5a5a5a;
+  --accent:#8ea7ff;--accent-bg:rgba(142,167,255,.12);--accent-border:rgba(142,167,255,.5);
+  --green:#39ff14;--green-soft:#6ee7b7;--green-bg:rgba(57,255,20,.08);--green-border:rgba(57,255,20,.4);
+  --red:#f87171;--red-bg:rgba(248,113,113,.12);--red-border:rgba(248,113,113,.4);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,.12);--amber-border:rgba(251,191,36,.4);
+  --purple:#c084fc;--purple-bg:rgba(192,132,252,.12);
+  --pink:#f472b6;--pink-bg:rgba(244,114,182,.12);
+}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+  background-size:40px 40px}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:200;height:52px;background:#000;
+  border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;
+  padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{color:#39ff14}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0}
+nav a:hover{color:#fff;background:rgba(255,255,255,.06)}
+nav a.active{color:#39ff14;border-bottom:2px solid #39ff14;border-radius:0;padding-bottom:3px}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-left:6px;color:#888}
+
+/* ── SIDEBAR ── */
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-brand span{color:#39ff14}
+.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#39ff14}
+
+/* ── MAIN ── */
+main{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px 16px 80px}
+
+.hdr{margin-bottom:18px}
+.hdr-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.hdr-title{font-size:22px;font-weight:900;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+.hdr-title .accent{color:var(--green)}
+.hdr-count{font-size:12px;color:var(--muted);font-weight:600;background:var(--surface);border:1px solid var(--border);padding:5px 11px;border-radius:20px}
+.hdr-count b{color:var(--green);font-weight:800}
+.hdr-sub{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* ── FILTROS ── */
+.filters{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:20px}
+.filt-search{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border-2);color:var(--text);
+  padding:10px 14px;border-radius:9px;font-size:14px;font-family:Inter,sans-serif;margin-bottom:12px;transition:.15s}
+.filt-search:focus{outline:none;border-color:var(--green-border);background:rgba(0,0,0,.5)}
+.filt-search::placeholder{color:var(--dim)}
+
+.filt-group{margin-bottom:10px}
+.filt-group:last-child{margin-bottom:0}
+.filt-label{font-size:10px;font-weight:800;letter-spacing:1.2px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.filt-chips{display:flex;flex-wrap:wrap;gap:6px}
+.fc{background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);
+  padding:5px 11px;border-radius:18px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s;font-family:Inter,sans-serif;white-space:nowrap}
+.fc:hover{border-color:var(--border-2);color:var(--text)}
+.fc.on{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+.fc.on-r{background:var(--red-bg);border-color:var(--red-border);color:var(--red)}
+.fc.on-a{background:var(--amber-bg);border-color:var(--amber-border);color:var(--amber)}
+.fc.on-bl{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent)}
+.fc.on-p{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+
+.filt-clear{font-size:11px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 8px;font-family:Inter,sans-serif;font-weight:600;text-decoration:underline}
+.filt-clear:hover{color:var(--text)}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding:8px 0}
+.tl-line{position:absolute;left:50%;top:0;bottom:0;width:2px;background:linear-gradient(to bottom, transparent, var(--green) 4%, var(--green) 96%, transparent);opacity:.35;transform:translateX(-50%);pointer-events:none}
+@media(max-width:720px){.tl-line{left:20px}}
+
+.tl-item{position:relative;margin-bottom:18px;display:flex;align-items:flex-start;gap:0}
+.tl-item.left{justify-content:flex-start}
+.tl-item.right{justify-content:flex-end}
+@media(max-width:720px){
+  .tl-item, .tl-item.left, .tl-item.right{justify-content:flex-start;padding-left:48px}
+}
+
+.tl-dot{position:absolute;left:50%;top:18px;width:14px;height:14px;border-radius:50%;background:var(--green);border:3px solid var(--bg);box-shadow:0 0 12px var(--green);transform:translateX(-50%);z-index:2}
+.tl-dot.imp-a{background:var(--red);box-shadow:0 0 12px var(--red)}
+.tl-dot.imp-m{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+.tl-dot.imp-b{background:var(--dim);box-shadow:none}
+@media(max-width:720px){.tl-dot{left:20px}}
+
+.tl-card{
+  width:calc(50% - 36px);
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px 16px;
+  cursor:pointer;
+  transition:transform .15s, border-color .15s, background .15s;
+  position:relative;
+}
+@media(max-width:720px){.tl-card{width:100%}}
+.tl-card:hover{background:var(--surface-2);border-color:var(--border-2);transform:translateY(-1px)}
+
+.tl-card-year{font-size:20px;font-weight:900;color:var(--green);letter-spacing:.5px;margin-bottom:4px;line-height:1}
+.tl-card.imp-a .tl-card-year{color:var(--red)}
+.tl-card.imp-m .tl-card-year{color:var(--amber)}
+.tl-card-title{font-size:14px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:6px}
+.tl-card-resumo{font-size:12px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tl-card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tl-mc{font-size:9.5px;font-weight:700;letter-spacing:.5px;padding:2.5px 7px;border-radius:5px;text-transform:uppercase}
+.tl-mc-pais{background:rgba(142,167,255,.13);color:var(--accent)}
+.tl-mc-trat{background:rgba(192,132,252,.13);color:var(--purple)}
+.tl-mc-imp-a{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.tl-mc-imp-m{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+
+/* ── DETAIL MODAL ── */
+#detail{position:fixed;top:0;right:0;bottom:0;width:min(560px,100%);background:#0a0b10;border-left:1px solid var(--border-2);z-index:300;transform:translateX(100%);transition:transform .25s;overflow-y:auto;box-shadow:-20px 0 50px rgba(0,0,0,.6)}
+#detail.open{transform:translateX(0)}
+#detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:299}
+#detail-overlay.open{display:block}
+.det-close{position:sticky;top:0;background:linear-gradient(to bottom, #0a0b10 70%, transparent);padding:14px 18px;display:flex;justify-content:space-between;align-items:center;z-index:2}
+.det-close-btn{background:var(--surface);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.15s}
+.det-close-btn:hover{background:var(--surface-2);border-color:var(--border-2)}
+.det-imp{font-size:10px;font-weight:800;letter-spacing:1.2px;padding:4px 10px;border-radius:6px;text-transform:uppercase}
+.det-imp.a{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.det-imp.m{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.det-imp.b{background:var(--surface);color:var(--muted);border:1px solid var(--border)}
+
+.det-body{padding:0 22px 60px}
+.det-year{font-size:48px;font-weight:900;color:var(--green);line-height:.95;letter-spacing:.5px;margin-bottom:6px}
+.det-title{font-size:20px;font-weight:800;line-height:1.3;margin-bottom:14px;color:var(--text)}
+.det-resumo{font-size:14px;line-height:1.6;color:#cfcfcf;margin-bottom:22px;background:var(--surface);border-left:3px solid var(--green);padding:12px 14px;border-radius:0 8px 8px 0}
+
+.det-section{margin-bottom:20px}
+.det-sec-head{font-size:10px;font-weight:800;letter-spacing:1.3px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.det-sec-head::before{content:'';width:3px;height:11px;background:var(--green);border-radius:2px}
+.det-list{display:flex;flex-wrap:wrap;gap:6px}
+.det-tag{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:7px;font-size:12px;font-weight:600}
+.det-tag.pais{background:rgba(142,167,255,.1);border-color:var(--accent-border);color:var(--accent)}
+.det-tag.trat{background:rgba(192,132,252,.1);border-color:var(--purple);color:var(--purple)}
+.det-tag.pers{background:rgba(244,114,182,.1);border-color:var(--pink);color:var(--pink)}
+.det-tag.kw{background:rgba(110,231,183,.08);border-color:var(--green-border);color:var(--green-soft)}
+
+.det-conn{display:grid;gap:6px}
+.det-conn-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:10px}
+.det-conn-card:hover{background:var(--surface-2);border-color:var(--green-border)}
+.det-conn-year{font-size:14px;font-weight:800;color:var(--green);flex-shrink:0;min-width:46px}
+.det-conn-title{font-size:12px;color:var(--text);line-height:1.35}
+
+.det-orig{background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.6;color:var(--muted);max-height:240px;overflow-y:auto;font-family:Georgia, serif;font-style:italic;display:none}
+.det-orig.show{display:block}
+.det-orig-btn{font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:Inter,sans-serif;font-weight:600;padding:0;text-decoration:underline}
+
+.det-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.det-meta-cell{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px}
+.det-meta-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.det-meta-val{font-size:12.5px;font-weight:600;color:var(--text)}
+
+/* ── LOADING ── */
+.loading{text-align:center;padding:80px 20px;color:var(--muted);font-size:14px}
+.loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin:0 3px;animation:bounce 1.4s infinite}
+.loading-dot:nth-child(2){animation-delay:.2s}
+.loading-dot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+.empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px}
+.empty-icon{font-size:38px;opacity:.5;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<nav>
+  <button class="nav-ham" onclick="openSidebar()">☰</button>
+  <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+  <a href="index.html">🏠 Início</a>
+  <a href="flashcards.html">🃏 Flashcards</a>
+  <a href="matching.html">🔤 Palavras</a>
+  <a href="linha-do-tempo.html">🎮 Jogo</a>
+  <a href="cronologia.html" class="active">📜 Cronologia</a>
+  <a href="leaderboard.html">🏆 Ranking</a>
+  <a href="grupo.html">👥 Grupo</a>
+  <a href="mapas.html">🗺️ Mapas</a>
+  <a href="noticias.html">📰 Notícias</a>
+  <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+  <div class="nav-spacer"></div>
+  <div class="nav-cd" id="navCountdown"></div>
+  <div class="nav-user" id="navUser">?</div>
+</nav>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
+  <div class="sb-section">Estudo</div>
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <div class="sb-section">Mapas</div>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  
+  <div class="sb-section">Comunidade</div>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="agenda.html">📅 Agenda</a>
+  <a class="sb-link" href="grupo.html">👥 Grupos</a>
+  <div class="sb-section">2ª Fase</div>
+  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
+  <div class="sb-section">Admin</div>
+  <a class="sb-link" href="admin.html">⚙️ Admin</a>
+</aside>
+
+<main>
+  <div id="loadingScreen" class="loading">
+    Carregando cronologia das Relações Internacionais
+    <div style="margin-top:14px"><span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+    <div style="margin-top:18px;font-size:11px;color:var(--dim)">Parseando ~500 eventos históricos…</div>
+  </div>
+
+  <div id="appScreen" style="display:none">
+
+    <div class="hdr">
+      <div class="hdr-row">
+        <div class="hdr-title">📜 Cronologia <span class="accent">Histórica</span></div>
+        <div class="hdr-count"><b id="cntShown">0</b> de <b id="cntTotal">0</b> eventos</div>
+      </div>
+      <div class="hdr-sub">Sistema de inteligência histórica · Relações Internacionais do Brasil (1492 — 2016)</div>
+    </div>
+
+    <div class="filters">
+      <input class="filt-search" id="qSearch" type="text" placeholder="🔍 Buscar evento, tratado, personagem, palavra-chave…" autocomplete="off"/>
+
+      <div class="filt-group">
+        <div class="filt-label">Século</div>
+        <div class="filt-chips" id="chipsSec"></div>
+      </div>
+
+      <div class="filt-group">
+        <div class="filt-label">País</div>
+        <div class="filt-chips" id="chipsPais"></div>
+      </div>
+
+      <div class="filt-group">
+        <div class="filt-label">Importância</div>
+        <div class="filt-chips" id="chipsImp">
+          <button class="fc" data-imp="ALTA">🔴 Alta</button>
+          <button class="fc" data-imp="MÉDIA">🟡 Média</button>
+          <button class="fc" data-imp="BAIXA">⚪ Baixa</button>
+          <button class="filt-clear" onclick="clearFilters()">limpar filtros</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline" id="timeline">
+      <div class="tl-line"></div>
+      <!-- itens injetados -->
+    </div>
+
+  </div>
+
+</main>
+
+<!-- Detail panel -->
+<div id="detail-overlay" onclick="closeDetail()"></div>
+<aside id="detail">
+  <div class="det-close">
+    <span class="det-imp" id="detImp">—</span>
+    <button class="det-close-btn" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="det-body" id="detBody"><!-- preenchido em openDetail() --></div>
+</aside>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   DICIONÁRIOS DE ENRIQUECIMENTO SEMÂNTICO
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Países / topônimos / gentílicos (canonical => regex alternatives) */
+const PAISES = [
+  ['Brasil',          /\b(Brasil|brasileir[oa]s?|brasÃ?leiros?)\b/gi],
+  ['Portugal',        /\b(Portugal|portugu[eê]s(?:es|a|as)?|luso(?:-|s)?|lusitan[oa]s?)\b/gi],
+  ['Espanha',         /\b(Espanha|espanh[oó]is?|espanhol[ae]s?|castelhan[oa]s?|castela)\b/gi],
+  ['França',          /\b(Fran[çc]a|franc[eê]s(?:a|es|as)?)\b/gi],
+  ['Inglaterra',      /\b(Inglaterra|ingl[eê]s(?:a|es|as)?)\b/gi],
+  ['Grã-Bretanha',    /\b(Gr[ãa]-Bretanha|brit[âa]nic[oa]s?)\b/gi],
+  ['Reino Unido',     /\bReino Unido\b/gi],
+  ['Países Baixos',   /\b(Pa[íi]ses Baixos|holand[eê]s(?:a|es|as)?|Holanda|bat[áa]v[oa]s?)\b/gi],
+  ['Estados Unidos',  /\b(Estados Unidos|EUA|norte-american[oa]s?|estadunidense)\b/gi],
+  ['Argentina',       /\b(Argentina|argentin[oa]s?|portenh[oa]s?)\b/gi],
+  ['Paraguai',        /\b(Paraguai|paraguai[oa]s?)\b/gi],
+  ['Uruguai',         /\b(Uruguai|uruguai[oa]s?|orientai?s?)\b/gi],
+  ['Bolívia',         /\b(Bol[íi]via|bolivian[oa]s?)\b/gi],
+  ['Chile',           /\b(Chile|chilen[oa]s?)\b/gi],
+  ['Peru',            /\b(Peru(?!geus)|peruan[oa]s?)\b/gi],
+  ['Venezuela',       /\b(Venezuela|venezuelan[oa]s?)\b/gi],
+  ['Colômbia',        /\b(Col[ôo]mbia|colombian[oa]s?|Nova Granada)\b/gi],
+  ['Equador',         /\b(Equador|equatorian[oa]s?)\b/gi],
+  ['México',          /\b(M[ée]xico|mexican[oa]s?|azteca)\b/gi],
+  ['Cuba',            /\bCuba(?:n[oa]s?)?\b/gi],
+  ['Haiti',           /\b(Haiti|haitian[oa]s?)\b/gi],
+  ['Itália',          /\b(It[áa]lia|italian[oa]s?)\b/gi],
+  ['Alemanha',        /\b(Alemanha|alem[ãa]s?|alem[ãa]es|RFA|RDA)\b/gi],
+  ['Áustria',         /\b(?:Á|Ã?)ustria|austr[íi]ac[oa]s?\b/gi],
+  ['Rússia',          /\b(R[úu]ssia|russ[oa]s?|sovi[ée]tic[oa]s?|URSS|Uni[ãa]o Sovi[ée]tica)\b/gi],
+  ['China',           /\b(China|chin[êe]s(?:a|es|as)?)\b/gi],
+  ['Japão',           /\b(Jap[ãa]o|japon[eê]s(?:a|es|as)?)\b/gi],
+  ['Índia',           /\b(?<!das )(?:Í|Ã?)ndia(?!s)\b|\bindian[oa]s?\b/gi],
+  ['Angola',          /\b(Angola|angolan[oa]s?)\b/gi],
+  ['Moçambique',      /\bMo[çc]ambiqu(?:e|an[oa]s?)\b/gi],
+  ['África do Sul',   /\b(?:Á|Ã?)frica do Sul|sul-african[oa]s?\b/gi],
+  ['Nigéria',         /\bNig[ée]ria\b/gi],
+  ['Egito',           /\b(Egito|eg[íi]pcios?)\b/gi],
+  ['Israel',          /\b(Israel|israelens?|israelita)\b/gi],
+  ['Palestina',       /\b(Palestina|palestin[oa]s?|OLP)\b/gi],
+  ['Líbano',          /\bL[íi]bano|libanes[ae]s?\b/gi],
+  ['Síria',           /\bS[íi]ria\b/gi],
+  ['Irã',             /\b(Ir[ãa]|iranian[oa]s?|persa|P[ée]rsia)\b/gi],
+  ['Iraque',          /\b(Iraque|iraquian[oa]s?)\b/gi],
+  ['Turquia',         /\b(Turquia|turc[oa]s?|otoman[oa]s?)\b/gi],
+  ['Vaticano',        /\b(Vaticano|Santa S[ée]|papa|pontif[íi]c[ei])\b/gi],
+  ['Cabo Verde',      /\bCabo Verde\b/gi],
+  ['Guiné-Bissau',    /\bGuin[ée]-Bissau\b/gi],
+  ['São Tomé e Príncipe', /\bS[ãa]o Tom[ée] e Pr[íi]ncipe\b/gi],
+  ['Timor Leste',     /\bTimor(?: Leste)?\b/gi],
+  ['Canadá',          /\b(Canad[áa]|canadense)\b/gi],
+  ['Coreia do Sul',   /\b(Coreia do Sul|sul-corean[oa]s?)\b/gi],
+  ['Coreia do Norte', /\b(Coreia do Norte|norte-corean[oa]s?|RPDC)\b/gi],
+  ['Vietnam',         /\bVietn[ãa]m?\b/gi],
+];
+
+/* Lista curada de personagens CACD-relevantes */
+const PERSONAGENS_LIST = [
+  'Cristóvão Colombo','Isabel de Castela','Fernando de Aragão','Vasco da Gama','Pedro Álvares Cabral',
+  'Américo Vespúcio','Martim Afonso de Souza','Tomé de Souza','Mem de Sá','Estácio de Sá',
+  'Hernán Cortés','Francisco Pizarro','Filipe II','Carlos V','Luís XIV','Luís XVI','Napoleão Bonaparte',
+  'D. João VI','D. Pedro I','D. Pedro II','D. Maria I','D. José I','D. Manuel I','D. João III','D. João IV','D. João V','Maria da Glória',
+  'José Bonifácio','Alexandre de Gusmão','Marquês de Pombal','Marquês de Olinda','Duque de Caxias',
+  'Tiradentes','Joaquim Nabuco','Rio Branco','Barão do Rio Branco','Visconde do Uruguai','Tobias Monteiro',
+  'Rui Barbosa','Marechal Deodoro','Floriano Peixoto','Prudente de Moraes','Campos Sales',
+  'Getúlio Vargas','Oswaldo Aranha','Juscelino Kubitschek','Jânio Quadros','João Goulart','San Tiago Dantas',
+  'Castelo Branco','Costa e Silva','Médici','Geisel','Figueiredo','Sarney','Collor','Itamar Franco',
+  'Fernando Henrique Cardoso','Luiz Inácio Lula da Silva','Dilma Rousseff','Michel Temer',
+  'Celso Amorim','Celso Lafer','Azeredo da Silveira','Saraiva Guerreiro','Itamar Franco',
+  'Solano López','Carlos Antonio López','Juan Manuel de Rosas','Bartolomé Mitre','Simón Bolívar','San Martín','José Martí',
+  'Roosevelt','Wilson','Truman','Eisenhower','Kennedy','Nixon','Carter','Reagan','Bush','Clinton','Obama','Trump',
+  'Churchill','Stalin','Hitler','Mussolini','De Gaulle','Mitterrand','Sarkozy','Merkel','Thatcher','Blair',
+  'Mao Tsé-Tung','Deng Xiaoping','Hu Jintao','Xi Jinping','Putin','Gorbachev','Yeltsin',
+  'Fidel Castro','Hugo Chávez','Néstor Kirchner','Cristina Kirchner','Mauricio Macri','Evo Morales','Rafael Correa',
+  'Nelson Mandela','Kofi Annan','Ban Ki-moon','Antônio Guterres','Yasser Arafat','Saddam Hussein',
+];
+
+/* Conceitos / palavras-chave CACD */
+const KEYWORDS = [
+  'Tratado de Tordesilhas','Tratado de Madri','Tratado de Saragoça','Tratado de Utrecht','Tratado de Santo Ildefonso',
+  'Tratado de Petrópolis','Tratado de Versalhes','Tratado da Tríplice Aliança','Tratado de Assunção',
+  'uti possidetis','mare clausum','mare liberum','União Ibérica','Reforma Protestante','Contra-Reforma',
+  'Grandes Navegações','expansão marítima','mercantilismo','colonialismo','escravidão','tráfico negreiro',
+  'pau-brasil','cana-de-açúcar','ouro','mineração','capitanias hereditárias','bandeirantes','jesuítas',
+  'Restauração portuguesa','Revolução Industrial','Revolução Francesa','Revolução Gloriosa',
+  'Bloqueio Continental','abertura dos portos','Independência','Confederação do Equador','Cisplatina',
+  'Guerra do Paraguai','Tríplice Aliança','Lei Áurea','abolicionismo','Proclamação da República',
+  'Encilhamento','Questão Christie','Lei Aberdeen','OPA','Operação Pan-Americana','Política Externa Independente',
+  'pragmatismo responsável','universalismo','autonomia pela distância','autonomia pela participação',
+  'Doutrina Monroe','Doutrina Drago','Doutrina Calvo','Doutrina Estrada','Doutrina Tobar','Corolário Roosevelt',
+  'Pan-americanismo','Boa Vizinhança','Aliança para o Progresso','OEA','TIAR','Pacto de Bogotá',
+  'Liga das Nações','ONU','Conselho de Segurança','G-4','G-20','BRICS','IBAS','Mercosul','Unasul','Celac','Alalc','Aladi',
+  'ALCA','Pacto Andino','Comunidade Andina','Nafta','OMC','GATT','Rodada Doha','Rodada Uruguai',
+  'Bretton Woods','FMI','Banco Mundial','dívida externa','Plano Brady','Plano Real','Plano de Metas',
+  'Itaipu','Acordo Nuclear','TNP','Tratado de Tlatelolco','CTBT','desarmamento','não-proliferação',
+  'apartheid','descolonização','Guerra Fria','Cortina de Ferro','distensão','perestroika','glasnost',
+  'Tratado de Bretton Woods','padrão-ouro','padrão dólar','Crise de 1929','New Deal','Plano Marshall',
+  'Guerras Napoleônicas','Primeira Guerra Mundial','Segunda Guerra Mundial','Guerra do Vietnam','Guerra da Coreia',
+  'Guerra do Golfo','Guerra das Malvinas','Guerra Civil Espanhola','Guerra dos Trinta Anos','Guerra dos Sete Anos',
+  'Estado Novo','Era Vargas','Regime Militar','redemocratização','impeachment',
+  'biocombustíveis','meio ambiente','Rio-92','Rio+20','Protocolo de Quioto','Acordo de Paris','desenvolvimento sustentável',
+  'direitos humanos','responsabilidade ao proteger','Tratado de Lisboa','União Europeia','euro','OTAN','Pacto de Varsóvia',
+  'globalização','neoliberalismo','Consenso de Washington','Consenso de Buenos Aires',
+];
+
+/* Eventos-marco curados (id por ano-aproximado, peso ALTA) */
+const EVENTOS_MARCO = new Set([
+  1492, 1493, 1494, 1500, 1530, 1532, 1548, 1549, 1580, 1640, 1648, 1654, 1661, 1668, 1703, 1713, 1750,
+  1755, 1761, 1763, 1777, 1789, 1808, 1815, 1822, 1824, 1825, 1826, 1831, 1850, 1864, 1865, 1870, 1888,
+  1889, 1891, 1898, 1902, 1903, 1906, 1907, 1914, 1917, 1918, 1919, 1922, 1929, 1930, 1937, 1942, 1945,
+  1946, 1947, 1948, 1956, 1959, 1961, 1964, 1968, 1969, 1973, 1975, 1979, 1985, 1988, 1989, 1990, 1991,
+  1992, 1994, 1995, 2002, 2003, 2008, 2010, 2013, 2016
+]);
+
+/* Disciplinas por palavra-chave */
+function classifyDisciplina(txt){
+  const t = txt.toLowerCase();
+  if (/tratado|acordo|conven[çc][ãa]o|protocolo|pacto|onu|oea|mercosul|liga das na[çc][õo]es|conselho de seguran[çc]a/i.test(txt)) return 'Política Externa';
+  if (/guerra|batalha|invas[ãa]o|revolu[çc][ãa]o|golpe|conflito|insurrei[çc][ãa]o/i.test(txt)) return 'História Mundial';
+  if (/economia|com[ée]rcio|tarifa|moeda|d[íi]vida|exporta[çc][ãa]o|importa[çc][ãa]o|fmi|banco mundial|gatt|omc|capital/i.test(txt)) return 'Economia';
+  if (/direito|conven[çc][ãa]o de viena|corte|tribunal|jurisdi[çc][ãa]o|arbitr/i.test(txt)) return 'Direito Internacional';
+  return 'História do Brasil';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PARSER + ENRIQUECIMENTO
+   ═══════════════════════════════════════════════════════════════ */
+
+function parseTxt(raw){
+  // Quebra em linhas, mantém indentação
+  const lines = raw.split(/\r?\n/);
+  const yearEntries = []; // { ano, paragrafos: [string,...] }
+  let current = null;       // { ano, lines: [] }
+  let buffer = [];          // linhas do parágrafo corrente
+
+  const flushParagraph = () => {
+    if (current && buffer.length){
+      const para = buffer.join(' ').replace(/\s+/g,' ').trim();
+      if (para && para.length > 30) current.paragrafos.push(para);
+      buffer = [];
+    }
+  };
+
+  const flushYear = () => {
+    flushParagraph();
+    if (current && current.paragrafos.length) yearEntries.push(current);
+    current = null;
+  };
+
+  for (let i=0; i<lines.length; i++){
+    const ln = lines[i];
+    if (!ln.trim()){
+      // linha em branco = quebra de parágrafo
+      flushParagraph();
+      continue;
+    }
+    // Detecta "YYYY  texto..." no início
+    const m = ln.match(/^(\d{4})\s{2,}(.+)$/);
+    if (m){
+      const ano = parseInt(m[1],10);
+      // sanity: anos 1400-2030
+      if (ano >= 1400 && ano <= 2030){
+        flushYear();
+        current = { ano, paragrafos: [] };
+        buffer = [m[2].trim()];
+        continue;
+      }
+    }
+    // continuação: linha indentada (≥4 espaços) OU continuação de parágrafo do ano corrente
+    if (current && /^\s{3,}/.test(ln)){
+      buffer.push(ln.trim());
+      continue;
+    }
+    // se não tem ano e tem texto, pode ser cabeçalho/lixo — ignora
+    if (current){
+      buffer.push(ln.trim());
+    }
+  }
+  flushYear();
+  return yearEntries;
+}
+
+function detectPaises(txt){
+  const found = new Set();
+  for (const [name, rx] of PAISES){
+    rx.lastIndex = 0;
+    if (rx.test(txt)) found.add(name);
+  }
+  return [...found];
+}
+
+function detectPersonagens(txt){
+  const found = new Set();
+  for (const nome of PERSONAGENS_LIST){
+    // escape do nome para regex
+    const esc = nome.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    if (new RegExp('\\b'+esc+'\\b').test(txt)) found.add(nome);
+  }
+  return [...found].slice(0,8);
+}
+
+function detectTratados(txt){
+  const found = new Set();
+  const rx = /\b(Tratado|Conven[çc][ãa]o|Protocolo|Pacto|Acordo|Bula|Ata|Confer[êe]ncia)\s+(d[eo]s?\s+)?([A-ZÁ-Ú][\wÀ-ÿ\-]+(?:\s+(?:de\s+|do\s+|da\s+|das\s+|dos\s+)?[A-ZÁ-Ú][\wÀ-ÿ\-]+){0,4})/g;
+  let m;
+  while ((m = rx.exec(txt)) !== null){
+    const full = m[0].replace(/\s+/g,' ').trim();
+    if (full.length < 60) found.add(full);
+    if (found.size >= 6) break;
+  }
+  return [...found];
+}
+
+function detectKeywords(txt){
+  const found = new Set();
+  const tl = txt.toLowerCase();
+  for (const kw of KEYWORDS){
+    if (tl.includes(kw.toLowerCase())) found.add(kw);
+    if (found.size >= 8) break;
+  }
+  return [...found];
+}
+
+function calcImportancia(ano, txt, paises, tratados){
+  let score = 0;
+  if (EVENTOS_MARCO.has(ano)) score += 3;
+  if (txt.length > 600) score += 1;
+  if (txt.length > 1000) score += 1;
+  if (tratados.length > 0) score += 1;
+  if (paises.length >= 3) score += 1;
+  if (/(?:Independ[êe]ncia|Constitui[çc][ãa]o|Proclama[çc][ãa]o|Tratado|Guerra|Revolu[çc][ãa]o|Aboli[çc][ãa]o|Repúblic)/i.test(txt)) score += 1;
+  if (score >= 4) return 'ALTA';
+  if (score >= 2) return 'MÉDIA';
+  return 'BAIXA';
+}
+
+function genTitulo(txt){
+  // Pega primeira sentença
+  let s = txt.split(/[.;:]/)[0].trim();
+  if (s.length > 90) s = s.slice(0, 87) + '…';
+  // Capitaliza
+  if (s.length > 1) s = s[0].toUpperCase() + s.slice(1);
+  return s || 'Evento histórico';
+}
+
+function genResumo(txt){
+  if (txt.length <= 320) return txt;
+  return txt.slice(0, 317).replace(/\s+\S*$/,'') + '…';
+}
+
+function enrich(yearEntries){
+  const events = [];
+  for (const ye of yearEntries){
+    ye.paragrafos.forEach((para, idx) => {
+      const paises = detectPaises(para);
+      const personagens = detectPersonagens(para);
+      const tratados = detectTratados(para);
+      const palavras_chave = detectKeywords(para);
+      const importancia = calcImportancia(ye.ano, para, paises, tratados);
+      const disciplina = classifyDisciplina(para);
+      events.push({
+        id: ye.ano + '-' + String(idx).padStart(3,'0'),
+        ano: ye.ano,
+        seculo: Math.ceil(ye.ano/100),
+        data_completa: String(ye.ano),
+        titulo: genTitulo(para),
+        resumo: genResumo(para),
+        texto_original: para,
+        personagens,
+        paises,
+        tratados,
+        palavras_chave,
+        consequencias: [],
+        conexoes: [],
+        edital_item: disciplina,
+        disciplina,
+        importancia,
+      });
+    });
+  }
+  // Indexa conexões (compartilham ≥2 entidades, ano próximo ≤15 anos)
+  for (let i=0; i<events.length; i++){
+    const e = events[i];
+    const conn = [];
+    for (let j=Math.max(0,i-30); j<Math.min(events.length, i+30); j++){
+      if (i===j) continue;
+      const o = events[j];
+      if (Math.abs(o.ano - e.ano) > 25) continue;
+      let overlap = 0;
+      e.paises.forEach(p => o.paises.includes(p) && overlap++);
+      e.tratados.forEach(t => o.tratados.includes(t) && overlap++);
+      e.personagens.forEach(p => o.personagens.includes(p) && overlap++);
+      if (overlap >= 2) conn.push({id:o.id, ano:o.ano, titulo:o.titulo, score:overlap});
+    }
+    conn.sort((a,b) => b.score - a.score);
+    e.conexoes = conn.slice(0,6);
+  }
+  return events;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ESTADO E RENDER
+   ═══════════════════════════════════════════════════════════════ */
+
+let ALL_EVENTS = [];
+let EVENTS_BY_ID = {};
+const filters = {
+  q: '',
+  seculo: null,    // 15..21 ou null
+  pais: null,      // string ou null
+  imp: null,       // 'ALTA' | 'MÉDIA' | 'BAIXA' | null
+};
+
+function applyFilters(){
+  const q = filters.q.trim().toLowerCase();
+  const out = ALL_EVENTS.filter(e => {
+    if (filters.seculo && e.seculo !== filters.seculo) return false;
+    if (filters.pais && !e.paises.includes(filters.pais)) return false;
+    if (filters.imp && e.importancia !== filters.imp) return false;
+    if (q){
+      const hay = (e.titulo + ' ' + e.texto_original + ' ' + e.paises.join(' ') + ' ' + e.tratados.join(' ') + ' ' + e.personagens.join(' ') + ' ' + e.palavras_chave.join(' ')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  return out;
+}
+
+function impCls(imp){ return imp==='ALTA'?'imp-a':imp==='MÉDIA'?'imp-m':'imp-b'; }
+
+function renderTimeline(){
+  const list = applyFilters();
+  document.getElementById('cntShown').textContent = list.length.toLocaleString('pt-BR');
+  document.getElementById('cntTotal').textContent = ALL_EVENTS.length.toLocaleString('pt-BR');
+  const tl = document.getElementById('timeline');
+  // mantém .tl-line
+  const line = tl.querySelector('.tl-line');
+  tl.innerHTML = '';
+  if (line) tl.appendChild(line); else { const l=document.createElement('div'); l.className='tl-line'; tl.appendChild(l); }
+
+  if (!list.length){
+    const e = document.createElement('div');
+    e.className='empty';
+    e.innerHTML = '<div class="empty-icon">🔍</div>Nenhum evento corresponde aos filtros.<br><br><button class="filt-clear" onclick="clearFilters()">limpar filtros</button>';
+    tl.appendChild(e);
+    return;
+  }
+
+  // Renderiza tudo (sem virtualização — DOM consegue ~500-800 cards)
+  const frag = document.createDocumentFragment();
+  list.forEach((e, i) => {
+    const side = i % 2 === 0 ? 'left' : 'right';
+    const item = document.createElement('div');
+    item.className = 'tl-item ' + side;
+    const paisesChips = e.paises.slice(0,3).map(p => `<span class="tl-mc tl-mc-pais">${p}</span>`).join('');
+    const tratChip    = e.tratados.length ? `<span class="tl-mc tl-mc-trat">📜 ${e.tratados.length}</span>` : '';
+    const impChip     = e.importancia==='ALTA' ? '<span class="tl-mc tl-mc-imp-a">●Alta</span>' : (e.importancia==='MÉDIA' ? '<span class="tl-mc tl-mc-imp-m">●Média</span>' : '');
+    item.innerHTML = `
+      <div class="tl-dot ${impCls(e.importancia)}"></div>
+      <div class="tl-card ${impCls(e.importancia)}" data-id="${e.id}">
+        <div class="tl-card-year">${e.ano}</div>
+        <div class="tl-card-title">${escapeHtml(e.titulo)}</div>
+        <div class="tl-card-resumo">${escapeHtml(e.resumo)}</div>
+        <div class="tl-card-meta">${paisesChips}${tratChip}${impChip}</div>
+      </div>
+    `;
+    frag.appendChild(item);
+  });
+  tl.appendChild(frag);
+
+  tl.querySelectorAll('.tl-card').forEach(c => {
+    c.addEventListener('click', () => openDetail(c.dataset.id));
+  });
+}
+
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ── DETAIL ── */
+function openDetail(id){
+  const e = EVENTS_BY_ID[id];
+  if (!e) return;
+  document.getElementById('detImp').textContent = e.importancia;
+  document.getElementById('detImp').className = 'det-imp ' + (e.importancia==='ALTA'?'a':e.importancia==='MÉDIA'?'m':'b');
+  const body = document.getElementById('detBody');
+
+  const tags = (arr, cls) => arr.length
+    ? arr.map(t => `<span class="det-tag ${cls}">${escapeHtml(t)}</span>`).join('')
+    : '<span style="font-size:11px;color:var(--dim);font-style:italic">—</span>';
+
+  const conns = e.conexoes.length
+    ? e.conexoes.map(c => `<div class="det-conn-card" onclick="openDetail('${c.id}')"><div class="det-conn-year">${c.ano}</div><div class="det-conn-title">${escapeHtml(c.titulo)}</div></div>`).join('')
+    : '<span style="font-size:11px;color:var(--dim);font-style:italic">Nenhuma conexão automática detectada.</span>';
+
+  body.innerHTML = `
+    <div class="det-year">${e.ano}</div>
+    <div class="det-title">${escapeHtml(e.titulo)}</div>
+
+    <div class="det-meta">
+      <div class="det-meta-cell"><div class="det-meta-lbl">Século</div><div class="det-meta-val">${toRoman(e.seculo)}</div></div>
+      <div class="det-meta-cell"><div class="det-meta-lbl">Disciplina</div><div class="det-meta-val">${e.disciplina}</div></div>
+    </div>
+
+    <div class="det-resumo">${escapeHtml(e.resumo)}</div>
+
+    <div class="det-section">
+      <div class="det-sec-head">Países envolvidos</div>
+      <div class="det-list">${tags(e.paises,'pais')}</div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-sec-head">Personagens</div>
+      <div class="det-list">${tags(e.personagens,'pers')}</div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-sec-head">Tratados / Convenções</div>
+      <div class="det-list">${tags(e.tratados,'trat')}</div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-sec-head">Palavras-chave CACD</div>
+      <div class="det-list">${tags(e.palavras_chave,'kw')}</div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-sec-head">Conexões históricas</div>
+      <div class="det-conn">${conns}</div>
+    </div>
+
+    <div class="det-section">
+      <div class="det-sec-head">Texto original</div>
+      <button class="det-orig-btn" onclick="this.nextElementSibling.classList.toggle('show');this.textContent=this.nextElementSibling.classList.contains('show')?'ocultar texto original':'mostrar texto original'">mostrar texto original</button>
+      <div class="det-orig">${escapeHtml(e.texto_original)}</div>
+    </div>
+  `;
+
+  document.getElementById('detail').classList.add('open');
+  document.getElementById('detail-overlay').classList.add('open');
+  body.scrollTop = 0;
+}
+
+function closeDetail(){
+  document.getElementById('detail').classList.remove('open');
+  document.getElementById('detail-overlay').classList.remove('open');
+}
+
+function toRoman(n){
+  const r = ['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI','XXII'];
+  return r[n] || String(n);
+}
+
+/* ── FILTROS UI ── */
+function clearFilters(){
+  filters.q=''; filters.seculo=null; filters.pais=null; filters.imp=null;
+  document.getElementById('qSearch').value='';
+  document.querySelectorAll('.filt-chips .fc').forEach(c => c.classList.remove('on','on-r','on-a','on-bl','on-p'));
+  renderTimeline();
+}
+
+function buildFilterChips(){
+  // Séculos
+  const secs = [...new Set(ALL_EVENTS.map(e => e.seculo))].sort();
+  const elSec = document.getElementById('chipsSec');
+  elSec.innerHTML = secs.map(s => `<button class="fc" data-sec="${s}">${toRoman(s)}</button>`).join('');
+  elSec.querySelectorAll('.fc').forEach(b => {
+    b.addEventListener('click', () => {
+      const sec = parseInt(b.dataset.sec);
+      filters.seculo = filters.seculo===sec ? null : sec;
+      elSec.querySelectorAll('.fc').forEach(x => x.classList.remove('on'));
+      if (filters.seculo) b.classList.add('on');
+      renderTimeline();
+    });
+  });
+
+  // Países (top 14 por frequência)
+  const freq = {};
+  ALL_EVENTS.forEach(e => e.paises.forEach(p => freq[p] = (freq[p]||0)+1));
+  const topPaises = Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0,14).map(x => x[0]);
+  const elP = document.getElementById('chipsPais');
+  elP.innerHTML = topPaises.map(p => `<button class="fc" data-pais="${p}">${p}</button>`).join('');
+  elP.querySelectorAll('.fc').forEach(b => {
+    b.addEventListener('click', () => {
+      const p = b.dataset.pais;
+      filters.pais = filters.pais===p ? null : p;
+      elP.querySelectorAll('.fc').forEach(x => x.classList.remove('on-bl'));
+      if (filters.pais) b.classList.add('on-bl');
+      renderTimeline();
+    });
+  });
+
+  // Importância
+  document.querySelectorAll('#chipsImp .fc').forEach(b => {
+    b.addEventListener('click', () => {
+      const imp = b.dataset.imp;
+      filters.imp = filters.imp===imp ? null : imp;
+      document.querySelectorAll('#chipsImp .fc').forEach(x => x.classList.remove('on-r','on-a','on-bl'));
+      if (filters.imp){
+        b.classList.add(imp==='ALTA'?'on-r':imp==='MÉDIA'?'on-a':'on-bl');
+      }
+      renderTimeline();
+    });
+  });
+
+  // Busca
+  let tmr = null;
+  document.getElementById('qSearch').addEventListener('input', (ev) => {
+    clearTimeout(tmr);
+    tmr = setTimeout(() => {
+      filters.q = ev.target.value;
+      renderTimeline();
+    }, 220);
+  });
+}
+
+/* ── SIDEBAR ── */
+function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+document.querySelectorAll('.sb-link').forEach(a => {
+  if (location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
+});
+
+/* ── ESC fecha modal ── */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════════════════════════ */
+(async () => {
+  try {
+    const user = await DB.requireAuth();
+    const [profile, isAdm, examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
+    if (isAdm) document.getElementById('navAdmin').style.display = '';
+    const nu = document.getElementById('navUser');
+    if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+    const nc = document.getElementById('navCountdown');
+    if (nc) nc.textContent = Math.ceil((examDate - Date.now())/86400000) + 'd';
+
+    // Fetch + parse + enrich
+    const res = await fetch(encodeURI('LINHA DO TEMPO/Cronologia_das_Relacoes_Internacionais_d.txt'));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const buf = await res.arrayBuffer();
+    let text;
+    try { text = new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+    catch { text = new TextDecoder('windows-1252').decode(buf); }
+
+    const yearEntries = parseTxt(text);
+    ALL_EVENTS = enrich(yearEntries);
+    EVENTS_BY_ID = {};
+    ALL_EVENTS.forEach(e => EVENTS_BY_ID[e.id] = e);
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = '';
+
+    buildFilterChips();
+    renderTimeline();
+  } catch (err) {
+    document.getElementById('loadingScreen').innerHTML = '<div style="color:var(--red);font-weight:700;font-size:14px">⚠ Erro ao carregar cronologia</div><div style="margin-top:8px;font-size:12px;color:var(--muted)">' + escapeHtml(err.message) + '</div>';
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>

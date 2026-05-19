@@ -1,0 +1,559 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Repositório — Atlas Diplomático</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1117; --card:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.09);
+      --text:#e8e8e8; --muted:#8f8f8f; --accent:#8ea7ff; --green:#6ee7b7;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
+    .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; }
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:#39ff14; }
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:#39ff14; border-bottom:2px solid #39ff14; border-radius:0; padding-bottom:3px; }
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
+      border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+    main { position:relative; z-index:1; max-width:900px; margin:0 auto; padding:32px 24px; }
+
+    .view-flex { display:none; flex-direction:column; align-items:center; gap:24px; }
+    .view-flex.active { display:flex; }
+    .view { display:none; }
+    .view.active { display:block; }
+
+    .page-title { font-size:28px; font-weight:700; letter-spacing:1px; margin-bottom:6px; text-align:center; }
+    .page-sub { color:var(--muted); font-size:14px; text-align:center; }
+
+    .upload-area { width:100%; max-width:540px; border:2px dashed var(--border); border-radius:18px;
+      padding:40px; text-align:center; cursor:pointer; transition:0.2s; background:var(--card); }
+    .upload-area:hover { border-color:var(--accent); background:rgba(142,167,255,0.05); }
+    .upload-area input { display:none; }
+    .upload-icon { font-size:40px; margin-bottom:12px; }
+    .upload-label { font-size:14px; color:var(--muted); }
+    .upload-label strong { color:var(--accent); }
+    .upload-hint { font-size:12px; color:var(--muted); margin-top:8px; }
+
+    .repo-browser { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; width:100%; max-width:540px; }
+    .rb-file { background:var(--card); border:1px solid var(--border); border-radius:10px;
+      padding:10px 14px; font-size:13px; color:var(--text); cursor:pointer;
+      display:flex; align-items:center; gap:8px; transition:.15s; }
+    .rb-file:hover { border-color:var(--accent); background:rgba(142,167,255,.06); }
+    .rb-file span { flex:1; font-weight:500; }
+    .rb-file .arr { color:var(--muted); font-size:12px; flex-shrink:0; }
+    .rb-empty { color:var(--muted); font-size:13px; text-align:center; padding:12px 0; }
+
+    .browser-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+    .browser-title { font-size:20px; font-weight:700; }
+    .browser-count { font-size:13px; color:var(--muted); }
+    .bh-spacer { flex:1; }
+    .btn { padding:9px 18px; border-radius:10px; font-size:13px; font-weight:600;
+      cursor:pointer; border:1px solid var(--border); background:rgba(255,255,255,0.06); color:var(--text);
+      transition:0.2s; font-family:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn:hover { background:rgba(255,255,255,0.1); }
+    .btn-accent { background:var(--accent); color:#0f1117; border-color:var(--accent); }
+    .btn-accent:hover { opacity:0.85; }
+
+    .search-bar { display:flex; gap:8px; margin-bottom:16px; }
+    .search-input { flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      border-radius:10px; padding:10px 16px; color:var(--text); font-family:inherit; font-size:14px; outline:none; }
+    .search-input:focus { border-color:var(--accent); }
+    .search-input::placeholder { color:var(--muted); }
+
+    .filter-bar { display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }
+    .filter-chip { padding:5px 12px; border-radius:20px; font-size:12px; cursor:pointer;
+      background:var(--card); border:1px solid var(--border); color:var(--muted); transition:0.2s; }
+    .filter-chip.active { background:rgba(142,167,255,0.15); border-color:var(--accent); color:var(--accent); }
+
+    .cards-grid { display:flex; flex-direction:column; gap:8px; }
+
+    .sec-label { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase;
+      padding:16px 4px 8px; border-top:1px solid rgba(255,255,255,0.06); margin-top:8px; }
+    .sec-label:first-child { border-top:none; padding-top:0; }
+
+    .repo-card { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; transition:0.2s; }
+    .repo-card:hover { border-color:rgba(255,255,255,0.18); }
+    .rcard-head { display:flex; align-items:flex-start; gap:12px; padding:16px 20px; cursor:pointer; }
+    .rcard-q { flex:1; font-size:14px; line-height:1.55; font-weight:500; }
+    .rcard-icons { display:flex; align-items:center; gap:8px; flex-shrink:0; padding-top:2px; }
+    .rcard-check { color:var(--green); font-size:15px; }
+    .rcard-chevron { color:var(--muted); font-size:20px; transition:transform 0.25s; line-height:1; }
+    .repo-card.open .rcard-chevron { transform:rotate(180deg); }
+    .rcard-body { display:none; padding:0 20px 16px; }
+    .rcard-body.vis { display:block; }
+    .rcard-divider { height:1px; background:rgba(255,255,255,0.06); margin-bottom:14px; }
+    .rcard-ans { font-size:14px; color:#c5d5ff; line-height:1.75; }
+    .rcard-footer { display:flex; justify-content:flex-end; margin-top:12px; }
+    .mark-btn { background:none; border:1px solid var(--border); color:var(--muted);
+      padding:4px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; transition:0.2s; }
+    .mark-btn:hover, .mark-btn.marked { color:var(--green); border-color:var(--green); background:rgba(110,231,183,0.08); }
+
+    .no-results { color:var(--muted); text-align:center; padding:48px; font-size:14px; }
+
+    /* Flashcard overlay */
+    .fc-overlay { position:fixed; inset:0; z-index:200; background:rgba(15,17,23,0.97);
+      display:none; flex-direction:column; align-items:center; justify-content:center; gap:22px; padding:24px; }
+    .fc-overlay.vis { display:flex; }
+    .fc-bar-row { width:100%; max-width:600px; display:flex; align-items:center; gap:12px; }
+    .fc-label { font-size:13px; color:var(--muted); flex:1; }
+    .fc-counter { font-size:13px; color:var(--muted); }
+    .fc-close-btn { background:none; border:1px solid var(--border); color:var(--muted);
+      padding:5px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+    .fc-close-btn:hover { color:var(--text); }
+    .fc-prog { width:100%; max-width:600px; height:4px; background:rgba(255,255,255,0.07); border-radius:20px; }
+    .fc-prog-fill { height:100%; background:var(--accent); border-radius:20px; transition:width 0.3s; }
+    .fc-card-wrap { width:100%; max-width:600px; perspective:1100px; height:260px; cursor:pointer; }
+    .fc-inner { width:100%; height:100%; transform-style:preserve-3d; transition:transform 0.5s; position:relative; }
+    .fc-inner.flipped { transform:rotateY(180deg); }
+    .fc-face { position:absolute; inset:0; backface-visibility:hidden; border-radius:18px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; padding:32px;
+      background:rgba(255,255,255,0.05); border:1px solid var(--border); }
+    .fc-face-back { transform:rotateY(180deg); background:rgba(142,167,255,0.08); border-color:rgba(142,167,255,0.22); }
+    .fc-tag { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; }
+    .fc-text { font-size:16px; line-height:1.65; text-align:center; }
+    .fc-face-back .fc-text { color:#c5d5ff; }
+    .fc-hint-txt { font-size:12px; color:var(--muted); margin-top:10px; }
+    .fc-actions { display:flex; gap:12px; }
+    .fc-btn { padding:11px 30px; border-radius:11px; font-size:14px; font-weight:600; cursor:pointer; border:none; font-family:inherit; transition:0.2s; }
+    .fc-btn-k { background:rgba(110,231,183,0.14); border:1px solid var(--green); color:var(--green); }
+    .fc-btn-k:hover { background:rgba(110,231,183,0.24); }
+    .fc-btn-j { background:rgba(248,113,113,0.14); border:1px solid #f87171; color:#f87171; }
+    .fc-btn-j:hover { background:rgba(248,113,113,0.24); }
+    .fc-btn-skip { background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--muted); }
+    .fc-done-box { text-align:center; }
+    .fc-done-icon { font-size:52px; margin-bottom:12px; }
+    .fc-done-h { font-size:22px; font-weight:700; margin-bottom:6px; }
+    .fc-done-s { color:var(--muted); font-size:14px; }
+    .fc-done-btns { display:flex; gap:12px; justify-content:center; margin-top:20px; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <button class="nav-ham" onclick="openSidebar()">☰</button>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">🏠 Início</a>
+    <a href="flashcards.html">🃏 Flashcards</a>
+    <a href="analise.html">📊 Análise</a>
+    <a href="leaderboard.html">🏆 Ranking</a>
+    <a href="agenda.html">📅 Agenda</a>
+    <a href="grupo.html">👥 Grupo</a>
+    <a href="segunda-fase.html">✍️ 2ª Fase</a>
+    <a href="mapas.html">🗺️ Mapas</a>
+  <a href="noticias.html">📰 Notícias</a>
+    
+    <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+  <main>
+    <div class="view-flex active" id="viewLoader">
+      <div class="page-title">REPOSITÓRIO</div>
+      <div class="page-sub">Base de conhecimento detalhada — carregue um CSV</div>
+      <div class="upload-area" onclick="document.getElementById('csvInput').click()">
+        <input type="file" id="csvInput" accept=".csv" />
+        <div class="upload-icon">📚</div>
+        <div class="upload-label"><strong>Clique para selecionar</strong> um arquivo de repositório</div>
+        <div class="upload-hint">Formato: pergunta ; resposta detalhada (separado por ;)</div>
+      </div>
+      <div class="repo-browser" id="repoBrowser">
+        <div class="rb-empty" style="grid-column:1/-1">Carregando arquivos...</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);text-align:center">ou carregue um arquivo manualmente acima</div>
+    </div>
+
+    <div class="view" id="viewBrowser">
+      <div class="browser-header">
+        <div>
+          <div class="browser-title" id="browserTitle"></div>
+          <div class="browser-count" id="browserCount"></div>
+        </div>
+        <div class="bh-spacer"></div>
+        <button class="btn btn-accent" onclick="startFlashcard()">🃏 Modo Flashcard</button>
+        <button class="btn" onclick="backToLoader()">← Outro arquivo</button>
+      </div>
+      <div class="search-bar">
+        <input class="search-input" type="text" id="searchInput" placeholder="Buscar por palavra-chave..." oninput="filterCards()" />
+        <button class="btn" onclick="document.getElementById('searchInput').value='';filterCards()">✕</button>
+      </div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div class="cards-grid" id="cardsGrid"></div>
+    </div>
+  </main>
+
+  <div class="fc-overlay" id="fcOverlay">
+    <div class="fc-bar-row">
+      <span class="fc-label" id="fcLabel"></span>
+      <span class="fc-counter" id="fcCounter"></span>
+      <button class="fc-close-btn" onclick="closeFc()">✕ Fechar</button>
+    </div>
+    <div class="fc-prog"><div class="fc-prog-fill" id="fcProg"></div></div>
+    <div class="fc-card-wrap" id="fcWrap" onclick="fcFlip()">
+      <div class="fc-inner" id="fcInner">
+        <div class="fc-face">
+          <div class="fc-tag">Pergunta</div>
+          <div class="fc-text" id="fcFront"></div>
+          <div class="fc-hint-txt">Clique para revelar</div>
+        </div>
+        <div class="fc-face fc-face-back">
+          <div class="fc-tag">Resposta</div>
+          <div class="fc-text" id="fcBack"></div>
+        </div>
+      </div>
+    </div>
+    <div class="fc-actions" id="fcActions">
+      <button class="fc-btn fc-btn-k" id="fcBtnK" onclick="fcAns('known')" disabled>✓ Sei (K)</button>
+      <button class="fc-btn fc-btn-j" id="fcBtnJ" onclick="fcAns('unknown')" disabled>✗ Não sei (J)</button>
+      <button class="fc-btn fc-btn-skip" onclick="fcAns('skip')">→ Pular</button>
+    </div>
+    <div class="fc-done-box" id="fcDone" style="display:none">
+      <div class="fc-done-icon">✅</div>
+      <div class="fc-done-h" id="fcDoneH"></div>
+      <div class="fc-done-s" id="fcDoneS"></div>
+      <div class="fc-done-btns">
+        <button class="fc-btn fc-btn-k" onclick="restartFc()">Repetir</button>
+        <button class="fc-btn fc-btn-skip" onclick="closeFc()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allItems=[], repoName='', activeFilter='';
+    let fcQueue=[], fcIdx=0, fcIsFlipped=false, fcKnown=0, fcUnknown=0;
+    let reviewedMap = {};
+
+    (async () => {
+      const user = await DB.requireAuth();
+      const [profile, isAdm, examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
+      if (isAdm) document.getElementById('navAdmin').style.display = '';
+      const nu = document.getElementById('navUser');
+      if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+      const nc = document.getElementById('navCountdown');
+      if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+      loadRepoBrowser();
+    })();
+
+    function backToLoader(){
+      document.getElementById('viewBrowser').classList.remove('active');
+      document.getElementById('viewLoader').classList.add('active');
+    }
+    function showBrowser(){
+      document.getElementById('viewLoader').classList.remove('active');
+      document.getElementById('viewBrowser').classList.add('active');
+    }
+
+    async function scanRepoFolder(){
+      try{
+        const res = await fetch(encodeURI('REPOSITÓRIO/'));
+        if(!res.ok) return [];
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html,'text/html');
+        return Array.from(doc.querySelectorAll('a'))
+          .map(a=>a.getAttribute('href'))
+          .filter(h=>h&&h.toLowerCase().endsWith('.csv')&&!h.startsWith('http')&&!h.startsWith('/'))
+          .map(h=>decodeURIComponent(h));
+      }catch{ return []; }
+    }
+
+    async function loadRepoBrowser(){
+      const files = await scanRepoFolder();
+      const browser = document.getElementById('repoBrowser');
+      if(!files.length){
+        browser.innerHTML = '<div class="rb-empty" style="grid-column:1/-1">Nenhum arquivo em REPOSITÓRIO/ — carregue manualmente</div>';
+        return;
+      }
+      browser.innerHTML = files.map(f=>{
+        const label = f.replace(/\.csv$/i,'').replace(/^\d+\s*/,'');
+        const safe = f.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        return `<div class="rb-file" onclick="loadRepoFromPath('${safe}')">
+          <span>${label}</span><span class="arr">→</span>
+        </div>`;
+      }).join('');
+    }
+
+    async function loadRepoFromPath(filename){
+      const res = await fetch(encodeURI('REPOSITÓRIO/'+filename));
+      if(!res.ok){ alert('Erro ao carregar '+filename); return; }
+      const buf = await res.arrayBuffer();
+      let text;
+      try{ text = new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+      catch{ text = new TextDecoder('windows-1252').decode(buf); }
+      repoName = filename.replace(/\.csv$/i,'').trim();
+      Papa.parse(text,{delimiter:';',skipEmptyLines:true,async complete(res){ await processRepoData(res.data); }});
+    }
+
+    async function processRepoData(rows){
+      allItems=[]; let sec='';
+      rows.forEach(row=>{
+        const q=(row[0]||'').trim(), a=(row[1]||'').trim();
+        if(!q) return;
+        if(!a){ sec=q; return; }
+        allItems.push({ q, a, section:sec });
+      });
+      if(!allItems.length){ alert('Nenhum item encontrado.'); return; }
+      reviewedMap = await DB.getReviewed();
+      document.getElementById('browserTitle').textContent = repoName;
+      renderFilterBar();
+      activeFilter='';
+      filterCards();
+      showBrowser();
+    }
+
+    document.getElementById('csvInput').addEventListener('change', function(e){
+      const file = e.target.files[0]; if(!file) return;
+      repoName = file.name.replace(/\.csv$/i,'').trim();
+      Papa.parse(file,{delimiter:';',skipEmptyLines:true,async complete(res){ await processRepoData(res.data); }});
+    });
+
+    function renderFilterBar(){
+      const secs=[...new Set(allItems.map(i=>i.section).filter(Boolean))];
+      const bar=document.getElementById('filterBar');
+      if(!secs.length){ bar.innerHTML=''; return; }
+      bar.innerHTML=`<div class="filter-chip active" id="f-all" onclick="setFilter('')">Todos (${allItems.length})</div>`
+        +secs.map(s=>`<div class="filter-chip" onclick="setFilter(this.dataset.sec)" data-sec="${s.replace(/"/g,'&quot;')}">${s}</div>`).join('');
+    }
+
+    function setFilter(sec){
+      activeFilter=sec;
+      document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+      if(!sec){ document.getElementById('f-all').classList.add('active'); }
+      else {
+        const el=document.querySelector(`.filter-chip[data-sec="${sec.replace(/"/g,'&quot;')}"]`);
+        if(el) el.classList.add('active');
+      }
+      filterCards();
+    }
+
+    function filterCards(){
+      const q=document.getElementById('searchInput').value.toLowerCase().trim();
+      const filtered=allItems.filter(item=>{
+        const mf=!activeFilter||item.section===activeFilter;
+        const ms=!q||item.q.toLowerCase().includes(q)||item.a.toLowerCase().includes(q);
+        return mf&&ms;
+      });
+      document.getElementById('browserCount').textContent=`${filtered.length} de ${allItems.length} itens`;
+      renderCards(filtered);
+    }
+
+    function renderCards(items){
+      const grid=document.getElementById('cardsGrid');
+      if(!items.length){ grid.innerHTML='<div class="no-results">Nenhum resultado encontrado.</div>'; return; }
+      let lastSec='', html='';
+      items.forEach((item,i)=>{
+        if(item.section!==lastSec){
+          if(item.section) html+=`<div class="sec-label">${item.section}</div>`;
+          lastSec=item.section;
+        }
+        const key=`${repoName}::${item.q.substring(0,80)}`;
+        const isRev=!!reviewedMap[key];
+        html+=`<div class="repo-card" id="rc${i}">
+          <div class="rcard-head" onclick="toggleCard(${i})">
+            <div class="rcard-q">${item.q}</div>
+            <div class="rcard-icons">
+              ${isRev?'<span class="rcard-check">✓</span>':''}
+              <span class="rcard-chevron">⌄</span>
+            </div>
+          </div>
+          <div class="rcard-body" id="rcb${i}">
+            <div class="rcard-divider"></div>
+            <div class="rcard-ans">${item.a}</div>
+            <div class="rcard-footer">
+              <button class="mark-btn${isRev?' marked':''}" id="mb${i}" onclick="markRev(event,'${key.replace(/'/g,"\\'")}',${i})">
+                ${isRev?'✓ Revisado':'Marcar revisado'}
+              </button>
+            </div>
+          </div>
+        </div>`;
+      });
+      grid.innerHTML=html;
+    }
+
+    function toggleCard(i){
+      const card=document.getElementById('rc'+i);
+      const body=document.getElementById('rcb'+i);
+      const open=card.classList.toggle('open');
+      body.classList.toggle('vis',open);
+    }
+
+    async function markRev(e,key,i){
+      e.stopPropagation();
+      const isNowReviewed = await DB.toggleReviewed(key);
+      reviewedMap[key] = isNowReviewed || undefined;
+      if (!isNowReviewed) delete reviewedMap[key];
+      const btn=document.getElementById('mb'+i);
+      btn.textContent=was?'Marcar revisado':'✓ Revisado';
+      btn.className='mark-btn'+(was?'':' marked');
+      const check=document.querySelector(`#rc${i} .rcard-check`);
+      if(check) check.remove();
+      else{
+        const icons=document.querySelector(`#rc${i} .rcard-icons`);
+        if(icons) icons.insertAdjacentHTML('afterbegin','<span class="rcard-check">✓</span>');
+      }
+    }
+
+    function startFlashcard(){
+      const q=document.getElementById('searchInput').value.toLowerCase().trim();
+      let src=allItems.filter(i=>(!activeFilter||i.section===activeFilter)&&(!q||i.q.toLowerCase().includes(q)));
+      if(!src.length) src=[...allItems];
+      fcQueue=[...src].sort(()=>Math.random()-0.5);
+      fcIdx=0; fcIsFlipped=false; fcKnown=0; fcUnknown=0;
+      document.getElementById('fcLabel').textContent=repoName;
+      document.getElementById('fcWrap').style.display='block';
+      document.getElementById('fcActions').style.display='flex';
+      document.getElementById('fcDone').style.display='none';
+      renderFcCard();
+      document.getElementById('fcOverlay').classList.add('vis');
+    }
+    function closeFc(){ document.getElementById('fcOverlay').classList.remove('vis'); }
+    function restartFc(){
+      fcQueue=[...fcQueue].sort(()=>Math.random()-0.5);
+      fcIdx=0; fcKnown=0; fcUnknown=0;
+      document.getElementById('fcWrap').style.display='block';
+      document.getElementById('fcActions').style.display='flex';
+      document.getElementById('fcDone').style.display='none';
+      renderFcCard();
+    }
+    function renderFcCard(){
+      if(fcIdx>=fcQueue.length){ showFcDone(); return; }
+      fcIsFlipped=false;
+      document.getElementById('fcInner').classList.remove('flipped');
+      document.getElementById('fcFront').textContent=fcQueue[fcIdx].q;
+      document.getElementById('fcBack').textContent=fcQueue[fcIdx].a;
+      document.getElementById('fcBtnK').disabled=true;
+      document.getElementById('fcBtnJ').disabled=true;
+      document.getElementById('fcCounter').textContent=`${fcIdx+1}/${fcQueue.length}`;
+      document.getElementById('fcProg').style.width=(fcIdx/fcQueue.length*100)+'%';
+    }
+    function fcFlip(){
+      fcIsFlipped=!fcIsFlipped;
+      document.getElementById('fcInner').classList.toggle('flipped',fcIsFlipped);
+      document.getElementById('fcBtnK').disabled=!fcIsFlipped;
+      document.getElementById('fcBtnJ').disabled=!fcIsFlipped;
+    }
+    function fcAns(s){
+      if(s==='known') fcKnown++;
+      if(s==='unknown') fcUnknown++;
+      fcIdx++;
+      renderFcCard();
+    }
+    function showFcDone(){
+      document.getElementById('fcWrap').style.display='none';
+      document.getElementById('fcActions').style.display='none';
+      document.getElementById('fcDone').style.display='block';
+      document.getElementById('fcProg').style.width='100%';
+      const pct=fcQueue.length>0?Math.round((fcKnown/fcQueue.length)*100):0;
+      document.getElementById('fcDoneH').textContent=`${pct}% de acerto!`;
+      document.getElementById('fcDoneS').textContent=`${fcKnown} sei · ${fcUnknown} não sei de ${fcQueue.length}`;
+    }
+    // Auto-load from URL param (?file=path)
+    (async function autoLoad() {
+      const params = new URLSearchParams(location.search);
+      const filePath = params.get('file');
+      if (!filePath) return;
+      try {
+        const res = await fetch(encodeURI(filePath));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        let text;
+        try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+        catch { text = new TextDecoder('windows-1252').decode(buf); }
+        repoName = decodeURIComponent(filePath.split('/').pop().replace(/\.csv$/i,'').trim());
+        allItems = []; let sec = '';
+        Papa.parse(text, { delimiter:';', skipEmptyLines:true }).data.forEach(row => {
+          const q=(row[0]||'').trim(), a=(row[1]||'').trim();
+          if (!q) return;
+          if (!a) { sec = q; return; }
+          allItems.push({ q, a, section: sec });
+        });
+        if (allItems.length) {
+          reviewedMap = await DB.getReviewed();
+          document.getElementById('browserTitle').textContent = repoName;
+          renderFilterBar();
+          filterCards();
+          showBrowser();
+        } else {
+          alert('Nenhum item encontrado em: ' + repoName);
+        }
+      } catch(e) {
+        console.warn('Auto-load falhou:', e);
+      }
+    })();
+
+    document.addEventListener('keydown',e=>{
+      if(!document.getElementById('fcOverlay').classList.contains('vis')) return;
+      if(e.key===' '){ e.preventDefault(); fcFlip(); }
+      if(e.key.toLowerCase()==='k'&&!document.getElementById('fcBtnK').disabled) fcAns('known');
+      if(e.key.toLowerCase()==='j'&&!document.getElementById('fcBtnJ').disabled) fcAns('unknown');
+      if(e.key==='Escape') closeFc();
+    });
+  </script>
+<style>
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-brand span{color:#39ff14}
+.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#39ff14}
+</style>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
+  <div class="sb-section">Estudo</div>
+  <a class="sb-link" href="index.html">🏠 Início</a>
+  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="analise.html">📊 Análise</a>
+  <a class="sb-link" href="matching.html">🔤 Palavras</a>
+  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
+  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
+  <div class="sb-section">Mapas</div>
+  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
+  <a class="sb-link" href="noticias.html">📰 Notícias</a>
+  
+  <div class="sb-section">Comunidade</div>
+  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="agenda.html">📅 Agenda</a>
+  <a class="sb-link" href="grupo.html">👥 Grupos</a>
+  <div class="sb-section">2ª Fase</div>
+  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
+  <div class="sb-section">Admin</div>
+  <a class="sb-link" href="admin.html">⚙️ Admin</a>
+</aside>
+<script>
+function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+document.querySelectorAll('.sb-link').forEach(function(a){
+  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
+});
+</script>
+</body>
+</html>
