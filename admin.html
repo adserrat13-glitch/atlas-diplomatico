@@ -663,6 +663,13 @@ function UsersTab() {
     alert('E-mail de reset enviado para ' + email);
   }
 
+  async function doDeleteUser(u) {
+    if (!confirm(`Excluir permanentemente "${u.name || u.email}"? Esta ação é irreversível.`)) return;
+    const ok = await DB.deleteUser(u.id);
+    if (ok) setUsers(us => us.filter(x => x.id !== u.id));
+    else alert('Erro ao excluir usuário.');
+  }
+
   const filtered = users.filter(u => {
     const q = search.toLowerCase();
     const matchQ = !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q);
@@ -729,6 +736,9 @@ function UsersTab() {
                             <option key={r} value={r}>{r}</option>
                           ))}
                         </select>
+                        {u.id !== me && (
+                          <button className="btn-sm btn-danger" title="Excluir usuário" onClick={()=>doDeleteUser(u)}>🗑</button>
+                        )}
                       </div>
                     </td>
                   </tr>

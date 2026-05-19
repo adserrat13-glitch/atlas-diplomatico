@@ -567,6 +567,38 @@ const DB = {
                { onConflict: 'deck_name,question,edital_id' });
   },
 
+  async bulkMapToEdital(deckName, questions, editalIds) {
+    const rows = [];
+    for (const q of questions) {
+      for (const eid of editalIds) {
+        rows.push({ deck_name: deckName, question: q, edital_id: eid });
+      }
+    }
+    if (!rows.length) return;
+    const BATCH = 500;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      await _sb.from('flashcard_edital')
+        .upsert(rows.slice(i, i + BATCH), { onConflict: 'deck_name,question,edital_id' });
+    }
+  },
+
+  async getEditalFlat(subject) {
+    const { data } = await _sb.from('edital_items').select('*').eq('subject', subject).order('order_n');
+    return data || [];
+  },
+
+  async getTopicEnrichment(editalId) {
+    const { data } = await _sb.from('topic_enrichment').select('*').eq('edital_id', editalId).maybeSingle();
+    return data;
+  },
+
+  async getTopicConnections(editalId) {
+    const { data } = await _sb.from('topic_connections')
+      .select(`*, source:source_id(id,code,title,subject), target:target_id(id,code,title,subject)`)
+      .or(`source_id.eq.${editalId},target_id.eq.${editalId}`);
+    return data || [];
+  },
+
   // ── SETTINGS ────────────────────────────────────────────────────────
 
   async getExamDate() {
@@ -753,6 +785,11 @@ const DB = {
   async changeUserRole(userId, newRole) {
     const { error } = await _sb.from('profiles').update({ role: newRole }).eq('id', userId);
     if (!error) await this.logAudit('change_role', 'user', userId, { new_role: newRole });
+    return !error;
+  },
+
+  async deleteUser(userId) {
+    const { error } = await _sb.rpc('delete_auth_user', { user_id: userId });
     return !error;
   },
 

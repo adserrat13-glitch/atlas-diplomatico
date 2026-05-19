@@ -153,6 +153,37 @@
     .etb-bar { height:100%; border-radius:2px; transition:width .4s; }
     .etb-pct { font-size:10px; color:var(--muted); }
 
+    /* ===== TOPIC PANEL ===== */
+    .topic-panel-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:900; display:flex; align-items:flex-end; justify-content:center; }
+    .topic-panel { background:var(--bg,#0f1117); border:1px solid var(--border,#2a2d3a); border-radius:20px 20px 0 0; width:100%; max-width:640px; max-height:88vh; overflow-y:auto; padding:20px 20px 32px; box-sizing:border-box; }
+    .tp-handle { width:36px; height:4px; background:var(--muted,#666); border-radius:2px; margin:0 auto 16px; }
+    .tp-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:16px; }
+    .tp-header-main { flex:1; }
+    .tp-code { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:1px; text-transform:uppercase; display:block; margin-bottom:2px; }
+    .tp-title { font-size:16px; font-weight:700; color:var(--text); display:block; }
+    .tp-meta { display:flex; gap:12px; margin-top:6px; flex-wrap:wrap; }
+    .tp-meta span { font-size:11px; color:var(--muted); }
+    .tp-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:0 4px; line-height:1; flex-shrink:0; }
+    .tp-section { margin-bottom:18px; }
+    .tp-section h5 { font-size:10px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin:0 0 8px; }
+    .tp-chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .tp-chip { background:rgba(142,167,255,.12); border:1px solid rgba(142,167,255,.2); border-radius:20px; padding:3px 10px; font-size:11px; color:var(--text); }
+    .tp-2col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .tp-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:4px; }
+    .tp-list li { font-size:12px; color:var(--text); padding-left:12px; position:relative; }
+    .tp-list li::before { content:'•'; position:absolute; left:0; color:var(--accent,#8ea7ff); }
+    .tp-conexoes { display:flex; flex-direction:column; gap:6px; }
+    .tp-conexao { display:flex; align-items:flex-start; gap:8px; background:rgba(255,255,255,.04); border-radius:8px; padding:8px 10px; cursor:pointer; border:1px solid transparent; transition:.15s; }
+    .tp-conexao:hover { border-color:var(--accent,#8ea7ff); }
+    .tp-conexao-subj { font-size:10px; font-weight:700; color:var(--accent,#8ea7ff); min-width:32px; flex-shrink:0; padding-top:1px; }
+    .tp-conexao-body { flex:1; }
+    .tp-conexao-title { font-size:12px; color:var(--text); font-weight:600; }
+    .tp-conexao-desc { font-size:11px; color:var(--muted); margin-top:1px; }
+    .tp-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+    .tp-actions button { flex:1; min-width:140px; padding:10px; background:var(--accent,#8ea7ff); color:#0f1117; border:none; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; font-family:inherit; }
+    .tp-actions a { flex:1; min-width:120px; padding:10px; background:rgba(255,255,255,.06); border:1px solid var(--border,#2a2d3a); border-radius:10px; font-size:12px; color:var(--muted); text-decoration:none; text-align:center; display:block; }
+    .tp-subj-icon { font-size:14px; }
+
     /* ===== TTS BAR ===== */
     .tts-bar { width:100%; max-width:600px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
       background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08);
@@ -238,6 +269,58 @@
       <div class="edital-section" id="editalSection" style="display:none">
         <h4>Estudar por Edital</h4>
         <div class="edital-tree-list" id="editalTreeList"></div>
+      </div>
+    </div>
+
+    <!-- TOPIC PANEL OVERLAY -->
+    <div class="topic-panel-overlay" id="topicPanelOverlay" style="display:none" onclick="if(event.target===this)closeTopicPanel()">
+      <div class="topic-panel" id="topicPanel">
+        <div class="tp-handle"></div>
+        <div class="tp-header">
+          <div class="tp-header-main">
+            <span class="tp-code" id="tpCode"></span>
+            <span class="tp-title" id="tpTitle"></span>
+            <div class="tp-meta">
+              <span id="tpRel"></span>
+              <span id="tpRec"></span>
+              <span id="tpDif"></span>
+            </div>
+          </div>
+          <button class="tp-close" onclick="closeTopicPanel()">✕</button>
+        </div>
+
+        <div class="tp-section" id="tpSectionSubtemas" style="display:none">
+          <h5>Subtemas Estratégicos</h5>
+          <div class="tp-chips" id="tpSubtemas"></div>
+        </div>
+
+        <div class="tp-section" id="tpSectionConceitos" style="display:none">
+          <h5>Conceitos-chave</h5>
+          <div class="tp-chips" id="tpConceitos"></div>
+        </div>
+
+        <div class="tp-2col" id="tpSectionDetalhes" style="display:none">
+          <div class="tp-section">
+            <h5>Autores / Teóricos</h5>
+            <ul class="tp-list" id="tpAutores"></ul>
+          </div>
+          <div class="tp-section">
+            <h5>Tratados / Eventos</h5>
+            <ul class="tp-list" id="tpTratados"></ul>
+          </div>
+        </div>
+
+        <div class="tp-section" id="tpSectionConexoes">
+          <h5>Conexões Interdisciplinares</h5>
+          <div class="tp-conexoes" id="tpConexoes"><em style="font-size:12px;color:var(--muted)">Carregando…</em></div>
+        </div>
+
+        <div class="tp-actions" id="tpActions">
+          <button id="tpBtnEstudar">Estudar flashcards</button>
+          <a href="segunda-fase.html" target="_blank">Discursivas</a>
+          <a href="simulados.html" target="_blank">Simulados</a>
+          <a href="linha-do-tempo.html" target="_blank">Linha do tempo</a>
+        </div>
       </div>
     </div>
 
@@ -329,16 +412,49 @@
 
   <script>
     const SUBJECTS_BY_DECK = {
-      'LITERATURA': 'LP', 'LITERATURA BOSI': 'LP',
-      'GRAMMAR ING': 'ING', 'DICTIONARY OF DIPLOMACY': 'ING',
-      'BRASIL NAÇÃO 1': 'HB', 'BRASIL NAÇÃO 2': 'HB', 'BRASIL NAÇÃO 3': 'HB', 'GIAMBIAGI': 'HB',
-      'DIPLOMTAS HM CCONCEITOS': 'HM', 'PORTELA CONCCEITOS': 'HM',
-      'GEOGRAFIA MANUAL': 'GEO',
-      'LESSA PI': 'PI', 'LESSA AAAAAA PI': 'PI', '1001 CONCCEITOS': 'PI',
-      'MANKIW': 'ECO', 'PYNDICK': 'ECO',
-      'DIREITO ADM': 'DIR', 'DIREITO CONSTITUCIONAL': 'DIR',
+      // HB
+      'HB IMPERIO': 'HB', 'HB REPÚBLICA': 'HB',
+      'BRASIL NAÇÃO 1': 'HB', 'BRASIL NAÇÃO 2': 'HB', 'BRASIL NAÇÃO 3': 'HB',
+      'HISTORIA DO BRASIL BORIS FAUSTO': 'HB', 'FEB GAMBIAGI': 'HB', 'FEB ORDEM': 'HB',
+      'HPEB DORATIOTO': 'HB', 'CRONOLOGIA 2': 'HB',
+      // HM
+      'SARAIVA HM': 'HM', 'HOBSBAWN': 'HM', 'HOBSBWAN': 'HM',
+      'FILOSOFIA': 'HM', 'MARTIN GILBERT': 'HM', 'REVOLUÇÃO MEXICANA': 'HM',
+      // ECO
+      'GIAMBIAGI': 'ECO', 'MANKIW': 'ECO', 'PYNDICK': 'ECO',
+      'ORDEM E PROGRESSO': 'ECO', 'MICRO': 'ECO',
+      // PI
+      'LESSA PI': 'PI', 'LESSA 1': 'PI', 'LESSA AAAAAA PI': 'PI',
+      'POLITICA INTERNACCIONAL': 'PI', 'POLITICA INTERNACIONAL MANUAL': 'PI',
+      'POLITICA INTERNACIONAL COLEÇÃO': 'PI',
+      // DIP
+      'PORTELA': 'DIP', '1001 CONCCEITOS': 'DIP', 'DICTIONARY OF DIPLOMACY': 'DIP',
+      'DIREITO ADM': 'DIP', 'DIREITO CONSTITUCIONAL': 'DIP', 'DIP': 'DIP',
+      // GEO
+      'GEOGRAFIA MANUAL': 'GEO', 'GEOGRAFIA': 'GEO',
+      // LP
+      'LITERATURA': 'LP', 'LITERATURA BOSI': 'LP', 'PORTUGUES SINTAXE': 'LP', 'LESSA PI  P': 'LP',
+      // ING
+      'GRAMMAR ING': 'ING',
+      // LING
       '2000 ESPANISH': 'LING', '2000 FRENCH': 'LING',
-      'CRONOLOGIA 2': 'HM',
+    };
+
+    // Mapeamento deck → códigos dos tópicos do edital (para HB especifica o período)
+    const DECK_EDITAL_CODES = {
+      'HB IMPERIO': { subject:'HB', codes:['1','2','3','4','5'] },
+      'HB REPÚBLICA': { subject:'HB', codes:['6','7','8','9','10'] },
+      'BRASIL NAÇÃO 1': { subject:'HB', codes:['1','2','3','4','5'] },
+      'BRASIL NAÇÃO 2': { subject:'HB', codes:['5','6','7','8'] },
+      'BRASIL NAÇÃO 3': { subject:'HB', codes:['8','9','10','11'] },
+      'HISTORIA DO BRASIL BORIS FAUSTO': { subject:'HB', codes:null },
+      'FEB GAMBIAGI': { subject:'HB', codes:['6','7','8'] },
+      'FEB ORDEM': { subject:'HB', codes:['8','9'] },
+      'HPEB DORATIOTO': { subject:'HB', codes:['5','6'] },
+      'CRONOLOGIA 2': { subject:'HB', codes:null },
+      'GIAMBIAGI eco': { subject:'ECO', codes:['2','4'] },
+      'GIAMBIAGI': { subject:'ECO', codes:['2','4'] },
+      'MANKIW eco': { subject:'ECO', codes:['1','2','3'] },
     };
 
     let allCards = [], queue = [], currentIdx = 0, flipped = false;
@@ -627,6 +743,44 @@
 
     let editalMap = {};   // { question: [editalItem, ...] }
 
+    function matchCardToEditalItems(question, flatItems) {
+      const STOP = new Set(['de','do','da','dos','das','e','o','a','os','as','no','na',
+        'em','para','com','que','um','uma','ao','às','se','por','é','ou','como','qual',
+        'quais','são','foi','ser','ter','sua','seu','suas','seus','mais','menos','entre']);
+      const words = question.toLowerCase()
+        .replace(/[^a-záéíóúãõâêôàç\s]/g, '')
+        .split(/\s+/)
+        .filter(w => w.length > 3 && !STOP.has(w));
+      if (!words.length) return [];
+
+      const scores = flatItems.map(item => {
+        const titleWords = item.title.toLowerCase().split(/\s+/);
+        const score = words.filter(w => titleWords.some(t => t.startsWith(w))).length;
+        return { item, score };
+      });
+
+      return scores
+        .filter(s => s.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(s => s.item);
+    }
+
+    async function autoMapToEdital(deck, cards) {
+      try {
+        const subject = getSubjectForDeck(deck);
+        if (!subject || ['LING','LP','ING'].includes(subject)) return;
+        const flat = await DB.getEditalFlat(subject);
+        if (!flat.length) return;
+        for (const card of cards) {
+          const matched = matchCardToEditalItems(card.q, flat);
+          if (matched.length) {
+            await DB.bulkMapToEdital(deck, [card.q], matched.map(m => m.id));
+          }
+        }
+      } catch(e) { console.warn('autoMapToEdital:', e); }
+    }
+
     async function showOptions() {
       cardStatusMap = await DB.getCardStatusMap(deckName);
       const unknownCount = allCards.filter(c => {
@@ -638,7 +792,80 @@
       document.getElementById('deckCount').textContent = allCards.length;
       document.getElementById('btnUnknown').textContent = `Revisar não sei (${unknownCount})`;
       showView('viewOptions');
+      await autoMapToEdital(deckName, allCards);
       loadEditalSection();
+    }
+
+    // ── TOPIC PANEL ──────────────────────────────────────────────────────
+    const SUBJ_ICON = {HB:'🇧🇷',HM:'🌍',PI:'🤝',GEO:'🗺️',ECO:'📈',DIP:'⚖️'};
+    let _currentTopicId = null;
+
+    async function openTopicPanel(btn) {
+      const item = { id: btn.dataset.id, code: btn.dataset.code, title: btn.dataset.title };
+      _currentTopicId = item.id;
+      document.getElementById('tpCode').textContent = item.code;
+      document.getElementById('tpTitle').textContent = item.title;
+      document.getElementById('tpRel').textContent = '';
+      document.getElementById('tpRec').textContent = '';
+      document.getElementById('tpDif').textContent = '';
+      document.getElementById('tpSubtemas').innerHTML = '';
+      document.getElementById('tpConceitos').innerHTML = '';
+      document.getElementById('tpAutores').innerHTML = '';
+      document.getElementById('tpTratados').innerHTML = '';
+      document.getElementById('tpConexoes').innerHTML = '<em style="font-size:12px;color:var(--muted)">Carregando…</em>';
+      ['tpSectionSubtemas','tpSectionConceitos','tpSectionDetalhes'].forEach(id => document.getElementById(id).style.display = 'none');
+      document.getElementById('tpBtnEstudar').onclick = () => { closeTopicPanel(); startStudy('edital', item.id); };
+      document.getElementById('topicPanelOverlay').style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+
+      const [enrich, conns] = await Promise.all([
+        DB.getTopicEnrichment(item.id),
+        DB.getTopicConnections(item.id)
+      ]);
+
+      const stars = n => '★'.repeat(n) + '☆'.repeat(5-n);
+      if (enrich) {
+        document.getElementById('tpRel').textContent = `Rel: ${stars(enrich.relevancia||3)}`;
+        document.getElementById('tpRec').textContent = `Rec: ${stars(enrich.recorrencia||3)}`;
+        document.getElementById('tpDif').textContent = `Dif: ${stars(enrich.dificuldade||3)}`;
+
+        if (enrich.subtemas?.length) {
+          document.getElementById('tpSubtemas').innerHTML = enrich.subtemas.map(s => `<span class="tp-chip">${s}</span>`).join('');
+          document.getElementById('tpSectionSubtemas').style.display = '';
+        }
+        if (enrich.conceitos?.length) {
+          document.getElementById('tpConceitos').innerHTML = enrich.conceitos.map(s => `<span class="tp-chip">${s}</span>`).join('');
+          document.getElementById('tpSectionConceitos').style.display = '';
+        }
+        const tratados = [...(enrich.tratados||[]), ...(enrich.eventos||[])];
+        if (enrich.autores?.length || tratados.length) {
+          document.getElementById('tpAutores').innerHTML = (enrich.autores||[]).map(s => `<li>${s}</li>`).join('');
+          document.getElementById('tpTratados').innerHTML = tratados.map(s => `<li>${s}</li>`).join('');
+          document.getElementById('tpSectionDetalhes').style.display = '';
+        }
+      }
+
+      if (conns.length) {
+        document.getElementById('tpConexoes').innerHTML = conns.map(c => {
+          const other = c.source_id === item.id ? c.target : c.source;
+          const icon = SUBJ_ICON[other?.subject] || '🔗';
+          return `<div class="tp-conexao">
+            <span class="tp-conexao-subj">${icon}</span>
+            <div class="tp-conexao-body">
+              <div class="tp-conexao-title">[${other?.subject}] ${other?.code} — ${other?.title}</div>
+              <div class="tp-conexao-desc">${c.descricao}</div>
+            </div>
+          </div>`;
+        }).join('');
+      } else {
+        document.getElementById('tpConexoes').innerHTML = '<em style="font-size:12px;color:var(--muted)">Nenhuma conexão cadastrada ainda.</em>';
+      }
+    }
+
+    function closeTopicPanel() {
+      document.getElementById('topicPanelOverlay').style.display = 'none';
+      document.body.style.overflow = '';
+      _currentTopicId = null;
     }
 
     async function loadEditalSection() {
@@ -682,7 +909,8 @@
         const known = knownMap[r.id] || 0;
         const pct = r.count ? Math.round(known / r.count * 100) : 0;
         const barColor = pct >= 80 ? '#22c55e' : pct >= 50 ? '#eab308' : '#3b82f6';
-        return `<button class="edital-tree-btn" onclick="startStudy('edital','${r.id}')">
+        const escapedTitle = r.title.replace(/"/g,'&quot;');
+        return `<button class="edital-tree-btn" data-id="${r.id}" data-code="${r.code}" data-title="${escapedTitle}" onclick="openTopicPanel(this)">
           <div class="etb-top">
             <span class="etb-code">${r.code}</span>
             <span class="etb-title">${r.title}</span>
