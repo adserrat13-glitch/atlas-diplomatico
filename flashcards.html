@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Flashcards — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -489,26 +490,26 @@
     }
 
     const FOLDER_COLORS = {
-      'BRASIL':        '#f87171',
-      'DIREITO':       '#8ea7ff',
-      'ECONOMIA':      '#6ee7b7',
-      'GEOGRAFIA':     '#fbbf24',
-      'HISTORIA':      '#c084fc',
-      'INTERNACIONAL': '#fb923c',
-      'INGLÊS':        '#38bdf8',
-      'PORTUGUÊS':     '#a3e635',
+      'BRASIL':        '#fbbf24',
+      'DIREITO':       '#f472b6',
+      'ECONOMIA':      '#34d399',
+      'GEOGRAFIA':     '#4ade80',
+      'HISTORIA':      '#fb923c',
+      'INTERNACIONAL': '#38bdf8',
+      'INGLÊS':        '#60a5fa',
+      'PORTUGUÊS':     '#a78bfa',
     };
 
     const SUBJECT_META = {
-      LP:   { name:'Língua Portuguesa',      folder:'PORTUGUÊS',       color:'#a3e635' },
-      ING:  { name:'Língua Inglesa',          folder:'INGLÊS',          color:'#38bdf8' },
-      HB:   { name:'História do Brasil',      folder:'BRASIL',          color:'#f87171' },
-      HM:   { name:'História Mundial',        folder:'HISTORIA',        color:'#c084fc' },
-      GEO:  { name:'Geografia',              folder:'GEOGRAFIA',       color:'#fbbf24' },
-      PI:   { name:'Política Internacional',  folder:'INTERNACIONAL',   color:'#fb923c' },
-      ECO:  { name:'Economia',               folder:'ECONOMIA',        color:'#6ee7b7' },
-      DIR:  { name:'Direito',                folder:'DIREITO',         color:'#8ea7ff' },
-      LING: { name:'Espanhol / Francês',      folder:'PORTUGUÊS',       color:'#a3e635' },
+      LP:   { name:'Língua Portuguesa',      folder:'PORTUGUÊS',       color:'#a78bfa' },
+      ING:  { name:'Língua Inglesa',          folder:'INGLÊS',          color:'#60a5fa' },
+      HB:   { name:'História do Brasil',      folder:'BRASIL',          color:'#fbbf24' },
+      HM:   { name:'História Mundial',        folder:'HISTORIA',        color:'#fb923c' },
+      GEO:  { name:'Geografia',              folder:'GEOGRAFIA',       color:'#4ade80' },
+      PI:   { name:'Política Internacional',  folder:'INTERNACIONAL',   color:'#38bdf8' },
+      ECO:  { name:'Economia',               folder:'ECONOMIA',        color:'#34d399' },
+      DIR:  { name:'Direito',                folder:'DIREITO',         color:'#f472b6' },
+      LING: { name:'Espanhol / Francês',      folder:'PORTUGUÊS',       color:'#a78bfa' },
     };
 
     let _manifest = null;
