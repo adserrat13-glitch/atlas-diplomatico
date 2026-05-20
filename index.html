@@ -37,9 +37,9 @@
       display:flex; flex-direction:column; gap:16px; }
 
     /* ── HERO ── */
-    .hero { background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);
+    .hero { background:var(--surface);
       border:1px solid var(--border);
-      border-radius:18px; display:flex; align-items:stretch; overflow:hidden; min-height:90px; }
+      border-radius:4px; display:flex; align-items:stretch; overflow:hidden; min-height:90px; }
     .hero-bar { width:4px; flex-shrink:0; }
     .hero-body { flex:1; padding:16px 20px; min-width:0; }
     .hero-lbl { font-size:9px; font-weight:900; letter-spacing:2.5px; color:var(--muted2);
@@ -54,10 +54,10 @@
       display:block; line-height:1; }
     .hero-days small { font-size:9px; color:var(--muted2); letter-spacing:.5px;
       text-transform:uppercase; }
-    .hero-btn { display:inline-block; padding:8px 18px; background:var(--accent);
-      color:#fff; font-size:11px; font-weight:700; border-radius:10px;
+    .hero-btn { display:inline-block; padding:8px 18px; background:#fff;
+      color:#000; font-size:11px; font-weight:700; border-radius:3px;
       text-decoration:none; transition:.15s; letter-spacing:.3px; white-space:nowrap; }
-    .hero-btn:hover { background:#6b5ee0; }
+    .hero-btn:hover { background:#d4d4d4; color:#000; }
     .hero-btn.empty { background:rgba(255,255,255,.07); color:var(--muted2); }
 
     /* ── SECTION LABEL ── */
@@ -68,11 +68,11 @@
     .islands-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
 
     /* ── ISLAND WIDGET ── */
-    .island { background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);
-      border:1px solid var(--border); border-radius:16px; overflow:hidden; position:relative;
-      border-left:3px solid var(--subject-color,var(--accent));
+    .island { background:var(--surface);
+      border:1px solid var(--border); border-radius:4px; overflow:hidden; position:relative;
+      border-left:3px solid var(--subject-color,#fff);
       transition:box-shadow .2s, transform .2s; }
-    .island:hover { box-shadow:0 0 0 1px var(--subject-color,var(--accent)),0 8px 24px rgba(0,0,0,0.3); transform:translateY(-2px); }
+    .island:hover { box-shadow:0 0 0 1px rgba(255,255,255,0.25); transform:translateY(-1px); }
     .island-inner { padding:14px; display:block; text-decoration:none; color:inherit; }
     .island-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
     .island-code { font-size:10px; font-weight:900; letter-spacing:2px;
@@ -123,8 +123,8 @@
     /* ── WIDGET ROW (streak / hours / next task) ── */
     .widget-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
     .widget { background:var(--surface); border:1px solid var(--border);
-      border-radius:16px; padding:14px 16px; transition:box-shadow .2s; }
-    .widget:hover { box-shadow:0 4px 20px rgba(124,111,255,0.08); }
+      border-radius:4px; padding:14px 16px; transition:box-shadow .2s; }
+    .widget:hover { box-shadow:0 0 0 1px rgba(255,255,255,0.2); }
     .wgt-lbl { font-size:9px; font-weight:900; letter-spacing:2px; color:var(--muted2);
       text-transform:uppercase; margin-bottom:6px; }
     .wgt-val { font-size:26px; font-weight:900; line-height:1; margin-bottom:3px; }
@@ -149,8 +149,8 @@
     .wgt-next-name { font-size:13px; font-weight:900; margin-bottom:4px; }
     .wgt-next-meta { font-size:10px; color:var(--muted2); margin-bottom:10px; }
     .wgt-next-btn { display:block; text-align:center; padding:8px;
-      background:var(--accent); color:#fff; font-size:11px; font-weight:700;
-      border-radius:9px; text-decoration:none; transition:.15s; letter-spacing:.3px; }
+      background:#fff; color:#000; font-size:11px; font-weight:700;
+      border-radius:3px; text-decoration:none; transition:.15s; letter-spacing:.3px; }
     .wgt-next-btn:hover { opacity:.85; }
 
     /* ── TPS ── */
@@ -390,39 +390,39 @@
 
   <script>
     const SUBJECTS = [
-      { id:'LP',   name:'Língua Portuguesa',     color:'#a78bfa', icon:'📝', cssVar:'--lp',
+      { id:'LP',   name:'Língua Portuguesa',     color:'#ffffff', icon:'📝', cssVar:'--lp',
         files:[
           {name:'Literatura',      path:'FLASHCARDS/PORTUGUÊS/LITERATURA port.csv',         type:'fc'},
           {name:'Literatura Bosi', path:'FLASHCARDS/PORTUGUÊS/LITERATURA BOSI port.csv',    type:'fc'},
           {name:'Lessa PI (PT)',   path:'FLASHCARDS/PORTUGUÊS/LESSA PI  p.i.csv',           type:'fc'},
           {name:'Sintaxe',         path:'FLASHCARDS/PORTUGUÊS/PORTUGUES SINTAXE.csv',       type:'fc'},
         ] },
-      { id:'ING',  name:'Língua Inglesa',         color:'#60a5fa', icon:'🇬🇧', cssVar:'--ing',
+      { id:'ING',  name:'Língua Inglesa',         color:'#cccccc', icon:'🇬🇧', cssVar:'--ing',
         files:[
           {name:'Grammar',         path:'FLASHCARDS/INGLÊS/GRAMMAR ING ing.csv',            type:'fc'},
           {name:'Dict. Diplomacy', path:'FLASHCARDS/INGLÊS/DICTIONARY OF DIPLOMACY  ing.csv',type:'fc'},
         ] },
-      { id:'HB',   name:'História do Brasil',     color:'#fbbf24', icon:'🏛️', cssVar:'--hb',
+      { id:'HB',   name:'História do Brasil',     color:'#ffffff', icon:'🏛️', cssVar:'--hb',
         files:[
           {name:'História do Brasil',path:'FLASHCARDS/BRASIL/HISTORIA DO BRASIL .csv',      type:'fc'},
         ] },
-      { id:'HM',   name:'História Mundial',       color:'#ff6a00', icon:'🌍', cssVar:'--hm',
+      { id:'HM',   name:'História Mundial',       color:'#cccccc', icon:'🌍', cssVar:'--hm',
         files:[
           {name:'História Mundial', path:'FLASHCARDS/HISTORIA/HISTORIA MUNDIAL .csv',       type:'fc'},
         ] },
-      { id:'GEO',  name:'Geografia',              color:'#4ade80', icon:'🗺️', cssVar:'--geo',
+      { id:'GEO',  name:'Geografia',              color:'#eeeeee', icon:'🗺️', cssVar:'--geo',
         files:[
           {name:'Geografia',        path:'FLASHCARDS/GEOGRAFIA/GEOGRAFIA .csv',             type:'fc'},
         ] },
-      { id:'PI',   name:'Política Internacional', color:'#38bdf8', icon:'🌐', cssVar:'--pi',
+      { id:'PI',   name:'Política Internacional', color:'#dddddd', icon:'🌐', cssVar:'--pi',
         files:[
           {name:'Pol. Internacional',path:'FLASHCARDS/INTERNACIONAL/POLITICA INTERNACIONAL .csv', type:'fc'},
         ] },
-      { id:'ECO',  name:'Economia',               color:'#34d399', icon:'📊', cssVar:'--eco',
+      { id:'ECO',  name:'Economia',               color:'#eeeeee', icon:'📊', cssVar:'--eco',
         files:[
           {name:'Economia',         path:'FLASHCARDS/ECONOMIA/ECONOMIA .csv',               type:'fc'},
         ] },
-      { id:'DIR',  name:'Direito',                color:'#f472b6', icon:'⚖️', cssVar:'--dir',
+      { id:'DIR',  name:'Direito',                color:'#cccccc', icon:'⚖️', cssVar:'--dir',
         files:[
           {name:'Constitucional',   path:'FLASHCARDS/DIREITO/CONTITUCIONAL .csv',           type:'fc'},
           {name:'DIP',              path:'FLASHCARDS/DIREITO/DIP.csv',                      type:'fc'},

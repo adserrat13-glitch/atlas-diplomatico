@@ -1,43 +1,43 @@
 /* ═══════════════════════════════════════════════════════════
    ATLAS DIPLOMÁTICO — Global Theme
-   Dark Navy + Purple Accent
+   Monochrome // Black + White
    ═══════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 /* ── Variables ─────────────────────────────────────────────── */
 :root {
   /* Base */
-  --bg:       #0e0f1a;
-  --surface:  #161828;
-  --surface2: #1e2138;
-  --border:   rgba(148,154,210,0.12);
-  --text:     #e8eaf6;
-  --muted:    #5f6488;
-  --muted2:   #8b90b4;
+  --bg:       #000000;
+  --surface:  #0a0a0a;
+  --surface2: #111111;
+  --border:   rgba(255,255,255,0.10);
+  --text:     #ffffff;
+  --muted:    #555555;
+  --muted2:   #888888;
 
-  /* Accent primário — roxo */
-  --accent:   #7c6fff;
-  --accent2:  #a78bfa;
+  /* Accent — white */
+  --accent:   #ffffff;
+  --accent2:  #cccccc;
 
-  /* Status */
-  --neon-green:  #4ade80;
-  --neon-yellow: #fbbf24;
-  --neon-orange: #fb923c;
-  --neon-pink:   #f472b6;
-  --neon-blue:   #60a5fa;
-  --neon-purple: #a78bfa;
+  /* Status (kept for JS logic, rendered as white tints) */
+  --neon-green:  #ffffff;
+  --neon-yellow: #dddddd;
+  --neon-orange: #bbbbbb;
+  --neon-pink:   #eeeeee;
+  --neon-blue:   #dddddd;
+  --neon-purple: #cccccc;
 
-  /* Cores por matéria */
-  --lp:   #a78bfa;
-  --ing:  #60a5fa;
-  --hb:   #fbbf24;
-  --hm:   #fb923c;
-  --geo:  #4ade80;
-  --pi:   #38bdf8;
-  --eco:  #34d399;
-  --dir:  #f472b6;
-  --ling: #f472b6;
+  /* Cores por matéria — monocromo */
+  --lp:   #ffffff;
+  --ing:  #dddddd;
+  --hb:   #ffffff;
+  --hm:   #cccccc;
+  --geo:  #eeeeee;
+  --pi:   #dddddd;
+  --eco:  #eeeeee;
+  --dir:  #cccccc;
+  --ling: #dddddd;
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
@@ -48,53 +48,58 @@ html { scroll-behavior: smooth; }
 body {
   background: var(--bg) !important;
   color: var(--text) !important;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-family: 'JetBrains Mono', 'SF Mono', 'Courier New', monospace !important;
   min-height: 100vh;
 }
 
 /* ── Scrollbar ─────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: var(--surface); }
-::-webkit-scrollbar-thumb { background: rgba(124,111,255,0.5); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.4); }
 
 /* ── Nav ───────────────────────────────────────────────────── */
 nav {
-  background: rgba(14,15,26,0.95) !important;
+  background: rgba(0,0,0,0.96) !important;
   backdrop-filter: blur(12px);
-  border-bottom-color: var(--border) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.10) !important;
+  border-bottom-color: rgba(255,255,255,0.10) !important;
 }
 
 nav a { color: var(--muted2) !important; }
-nav a:hover { color: #fff !important; background: rgba(124,111,255,0.1) !important; }
+nav a:hover { color: #fff !important; background: rgba(255,255,255,0.05) !important; }
 nav a.active {
-  color: var(--accent2) !important;
-  border-bottom-color: var(--accent2) !important;
+  color: #fff !important;
+  border-bottom-color: #fff !important;
 }
 
 .nav-logo { color: var(--text) !important; }
 .nav-logo span { color: var(--accent2) !important; }
 
 .nav-cd {
-  color: var(--accent2) !important;
-  background: rgba(124,111,255,0.1) !important;
-  border-color: rgba(124,111,255,0.3) !important;
+  color: #fff !important;
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.18) !important;
 }
 
 /* ── Sidebar ───────────────────────────────────────────────── */
 #sidebar {
-  background: var(--surface) !important;
-  border-right-color: var(--border) !important;
+  background: #050505 !important;
+  border-right: 1px solid rgba(255,255,255,0.08) !important;
+  border-right-color: rgba(255,255,255,0.08) !important;
 }
 
 .sb-brand span { color: var(--accent2) !important; }
 
 .sb-link { color: var(--muted2) !important; }
-.sb-link:hover { color: var(--text) !important; background: rgba(124,111,255,0.08) !important; }
+.sb-link:hover {
+  color: #fff !important;
+  background: rgba(255,255,255,0.04) !important;
+}
 .sb-link.active {
-  color: var(--accent2) !important;
-  background: rgba(124,111,255,0.12) !important;
-  border-left: 2px solid var(--accent2);
+  color: #fff !important;
+  background: rgba(255,255,255,0.07) !important;
+  border-left: 2px solid #fff !important;
   padding-left: 14px;
 }
 
@@ -104,37 +109,51 @@ nav a.active {
 .widget,
 .chart-wrap {
   background: var(--surface) !important;
-  border-color: var(--border) !important;
-  border-radius: 16px !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  border-radius: 4px !important;
 }
 
 /* ── Buttons ───────────────────────────────────────────────── */
 .btn-primary,
 .hero-btn:not(.empty),
 .wgt-next-btn {
-  background: var(--accent) !important;
-  color: #fff !important;
+  background: #fff !important;
+  color: #000 !important;
+  border-color: #fff !important;
 }
 
 .btn-primary:hover,
 .hero-btn:not(.empty):hover,
-.wgt-next-btn:hover { background: #6b5ee0 !important; }
+.wgt-next-btn:hover {
+  background: #e0e0e0 !important;
+  color: #000 !important;
+}
 
 /* ── TPS chips ─────────────────────────────────────────────── */
 .tps-chip {
-  color: var(--accent2) !important;
-  background: rgba(124,111,255,0.06) !important;
-  border-color: rgba(124,111,255,0.2) !important;
+  color: #ccc !important;
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.14) !important;
 }
-.tps-chip:hover { background: rgba(124,111,255,0.14) !important; }
+.tps-chip:hover {
+  background: rgba(255,255,255,0.09) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.28) !important;
+}
 
 /* ── fchip overrides ────────────────────────────────────────── */
-.fchip-fc  { background: rgba(96,165,250,0.08) !important; border-color: rgba(96,165,250,0.2) !important; color: #60a5fa !important; }
-.fchip-sim { background: rgba(74,222,128,0.08) !important; border-color: rgba(74,222,128,0.2) !important; color: #4ade80 !important; }
-.fchip-rep { background: rgba(167,139,250,0.08) !important; border-color: rgba(167,139,250,0.2) !important; color: #a78bfa !important; }
+.fchip-fc  { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; color: #ccc !important; }
+.fchip-sim { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; color: #ccc !important; }
+.fchip-rep { background: rgba(255,255,255,0.04) !important; border-color: rgba(255,255,255,0.14) !important; color: #ccc !important; }
 
 /* ── Drawer ─────────────────────────────────────────────────── */
-.drawer { background: var(--surface2) !important; border-left-color: var(--border) !important; }
+.drawer { background: #0d0d0d !important; border-left: 1px solid rgba(255,255,255,0.10) !important; border-left-color: rgba(255,255,255,0.10) !important; }
 
 /* ── Tag pills (simulados) ──────────────────────────────────── */
-.tag-pill { background: rgba(124,111,255,0.12) !important; color: var(--accent2) !important; border-radius: 20px; padding: 2px 8px; font-size: 11px; }
+.tag-pill {
+  background: rgba(255,255,255,0.07) !important;
+  color: #ccc !important;
+  border-radius: 2px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
