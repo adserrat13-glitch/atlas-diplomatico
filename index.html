@@ -210,9 +210,49 @@
     .btn-action:hover { background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.15); }
     .btn-action .arr { margin-left:auto; color:var(--muted); }
 
+    /* ── METRIC BAR ── */
+    .metric-bar { display:flex; gap:8px; padding:14px 20px 0; flex-wrap:wrap; }
+    .metric-chip { flex:1; min-width:110px; background:var(--surface);
+      border:1px solid var(--border); border-radius:10px; padding:10px 14px;
+      position:relative; overflow:hidden; }
+    .metric-chip::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+    .metric-chip.mc-green::before  { background:var(--neon-green); }
+    .metric-chip.mc-blue::before   { background:var(--neon-blue); }
+    .metric-chip.mc-yellow::before { background:var(--neon-yellow); }
+    .metric-chip.mc-pink::before   { background:var(--neon-pink); }
+    .mc-lbl { font-size:8px; font-weight:900; letter-spacing:2px; color:var(--muted2);
+      text-transform:uppercase; margin-bottom:4px; }
+    .mc-val { font-size:24px; font-weight:900; line-height:1; margin-bottom:2px; }
+    .mc-sub { font-size:9px; color:var(--muted2); }
+
+    /* ── ACTIVITY CHART ── */
+    .chart-wrap { background:var(--surface); border:1px solid var(--border);
+      border-radius:12px; padding:14px 16px; }
+    .chart-head { display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:10px; }
+    .chart-lbl { font-size:9px; font-weight:900; letter-spacing:2px;
+      color:var(--muted2); text-transform:uppercase; }
+    .chart-live { font-size:9px; font-weight:700; color:var(--neon-green);
+      letter-spacing:1px; animation:blink 1.4s step-end infinite; }
+    @keyframes blink { 50% { opacity:0; } }
+    .chart-bars { display:flex; align-items:flex-end; gap:3px; height:52px; }
+    .chart-bar { flex:1; border-radius:3px 3px 0 0; min-height:3px;
+      transition:height .5s cubic-bezier(.4,0,.2,1), opacity .15s; cursor:pointer; }
+    .chart-bar:hover { opacity:1 !important; filter:brightness(1.3); }
+    .chart-days { display:flex; justify-content:space-between; margin-top:4px; }
+    .chart-day-lbl { flex:1; font-size:7px; color:var(--muted); text-align:center;
+      text-transform:uppercase; letter-spacing:.3px; }
+
+    /* ── ISLAND: SIEM tweaks ── */
+    .island-code { font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace; }
+    .island-fill { background:linear-gradient(90deg, var(--subject-color) 0%, var(--subject-color) 100%);
+      position:relative; }
+    .island-fill::after { content:''; position:absolute; inset:0;
+      background:repeating-linear-gradient(90deg,transparent 0,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); }
+
     @media(max-width:1000px) { .widget-row{grid-template-columns:repeat(2,1fr);} .bottom-grid{grid-template-columns:1fr 1fr;} }
-    @media(max-width:760px)  { .islands-grid{grid-template-columns:repeat(2,1fr);} }
-    @media(max-width:520px)  { .islands-grid{grid-template-columns:1fr;} .widget-row{grid-template-columns:1fr 1fr;} .bottom-grid{grid-template-columns:1fr;} }
+    @media(max-width:760px)  { .islands-grid{grid-template-columns:repeat(2,1fr);} .metric-bar{gap:5px;} }
+    @media(max-width:520px)  { .islands-grid{grid-template-columns:1fr;} .widget-row{grid-template-columns:1fr 1fr;} .bottom-grid{grid-template-columns:1fr;} .metric-chip{min-width:80px;} }
   </style>
 </head>
 <body>
@@ -235,6 +275,30 @@
     <div class="nav-cd" id="navCountdown"></div>
     <div class="nav-user" id="navUser">?</div>
   </nav>
+
+  <!-- METRIC BAR -->
+  <div class="metric-bar">
+    <div class="metric-chip mc-green">
+      <div class="mc-lbl">FLASHCARDS_TOTAL</div>
+      <div class="mc-val" style="color:var(--neon-green)">3,012</div>
+      <div class="mc-sub">em 8 matérias</div>
+    </div>
+    <div class="metric-chip mc-blue">
+      <div class="mc-lbl">SESSÕES_HOJE</div>
+      <div class="mc-val" id="mcSessions" style="color:var(--neon-blue)">—</div>
+      <div class="mc-sub">sessões hoje</div>
+    </div>
+    <div class="metric-chip mc-yellow">
+      <div class="mc-lbl">SEQUÊNCIA_ATUAL</div>
+      <div class="mc-val" id="mcStreak" style="color:var(--neon-yellow)">—</div>
+      <div class="mc-sub">dias seguidos 🔥</div>
+    </div>
+    <div class="metric-chip mc-pink">
+      <div class="mc-lbl">DIAS_PARA_CACD</div>
+      <div class="mc-val" id="mcDays" style="color:var(--neon-pink)">—</div>
+      <div class="mc-sub">data do exame</div>
+    </div>
+  </div>
 
   <main>
 
@@ -295,6 +359,16 @@
       <div class="cycle-complete" id="cycleComplete">🎯 Ciclo completo hoje! Todas as matérias estudadas.</div>
     </div>
 
+    <!-- ACTIVITY CHART -->
+    <div class="chart-wrap">
+      <div class="chart-head">
+        <div class="chart-lbl">ATIVIDADE_14_DIAS</div>
+        <div class="chart-live" id="chartLive">● LIVE</div>
+      </div>
+      <div class="chart-bars" id="activityChart"></div>
+      <div class="chart-days" id="activityDays"></div>
+    </div>
+
     <!-- TPS -->
     <div class="tps-section">
       <div class="tps-head">
@@ -330,24 +404,43 @@
 
   <script>
     const SUBJECTS = [
-      { id:'LP',   name:'Língua Portuguesa',  color:'#b060ff', icon:'📝', cssVar:'--lp',
-        files:[{name:'Literatura',path:'FLASHCARDS/LITERATURA.csv',type:'fc'},{name:'Literatura Bosi',path:'FLASHCARDS/LITERATURA BOSI.csv',type:'fc'}] },
-      { id:'ING',  name:'Língua Inglesa',      color:'#00cfff', icon:'🇬🇧', cssVar:'--ing',
-        files:[{name:'Grammar',path:'FLASHCARDS/GRAMMAR ING.csv',type:'fc'},{name:'Dict. Diplomacy',path:'FLASHCARDS/DICTIONARY OF DIPLOMACY .csv',type:'fc'}] },
-      { id:'HB',   name:'História do Brasil',  color:'#f5e642', icon:'🏛️', cssVar:'--hb',
-        files:[{name:'Brasil Nação 1',path:'FLASHCARDS/Nova pasta/BRASIL NAÇÃO 1 .csv',type:'fc'},{name:'Brasil Nação 2',path:'FLASHCARDS/Nova pasta/BRASIL NAÇÃO 2.csv',type:'fc'},{name:'Brasil Nação 3',path:'FLASHCARDS/Nova pasta/BRASIL NAÇÃO 3.csv',type:'fc'},{name:'Giambiagi',path:'FLASHCARDS/GIAMBIAGI.csv',type:'fc'},{name:'HPEB',path:'REPOSITÓRIO/3 HPEB.csv',type:'rep'}] },
-      { id:'HM',   name:'História Mundial',    color:'#ff6a00', icon:'🌍', cssVar:'--hm',
-        files:[{name:'Diplomatas HM',path:'FLASHCARDS/DIPLOMTAS HM CCONCEITOS.csv',type:'fc'},{name:'Portela',path:'FLASHCARDS/PORTELA  CONCCEITOS.csv',type:'fc'},{name:'Cronologia',path:'LINHA DO TEMPO/CRONOLOGIA 2.csv',type:'fc'}] },
-      { id:'GEO',  name:'Geografia',           color:'#39ff14', icon:'🗺️', cssVar:'--geo',
-        files:[{name:'Geografia Manual',path:'FLASHCARDS/GEOGRAFIA MANUAL.csv',type:'fc'},{name:'Questões CACD',path:'QUESTÕES ESPECIFICAS/GEOGRAFIA.csv',type:'sim'}] },
+      { id:'LP',   name:'Língua Portuguesa',     color:'#b060ff', icon:'📝', cssVar:'--lp',
+        files:[
+          {name:'Literatura',      path:'FLASHCARDS/PORTUGUÊS/LITERATURA port.csv',         type:'fc'},
+          {name:'Literatura Bosi', path:'FLASHCARDS/PORTUGUÊS/LITERATURA BOSI port.csv',    type:'fc'},
+          {name:'Lessa PI (PT)',   path:'FLASHCARDS/PORTUGUÊS/LESSA PI  p.i.csv',           type:'fc'},
+          {name:'Sintaxe',         path:'FLASHCARDS/PORTUGUÊS/PORTUGUES SINTAXE.csv',       type:'fc'},
+        ] },
+      { id:'ING',  name:'Língua Inglesa',         color:'#00cfff', icon:'🇬🇧', cssVar:'--ing',
+        files:[
+          {name:'Grammar',         path:'FLASHCARDS/INGLÊS/GRAMMAR ING ing.csv',            type:'fc'},
+          {name:'Dict. Diplomacy', path:'FLASHCARDS/INGLÊS/DICTIONARY OF DIPLOMACY  ing.csv',type:'fc'},
+        ] },
+      { id:'HB',   name:'História do Brasil',     color:'#f5e642', icon:'🏛️', cssVar:'--hb',
+        files:[
+          {name:'História do Brasil',path:'FLASHCARDS/BRASIL/HISTORIA DO BRASIL .csv',      type:'fc'},
+        ] },
+      { id:'HM',   name:'História Mundial',       color:'#ff6a00', icon:'🌍', cssVar:'--hm',
+        files:[
+          {name:'História Mundial', path:'FLASHCARDS/HISTORIA/HISTORIA MUNDIAL .csv',       type:'fc'},
+        ] },
+      { id:'GEO',  name:'Geografia',              color:'#39ff14', icon:'🗺️', cssVar:'--geo',
+        files:[
+          {name:'Geografia',        path:'FLASHCARDS/GEOGRAFIA/GEOGRAFIA .csv',             type:'fc'},
+        ] },
       { id:'PI',   name:'Política Internacional', color:'#00cfff', icon:'🌐', cssVar:'--pi',
-        files:[{name:'Lessa PI',path:'FLASHCARDS/LESSA PI .csv',type:'fc'},{name:'Lessa PI (ext)',path:'FLASHCARDS/LESSA AAAAAA PI.csv',type:'fc'},{name:'1001 Conceitos',path:'FLASHCARDS/1001 CONCCEITOS .csv',type:'fc'},{name:'Questões Política',path:'QUESTÕES ESPECIFICAS/POLITICA.csv',type:'sim'},{name:'BRICS/IBAS',path:'REPOSITÓRIO/16 BRICS.csv',type:'rep'},{name:'ONU',path:'REPOSITÓRIO/17 ONU.csv',type:'rep'},{name:'MERCOSUL',path:'REPOSITÓRIO/11 MERCOSUL .csv',type:'rep'},{name:'União Europeia',path:'REPOSITÓRIO/6 UNIÃO EUROPEIA .csv',type:'rep'}] },
-      { id:'ECO',  name:'Economia',            color:'#f5e642', icon:'📊', cssVar:'--eco',
-        files:[{name:'Mankiw',path:'FLASHCARDS/MANKIW.csv',type:'fc'},{name:'Pindyck',path:'FLASHCARDS/pyndick .csv',type:'fc'},{name:'Giambiagi',path:'FLASHCARDS/GIAMBIAGI.csv',type:'fc'},{name:'Questões Economia',path:'QUESTÕES ESPECIFICAS/ECONOMIA.csv',type:'sim'}] },
-      { id:'DIR',  name:'Direito',             color:'#ff1f71', icon:'⚖️', cssVar:'--dir',
-        files:[{name:'Dir. Constitucional',path:'QUESTÕES ESPECIFICAS/DIREITO CONSTITUCIONAL.csv',type:'sim'},{name:'Dir. Administrativo',path:'QUESTÕES ESPECIFICAS/DIREITO ADM.csv',type:'sim'},{name:'DIP',path:'QUESTÕES ESPECIFICAS/DIP.csv',type:'sim'}] },
-      { id:'LING', name:'Espanhol / Francês',  color:'#ff1f71', icon:'💬', cssVar:'--ling',
-        files:[{name:'2000 Espanhol',path:'LINGUAS/2000 ESPANISH.csv',type:'fc'},{name:'2000 Francês',path:'LINGUAS/2000 FRENCH.csv',type:'fc'}] },
+        files:[
+          {name:'Pol. Internacional',path:'FLASHCARDS/INTERNACIONAL/POLITICA INTERNACIONAL .csv', type:'fc'},
+        ] },
+      { id:'ECO',  name:'Economia',               color:'#f5e642', icon:'📊', cssVar:'--eco',
+        files:[
+          {name:'Economia',         path:'FLASHCARDS/ECONOMIA/ECONOMIA .csv',               type:'fc'},
+        ] },
+      { id:'DIR',  name:'Direito',                color:'#ff1f71', icon:'⚖️', cssVar:'--dir',
+        files:[
+          {name:'Constitucional',   path:'FLASHCARDS/DIREITO/CONTITUCIONAL .csv',           type:'fc'},
+          {name:'DIP',              path:'FLASHCARDS/DIREITO/DIP.csv',                      type:'fc'},
+        ] },
     ];
 
     const TPS_FILES = [
@@ -490,6 +583,8 @@
       const last = _sessions[0];
       const days = Math.ceil((examDate - Date.now()) / 86400000);
       document.getElementById('heroDays').textContent = days;
+      const mcDays = document.getElementById('mcDays');
+      if (mcDays) mcDays.textContent = days > 0 ? days : '—';
       const heroBar   = document.getElementById('heroBar');
       const heroTitle = document.getElementById('heroTitle');
       const heroMeta  = document.getElementById('heroMeta');
@@ -527,6 +622,14 @@
       const days = Math.ceil((examDate - Date.now()) / 86400000);
       const el = document.getElementById('navCountdown');
       if (el) el.textContent = `${days}d CACD`;
+      const mcStreak = document.getElementById('mcStreak');
+      if (mcStreak) mcStreak.textContent = streak;
+      const mcSessions = document.getElementById('mcSessions');
+      if (mcSessions) {
+        const todayKey = new Date().toISOString().split('T')[0];
+        const todayCount = _sessions.filter(s => s.date === todayKey).length;
+        mcSessions.textContent = todayCount;
+      }
     }
 
     function renderNextTask() {
@@ -600,6 +703,35 @@
       document.getElementById('cycleComplete').style.display = doneCount === CYCLE_SUBJECTS.length ? 'block' : 'none';
     }
 
+    function renderActivityChart() {
+      const barsEl = document.getElementById('activityChart');
+      const daysEl = document.getElementById('activityDays');
+      if (!barsEl) return;
+      const today = new Date().toISOString().split('T')[0];
+      const days = Array.from({length:14}, (_,i) => {
+        const d = new Date(); d.setDate(d.getDate() - (13-i));
+        return { key: d.toISOString().split('T')[0], d };
+      });
+      const vals = days.map(({key}) => _activity[key] || 0);
+      const maxVal = Math.max(1, ...vals);
+      barsEl.innerHTML = days.map(({key}, i) => {
+        const v = vals[i];
+        const pct = Math.max(4, Math.round((v / maxVal) * 100));
+        const isToday = key === today;
+        const col = isToday ? 'var(--neon-green)' : v > 0 ? 'var(--neon-blue)' : 'rgba(255,255,255,0.06)';
+        const op = isToday ? 1 : v > 0 ? 0.6 : 1;
+        const label = days[i].d.toLocaleDateString('pt-BR', {weekday:'short'}).replace('.','');
+        return `<div class="chart-bar" style="height:${pct}%;background:${col};opacity:${op}" title="${label}: ${v} cards estudados"></div>`;
+      }).join('');
+      if (daysEl) {
+        const show = [0, 2, 4, 6, 8, 10, 12, 13];
+        daysEl.innerHTML = days.map(({d}, i) => {
+          const lbl = show.includes(i) ? d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) : '';
+          return `<div class="chart-day-lbl">${lbl}</div>`;
+        }).join('');
+      }
+    }
+
     function renderAnnouncements(list) {
       if (!list.length) return;
       document.getElementById('announcementsCard').style.display = '';
@@ -647,6 +779,7 @@
       renderNextTask();
       renderRecentSessions();
       renderDailyCycle();
+      renderActivityChart();
       renderAnnouncements(announcements);
     })();
   </script>

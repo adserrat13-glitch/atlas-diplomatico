@@ -17,3 +17,5 @@ desktop.ini
 # Editor
 .vscode/
 *.code-workspace
+
+.vercel

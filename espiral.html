@@ -186,7 +186,7 @@
   <span class="leg-item" style="color:var(--GEO);border-color:#34d39930"><span class="leg-dot" style="background:var(--GEO)"></span>Geografia</span>
   <span class="leg-item" style="color:var(--DIP);border-color:#fb923c30"><span class="leg-dot" style="background:var(--DIP)"></span>Direito</span>
   <div class="divider"></div>
-  <span class="hint">Scroll para zoom · Arraste para mover · Clique para detalhes</span>
+  <span class="hint">Scroll para zoom · Arraste para mover · Clique no nó para detalhes · Badge: 🔴 0 cards · 🟡 &lt;10 · 🔵 &lt;50 · 🟢 50+</span>
 </div>
 
 <div id="mmWrap">
@@ -548,209 +548,184 @@ function buildMindMap() {
   const Ws = wrap.clientWidth;
   const Hs = wrap.clientHeight;
 
-  const W = Math.max(Ws, 1200);
-  const ROW = 52;
-  const BAND_PAD = 100;
+  const NW = 188;
+  const NH = 40;
+  const PORT_R = 5;
+  const V_GAP = 9;
+  const GRP_GAP = 30;
+  const HDR_H = 24;
+  const HDR_GAP = 6;
+  const TOP_PAD = 16;
+  const MONO = "'SF Mono',ui-monospace,'Cascadia Code',monospace";
 
-  // Band heights — proportional to max topics per paired row
-  const bandTopics = [
-    Math.max(SUBJECTS_LEFT[0].topics.length, SUBJECTS_RIGHT[0].topics.length), // 9
-    Math.max(SUBJECTS_LEFT[1].topics.length, SUBJECTS_RIGHT[1].topics.length), // 8
-    Math.max(SUBJECTS_LEFT[2].topics.length, SUBJECTS_RIGHT[2].topics.length), // 7
-  ];
-  const bandHeights = bandTopics.map(n => n * ROW + BAND_PAD);
-  const H = bandHeights.reduce((a,b) => a+b, 0) + 80;
-  mapHeight = H;
+  const W = Math.max(Ws, 860);
+  const LX = Math.min(280, W * 0.24);
+  const RX = Math.max(W - 280, W * 0.76);
 
-  const bandStarts = [
-    40,
-    40 + bandHeights[0],
-    40 + bandHeights[0] + bandHeights[1],
-  ];
-  const bandMids = bandStarts.map((s, i) => s + bandHeights[i] / 2);
+  const topicPos = {};
 
-  // Column centers
-  const C_L_ROOT   = 90;
-  const C_L_TOPICS = 280;
-  const C_R_TOPICS = W - 280;
-  const C_R_ROOT   = W - 90;
-
-  // Node half-dims
-  const RW=55, RH=26;
-  const TW=82, TH=22;
-
-  // Y positions within a band
-  function bandYs(bandStart, bandH, n) {
-    return Array.from({length: n}, (_, i) =>
-      bandStart + BAND_PAD/2 + (i + 0.5) * (bandH - BAND_PAD) / n
-    );
+  function computePositions(subjects, colX) {
+    let y = TOP_PAD;
+    subjects.forEach(subj => {
+      y += HDR_H + HDR_GAP;
+      subj.topics.forEach(t => {
+        topicPos[t.id] = { x: colX, y: y + NH / 2, subj: subj.subj };
+        y += NH + V_GAP;
+      });
+      y += GRP_GAP;
+    });
+    return y;
   }
 
-  // Build position lookup for all topic nodes
-  const topicPos = {};
-  SUBJECTS_LEFT.forEach((subj, si) => {
-    bandYs(bandStarts[si], bandHeights[si], subj.topics.length).forEach((y, ti) => {
-      topicPos[subj.topics[ti].id] = {x: C_L_TOPICS, y, side:'left', subj: subj.subj};
-    });
-  });
-  SUBJECTS_RIGHT.forEach((subj, si) => {
-    bandYs(bandStarts[si], bandHeights[si], subj.topics.length).forEach((y, ti) => {
-      topicPos[subj.topics[ti].id] = {x: C_R_TOPICS, y, side:'right', subj: subj.subj};
-    });
-  });
+  const lBottom = computePositions(SUBJECTS_LEFT, LX);
+  const rBottom = computePositions(SUBJECTS_RIGHT, RX);
+  const H = Math.max(lBottom, rBottom) + 60;
+  mapHeight = H;
 
   const svg = d3.select('#mmSvg');
   svg.selectAll('*').remove();
   svgSelection = svg;
 
+  const defs = svg.append('defs');
+  defs.append('pattern')
+    .attr('id','dotgrid').attr('x',0).attr('y',0)
+    .attr('width',20).attr('height',20)
+    .attr('patternUnits','userSpaceOnUse')
+    .append('circle')
+    .attr('cx',10).attr('cy',10).attr('r',0.85)
+    .attr('fill','rgba(255,255,255,0.06)');
+  svg.append('rect').attr('width','100%').attr('height','100%').attr('fill','url(#dotgrid)');
+
   const g = svg.append('g').attr('class','mm-root');
 
   zoomBehavior = d3.zoom()
-    .scaleExtent([0.15, 4])
+    .scaleExtent([0.12, 4])
     .on('zoom', e => g.attr('transform', e.transform));
   svg.call(zoomBehavior);
 
-  const scale0 = (Hs / H) * 0.88;
-  const tx0 = (Ws - W * scale0) / 2;
-  svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(tx0, 8).scale(scale0));
+  const scale0 = Math.min((Hs / H) * 0.92, 1.0);
+  const midX = (LX + RX) / 2;
+  const tx0 = Ws / 2 - midX * scale0;
+  svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(tx0, 14).scale(scale0));
 
   const eg = g.append('g');
   const ng = g.append('g');
 
-  function edge(x1, y1, x2, y2, color, sw) {
-    const mx = (x1 + x2) / 2;
-    eg.append('path')
-      .attr('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`)
-      .attr('fill','none').attr('stroke', color)
-      .attr('stroke-width', sw).attr('stroke-linecap','round');
+  function covColor(n) {
+    return n === 0 ? '#ef4444' : n < 10 ? '#f59e0b' : n < 50 ? '#3b82f6' : '#22c55e';
   }
 
-  // Band separator lines
-  [bandStarts[1], bandStarts[2]].forEach(y => {
-    eg.append('line')
-      .attr('x1', 20).attr('y1', y - 6).attr('x2', W - 20).attr('y2', y - 6)
-      .attr('stroke','rgba(255,255,255,0.05)').attr('stroke-width', 1)
-      .attr('stroke-dasharray','5,8');
+  function drawEdge(x1, y1, x2, y2, color, op) {
+    const dx = Math.max(Math.abs(x2 - x1) * 0.42, 60);
+    eg.append('path')
+      .attr('d', `M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`)
+      .attr('fill','none').attr('stroke', color)
+      .attr('stroke-width', 1.4).attr('stroke-opacity', op || 0.3)
+      .attr('stroke-linecap','round');
+  }
+
+  function drawHeader(lbl, color, cx, y) {
+    const hw = NW + (PORT_R + 2) * 2;
+    ng.append('rect')
+      .attr('x', cx - hw/2).attr('y', y)
+      .attr('width', hw).attr('height', HDR_H).attr('rx', 4)
+      .attr('fill', color + '14').attr('stroke', color + '44').attr('stroke-width', 1);
+    ng.append('text')
+      .attr('x', cx).attr('y', y + HDR_H/2 + 0.5)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill', color).attr('font-size', 8.5)
+      .attr('font-weight', 900).attr('letter-spacing', 1.5)
+      .attr('font-family', MONO)
+      .text(lbl);
+  }
+
+  function drawNode(t, subj) {
+    const pos = topicPos[t.id];
+    if (!pos) return;
+    const color = SUBJ_COLOR[subj];
+    const count = getSubtreeCount(nodeToPrefix(t.id));
+    const cc = covColor(count);
+    const nx = pos.x - NW / 2;
+    const ny = pos.y - NH / 2;
+
+    const grp = ng.append('g')
+      .attr('class','mm-node')
+      .attr('transform', `translate(${nx},${ny})`)
+      .style('cursor','pointer')
+      .on('click', () => openDrawerForNode({...t, subj}))
+      .on('mouseover', e => showTip(e, t.id + ' — ' + t.label, SUBJ_LABEL[subj]))
+      .on('mousemove', moveTip).on('mouseout', hideTip);
+
+    grp.append('rect')
+      .attr('width', NW).attr('height', NH).attr('rx', 4)
+      .attr('fill','#111420').attr('stroke','rgba(255,255,255,0.08)').attr('stroke-width',1);
+
+    grp.append('rect').attr('width',4).attr('height',NH).attr('rx',2).attr('fill',color);
+
+    grp.append('circle')
+      .attr('cx', -(PORT_R+1)).attr('cy', NH/2).attr('r', PORT_R)
+      .attr('fill','#0d0f19').attr('stroke', color+'88').attr('stroke-width',1.5);
+    grp.append('circle')
+      .attr('cx', NW+(PORT_R+1)).attr('cy', NH/2).attr('r', PORT_R)
+      .attr('fill','#0d0f19').attr('stroke', color+'88').attr('stroke-width',1.5);
+
+    grp.append('text').attr('x',10).attr('y',10.5)
+      .attr('fill',color).attr('font-size',7).attr('font-weight',800)
+      .attr('font-family',MONO).attr('pointer-events','none').text(t.id);
+
+    const raw = t.label.length > 21 ? t.label.slice(0,20)+'…' : t.label;
+    const lbl = raw.toUpperCase().replace(/ /g,'_');
+    grp.append('text').attr('x', NW/2).attr('y', NH/2+1)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill','#c8c8c8').attr('font-size',8).attr('font-weight',700)
+      .attr('font-family',MONO).attr('pointer-events','none').text(lbl);
+
+    const cntStr = count >= 1000 ? (count/1000).toFixed(1)+'k' : String(count);
+    const bw = Math.max(22, cntStr.length * 6 + 8);
+    const bx = NW - bw - 6;
+    const by = NH/2;
+    grp.append('rect').attr('x',bx).attr('y',by-7).attr('width',bw).attr('height',13).attr('rx',7)
+      .attr('fill',cc+'20').attr('stroke',cc+'99').attr('stroke-width',1);
+    grp.append('text').attr('x',bx+bw/2).attr('y',by)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill',cc).attr('font-size',7).attr('font-weight',800)
+      .attr('font-family',MONO).attr('pointer-events','none').text(cntStr);
+  }
+
+  let ly = TOP_PAD;
+  SUBJECTS_LEFT.forEach(subj => {
+    drawHeader(subj.id + '_//' + subj.label.toUpperCase().replace(/ /g,'_'), SUBJ_COLOR[subj.subj], LX, ly);
+    ly += HDR_H + HDR_GAP;
+    subj.topics.forEach(t => { drawNode(t, subj.subj); ly += NH + V_GAP; });
+    ly += GRP_GAP;
   });
 
-  // Root → topics edges
-  SUBJECTS_LEFT.forEach((subj, si) => {
-    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
-    const color = SUBJ_COLOR[subj.subj] + '44';
-    ys.forEach(y => edge(C_L_ROOT+RW, bandMids[si], C_L_TOPICS-TW, y, color, 1.5));
-  });
-  SUBJECTS_RIGHT.forEach((subj, si) => {
-    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
-    const color = SUBJ_COLOR[subj.subj] + '44';
-    ys.forEach(y => edge(C_R_ROOT-RW, bandMids[si], C_R_TOPICS+TW, y, color, 1.5));
+  let ry = TOP_PAD;
+  SUBJECTS_RIGHT.forEach(subj => {
+    drawHeader(subj.id + '_//' + subj.label.toUpperCase().replace(/ /g,'_'), SUBJ_COLOR[subj.subj], RX, ry);
+    ry += HDR_H + HDR_GAP;
+    subj.topics.forEach(t => { drawNode(t, subj.subj); ry += NH + V_GAP; });
+    ry += GRP_GAP;
   });
 
-  // Cross-edges: right topics → left/right targets
   SUBJECTS_RIGHT.forEach(subj => {
     subj.topics.forEach(t => {
       (t.links || []).forEach(targetId => {
         const fp = topicPos[t.id];
         const tp = topicPos[targetId];
         if (!fp || !tp) return;
-        const tColor = SUBJ_COLOR[tp.subj] + '3a';
-        if (tp.side === 'left') {
-          edge(C_R_TOPICS-TW, fp.y, C_L_TOPICS+TW, tp.y, tColor, 1);
+        const tc = SUBJ_COLOR[tp.subj];
+        if (tp.x < fp.x) {
+          drawEdge(fp.x - NW/2 - PORT_R - 1, fp.y, tp.x + NW/2 + PORT_R + 1, tp.y, tc, 0.25);
         } else {
-          // Same-side arc (right column to right column, arc going outward)
-          const ax = C_R_TOPICS + TW + 90;
+          const ax = RX + NW/2 + PORT_R + 48;
           eg.append('path')
-            .attr('d', `M${C_R_TOPICS+TW},${fp.y} C${ax},${fp.y} ${ax},${tp.y} ${C_R_TOPICS+TW},${tp.y}`)
-            .attr('fill','none').attr('stroke', tColor)
-            .attr('stroke-width', 1).attr('stroke-linecap','round');
+            .attr('d', `M${fp.x+NW/2+PORT_R+1},${fp.y} C${ax},${fp.y} ${ax},${tp.y} ${tp.x+NW/2+PORT_R+1},${tp.y}`)
+            .attr('fill','none').attr('stroke',tc).attr('stroke-width',1)
+            .attr('stroke-opacity',0.18).attr('stroke-linecap','round');
         }
       });
     });
-  });
-
-  function wrapText(text, maxCh) {
-    const words = text.split(' ');
-    const lines = []; let line = '';
-    words.forEach(w => {
-      const t = line ? line+' '+w : w;
-      if (t.length > maxCh && line) { lines.push(line); line = w; }
-      else line = t;
-    });
-    if (line) lines.push(line);
-    return lines;
-  }
-
-  function drawTopic(t, subj, cx, cy, idRight) {
-    const color = SUBJ_COLOR[subj];
-    const grp = ng.append('g')
-      .attr('class','mm-node')
-      .attr('transform',`translate(${cx-TW},${cy-TH})`)
-      .style('cursor','pointer')
-      .on('click', () => openDrawerForNode({...t, subj}))
-      .on('mouseover', e => showTip(e, t.id+' — '+t.label, SUBJ_LABEL[subj]))
-      .on('mousemove', moveTip).on('mouseout', hideTip);
-
-    grp.append('rect')
-      .attr('width',TW*2).attr('height',TH*2).attr('rx',7)
-      .attr('fill',color+'18').attr('stroke',color).attr('stroke-width',1.5);
-
-    grp.append('text')
-      .attr('x', idRight ? TW*2-7 : 7).attr('y', 10)
-      .attr('text-anchor', idRight ? 'end' : 'start')
-      .attr('fill',color).attr('font-size',7.5).attr('font-weight',800)
-      .attr('font-family','Inter,sans-serif').text(t.id);
-
-    const lines = wrapText(t.label, 18);
-    const lh = 11;
-    const startY = TH - ((lines.length-1)*lh)/2;
-    lines.forEach((l,i) =>
-      grp.append('text').attr('x',TW).attr('y',startY+i*lh)
-        .attr('text-anchor','middle').attr('dominant-baseline','middle')
-        .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9)
-        .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
-    );
-    addCovBadge(grp, TW*2, getSubtreeCount(nodeToPrefix(t.id)), color);
-  }
-
-  function drawRoot(subj, cx, cy) {
-    const color = SUBJ_COLOR[subj.subj];
-    const grp = ng.append('g')
-      .attr('class','mm-node')
-      .attr('transform',`translate(${cx-RW},${cy-RH})`)
-      .style('cursor','pointer')
-      .on('click', () => openDrawerForNode({
-        id: subj.id, label: subj.label, subj: subj.subj, edital_id: null,
-        subtemas: subj.subtemas, edital_ids: subj.topics.map(t => t.edital_id),
-      }))
-      .on('mouseover', e => showTip(e, subj.label, SUBJ_LABEL[subj.subj]))
-      .on('mousemove', moveTip).on('mouseout', hideTip);
-
-    grp.append('rect')
-      .attr('width',RW*2).attr('height',RH*2).attr('rx',10)
-      .attr('fill',color+'28').attr('stroke',color).attr('stroke-width',2.5);
-
-    grp.append('text').attr('x',RW).attr('y',RH-5)
-      .attr('text-anchor','middle').attr('dominant-baseline','middle')
-      .attr('fill',color).attr('font-size',13).attr('font-weight',900)
-      .attr('font-family','Inter,sans-serif').text(subj.abbr);
-
-    grp.append('text').attr('x',RW).attr('y',RH+11)
-      .attr('text-anchor','middle').attr('fill','#888')
-      .attr('font-size',6.5).attr('font-family','Inter,sans-serif')
-      .text(subj.label.length > 11 ? subj.label.slice(0,10)+'…' : subj.label);
-
-    addCovBadge(grp, RW*2, getSubtreeCount(subj.abbr + '.'), color);
-  }
-
-  // Render all 6 subjects
-  SUBJECTS_LEFT.forEach((subj, si) => {
-    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
-    drawRoot(subj, C_L_ROOT, bandMids[si]);
-    subj.topics.forEach((t, ti) => drawTopic(t, subj.subj, C_L_TOPICS, ys[ti], false));
-  });
-  SUBJECTS_RIGHT.forEach((subj, si) => {
-    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
-    drawRoot(subj, C_R_ROOT, bandMids[si]);
-    subj.topics.forEach((t, ti) => drawTopic(t, subj.subj, C_R_TOPICS, ys[ti], true));
   });
 }
 
