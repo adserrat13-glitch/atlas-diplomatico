@@ -234,7 +234,6 @@
     <a href="analise.html">📊 Análise</a>
     <a href="leaderboard.html">🏆 Ranking</a>
     <a href="agenda.html">📅 Agenda</a>
-    <a href="grupo.html">👥 Grupo</a>
     <a href="segunda-fase.html">✍️ 2ª Fase</a>
     <a href="mapas.html">🗺️ Mapas</a>
   <a href="noticias.html">📰 Notícias</a>
@@ -540,7 +539,9 @@
       const results = await Promise.all(
         folders.map(async folder => ({ folder, files: await scanFolder('FLASHCARDS/' + folder) }))
       );
-      const active = results.filter(s => s.files.length > 0);
+      const active = results
+        .filter(s => s.files.length > 0)
+        .sort((a, b) => a.folder.localeCompare(b.folder, 'pt-BR'));
       if (!active.length) {
         browser.innerHTML = '<div class="fb-empty">Nenhum deck encontrado.</div>';
         return;
@@ -548,6 +549,7 @@
       browser.innerHTML = active.map(s => {
         const color = FOLDER_COLORS[s.folder.toUpperCase()] || FOLDER_COLORS[s.folder] || '#8ea7ff';
         const fullPath = 'FLASHCARDS/' + s.folder;
+        const sortedFiles = [...s.files].sort((a, b) => a.localeCompare(b, 'pt-BR'));
         return `
         <div class="fb-subject">
           <div class="fb-subject-header" onclick="this.parentElement.classList.toggle('collapsed')">
@@ -557,7 +559,7 @@
             <span class="fb-chevron">▾</span>
           </div>
           <div class="fb-subject-files">
-            ${s.files.map(f => `<div class="fb-file-row" onclick="loadDeckFromPath('${encodeURIComponent(fullPath+'/'+f)}','${f.replace(/\.csv$/i,'').replace(/'/g,"\\'")}')">
+            ${sortedFiles.map(f => `<div class="fb-file-row" onclick="loadDeckFromPath('${encodeURIComponent(fullPath+'/'+f)}','${f.replace(/\.csv$/i,'').replace(/'/g,"\\'")}')">
               <span class="fb-file-name">${f.replace(/\.csv$/i,'')}</span>
               <span class="fb-file-arrow">→</span>
             </div>`).join('')}
@@ -1274,7 +1276,6 @@
   <div class="sb-section">Comunidade</div>
   <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
   <a class="sb-link" href="agenda.html">📅 Agenda</a>
-  <a class="sb-link" href="grupo.html">👥 Grupos</a>
   <div class="sb-section">2ª Fase</div>
   <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
   <div class="sb-section">Admin</div>

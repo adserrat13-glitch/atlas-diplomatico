@@ -118,7 +118,6 @@ main{padding:32px;max-width:900px}
   <a href="analise.html">📊 Análise</a>
   <a href="leaderboard.html" class="active">🏆 Ranking</a>
   <a href="agenda.html">📅 Agenda</a>
-  <a href="grupo.html">👥 Grupo</a>
   <a href="segunda-fase.html">✍️ 2ª Fase</a>
   <a href="mapas.html">🗺️ Mapas</a>
   <a href="noticias.html">📰 Notícias</a>
@@ -208,6 +207,12 @@ main{padding:32px;max-width:900px}
       <p>Nenhum simulado registrado neste período.</p>
       <p style="font-size:12px;margin-top:8px">Complete um simulado para aparecer no ranking!</p>
     </div>
+  </div>
+
+  <div style="text-align:center;margin-top:24px;padding-bottom:8px">
+    <button onclick="resetMyRank()" style="background:transparent;border:1px solid #7f1d1d;color:#fca5a5;padding:8px 18px;border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit">
+      ↺ Resetar meu ranking
+    </button>
   </div>
 </main>
 
@@ -341,6 +346,15 @@ function setFilter(filter, btn) {
 
   await loadLeaderboard('all');
 })();
+
+async function resetMyRank() {
+  if (!confirm('Resetar seus dados de ranking? Suas pontuações do leaderboard serão apagadas.')) return;
+  const user = await DB.getUser();
+  if (!user) return;
+  await DB.resetUserRanking(user.id);
+  alert('Seu ranking foi resetado.');
+  loadLeaderboard(_currentFilter);
+}
 </script>
 <style>
 .nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
@@ -373,7 +387,6 @@ function setFilter(filter, btn) {
   <div class="sb-section">Comunidade</div>
   <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
   <a class="sb-link" href="agenda.html">📅 Agenda</a>
-  <a class="sb-link" href="grupo.html">👥 Grupos</a>
   <div class="sb-section">2ª Fase</div>
   <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
   <div class="sb-section">Admin</div>

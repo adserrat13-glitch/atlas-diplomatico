@@ -333,7 +333,6 @@
   <a href="analise.html">📊 Análise</a>
   <a href="leaderboard.html">🏆 Ranking</a>
   <a href="agenda.html">📅 Agenda</a>
-  <a href="grupo.html">👥 Grupo</a>
   <a href="segunda-fase.html">✍️ 2ª Fase</a>
   <a href="noticias.html">📰 Notícias</a>
   <a href="admin.html" class="active">⚙️ Admin</a>
@@ -361,7 +360,6 @@
   <div class="sb-section">Comunidade</div>
   <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
   <a class="sb-link" href="agenda.html">📅 Agenda</a>
-  <a class="sb-link" href="grupo.html">👥 Grupos</a>
   <div class="sb-section">2ª Fase</div>
   <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
   <div class="sb-section">Admin</div>
@@ -2088,20 +2086,35 @@ function LeaderboardTab() {
     setRows(prev=>prev.map(r=>r.user_id===userId?{...r,hidden:hide}:r));
   }
 
+  async function resetUserRank(userId, name) {
+    if (!confirm(`Resetar ranking de "${name}"? Esta ação é irreversível.`)) return;
+    await DB.resetUserRanking(userId);
+    setRows(prev=>prev.filter(r=>r.user_id!==userId));
+  }
+
+  async function resetAll() {
+    if (!confirm('Resetar TODOS os rankings? Esta ação é irreversível.')) return;
+    await DB.resetAllRankings();
+    setRows([]);
+  }
+
   const subjects = [...new Set(rows.map(r=>r.subject).filter(Boolean))];
   const filtered = subjectFilter ? rows.filter(r=>r.subject===subjectFilter) : rows;
 
   return (
     <div>
       <div className="page-title">Leaderboard</div>
-      <div className="page-sub">Ranking de usuários — ocultar ou reexibir participantes</div>
+      <div className="page-sub">Ranking de usuários — ocultar, reexibir ou resetar participantes</div>
 
-      <div className="form-row" style={{marginBottom:16}}>
+      <div className="form-row" style={{marginBottom:16,flexWrap:'wrap',gap:8}}>
         <select className="form-input" style={{width:180}} value={subjectFilter} onChange={e=>setSubjectFilter(e.target.value)}>
           <option value="">Todas as disciplinas</option>
           {subjects.map(s=><option key={s} value={s}>{s}</option>)}
         </select>
         <span style={{fontSize:12,color:'var(--muted)',marginLeft:8}}>{filtered.length} entradas</span>
+        <button onClick={resetAll} style={{marginLeft:'auto',background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d',padding:'6px 14px',borderRadius:8,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
+          ↺ Reset Todos
+        </button>
       </div>
 
       {loading ? <div className="loading-txt">Carregando…</div> : (
@@ -2130,11 +2143,12 @@ function LeaderboardTab() {
                           : <span className="badge badge-ok">Visível</span>
                         }
                       </td>
-                      <td>
+                      <td style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                         {r.hidden
                           ? <button className="btn-sm" onClick={()=>toggleHide(r.user_id,false)}>👁 Mostrar</button>
                           : <button className="btn-sm btn-danger" onClick={()=>toggleHide(r.user_id,true)}>🙈 Ocultar</button>
                         }
+                        <button className="btn-sm" onClick={()=>resetUserRank(r.user_id,r.profiles?.name||r.user_id?.slice(0,8)||'?')} style={{background:'#450a0a',color:'#fca5a5',border:'1px solid #7f1d1d'}}>↺ Reset</button>
                       </td>
                     </tr>
                   ))

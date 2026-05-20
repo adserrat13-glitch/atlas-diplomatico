@@ -121,16 +121,20 @@ main{padding:28px;display:grid;grid-template-columns:1fr 340px;gap:24px;align-it
   <a href="analise.html">📊 Análise</a>
   <a href="leaderboard.html">🏆 Ranking</a>
   <a href="agenda.html" class="active">📅 Agenda</a>
-  <a href="grupo.html">👥 Grupo</a>
   <a href="segunda-fase.html">✍️ 2ª Fase</a>
   <a href="mapas.html">🗺️ Mapas</a>
   <a href="noticias.html">📰 Notícias</a>
   
   <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
   <div class="nav-spacer"></div>
+  <button id="btnShare" onclick="copyAgendaLink()" style="display:none;background:rgba(142,167,255,.12);color:#8ea7ff;border:1px solid rgba(142,167,255,.3);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">🔗 Compartilhar</button>
   <div class="nav-cd" id="navCountdown"></div>
   <div class="nav-user" id="navUser">?</div>
 </nav>
+
+<div id="viewBanner" style="display:none;background:rgba(142,167,255,.08);border-bottom:1px solid rgba(142,167,255,.2);padding:10px 24px;font-size:13px;color:#8ea7ff;text-align:center">
+  📅 Visualizando a agenda de <strong id="viewOwnerName">outro usuário</strong> — somente leitura
+</div>
 
 <main>
   <!-- LEFT: Calendar -->
@@ -214,6 +218,12 @@ main{padding:28px;display:grid;grid-template-columns:1fr 340px;gap:24px;align-it
         <input type="time" id="evEnd"/>
       </div>
     </div>
+    <div class="form-group">
+      <label>Marcar usuários (opcional)</label>
+      <input type="text" id="tagSearch" placeholder="Buscar por nome…" autocomplete="off" oninput="searchUsersForTag(this.value)"/>
+      <div id="tagResults" style="display:none;background:#1a1d2a;border:1px solid rgba(255,255,255,.1);border-radius:8px;margin-top:4px;overflow:hidden;max-height:180px;overflow-y:auto"></div>
+      <div id="taggedList" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
       <button class="btn-save" onclick="saveEvent()">Salvar</button>
@@ -239,6 +249,9 @@ let _agendaItems = [];   // all items for current month view
 let _activityMap = {};   // date → session_count
 let _userId = null;
 let _examDate = null;
+let _viewMode = false;
+let _viewUserId = null;
+let _taggedUsers = [];   // [{id, name}] for current modal
 
 function formatDate(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -329,7 +342,11 @@ async function loadMonthData() {
   const lastDay = new Date(_curYear, _curMonth+1, 0).getDate();
   const to = _curYear + '-' + String(_curMonth+1).padStart(2,'0') + '-' + lastDay;
 
-  _agendaItems = await DB.getAgendaItems(from, to) || [];
+  if (_viewMode && _viewUserId) {
+    _agendaItems = await DB.getPublicAgenda(_viewUserId, from, to) || [];
+  } else {
+    _agendaItems = await DB.getAgendaItems(from, to) || [];
+  }
   renderCalendar();
   renderDay(_selectedDate);
 }
@@ -359,17 +376,20 @@ function renderDay(dateStr) {
   container.innerHTML = items.map(item => {
     const subj = item.subject ? ` · ${item.subject}` : '';
     const timeStr = item.time_start ? item.time_start.slice(0,5) + (item.time_end ? ' – ' + item.time_end.slice(0,5) : '') : '';
-    const meta = [timeStr, TYPE_LABELS[item.type]||item.type, subj].filter(Boolean).join(' ');
     const typeCls = 'item-type-badge type-' + (item.type||'event');
+    const tags = (item.tagged_users && item.tagged_users.length)
+      ? `<div style="margin-top:4px;font-size:11px;color:#8ea7ff">👥 ${item.tagged_users.length} marcado${item.tagged_users.length>1?'s':''}</div>`
+      : '';
+    const checkHtml = _viewMode ? '' : `<div class="item-check ${item.done?'done':''}" onclick="toggleDone('${item.id}','${dateStr}')">${item.done ? '✓' : ''}</div>`;
+    const delHtml = _viewMode ? '' : `<button class="item-del" onclick="deleteItem('${item.id}','${dateStr}')" title="Excluir">×</button>`;
     return `<div class="agenda-item" id="item-${item.id}">
-      <div class="item-check ${item.done?'done':''}" onclick="toggleDone('${item.id}','${dateStr}')">
-        ${item.done ? '✓' : ''}
-      </div>
+      ${checkHtml}
       <div class="item-body">
         <div class="item-title ${item.done?'done':''}">${item.title}</div>
         <div class="item-meta"><span class="${typeCls}">${TYPE_LABELS[item.type]||item.type}</span> ${timeStr}${subj}</div>
+        ${tags}
       </div>
-      <button class="item-del" onclick="deleteItem('${item.id}','${dateStr}')" title="Excluir">×</button>
+      ${delHtml}
     </div>`;
   }).join('');
 }
@@ -391,11 +411,16 @@ async function deleteItem(id, dateStr) {
 }
 
 function openModal() {
+  if (_viewMode) return;
   document.getElementById('evTitle').value = '';
   document.getElementById('evType').value = 'study';
   document.getElementById('evSubject').value = '';
   document.getElementById('evStart').value = '';
   document.getElementById('evEnd').value = '';
+  document.getElementById('tagSearch').value = '';
+  document.getElementById('tagResults').style.display = 'none';
+  _taggedUsers = [];
+  renderTaggedList();
   document.getElementById('modalOverlay').classList.add('open');
   document.getElementById('evTitle').focus();
 }
@@ -415,6 +440,7 @@ async function saveEvent() {
     subject: document.getElementById('evSubject').value || null,
     time_start: document.getElementById('evStart').value || null,
     time_end: document.getElementById('evEnd').value || null,
+    tagged_users: _taggedUsers.map(u => u.id),
     done: false
   };
   const saved = await DB.addAgendaItem(item);
@@ -442,6 +468,52 @@ function renderCountdown(examDate) {
   if (navCd) navCd.textContent = days + 'd';
 }
 
+async function copyAgendaLink() {
+  const url = location.origin + location.pathname + '?view=' + _userId;
+  try { await navigator.clipboard.writeText(url); } catch(e) { prompt('Copie o link:', url); return; }
+  const btn = document.getElementById('btnShare');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Copiado!';
+  setTimeout(() => btn.textContent = orig, 2000);
+}
+
+let _tagSearchTimer = null;
+async function searchUsersForTag(query) {
+  clearTimeout(_tagSearchTimer);
+  const res = document.getElementById('tagResults');
+  if (query.length < 2) { res.style.display = 'none'; return; }
+  _tagSearchTimer = setTimeout(async () => {
+    const users = await DB.searchUsers(query);
+    if (!users.length) { res.style.display = 'none'; return; }
+    res.style.display = 'block';
+    res.innerHTML = users.map(u => `
+      <div onclick="tagUser('${u.id}','${(u.name||'').replace(/'/g,"\\'")}'); document.getElementById('tagSearch').value=''; document.getElementById('tagResults').style.display='none'"
+        style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid rgba(255,255,255,.06)"
+        onmouseenter="this.style.background='rgba(255,255,255,.05)'" onmouseleave="this.style.background=''">
+        <strong>${u.name||'—'}</strong> <span style="color:#6b7280;font-size:11px">${u.email||''}</span>
+      </div>`).join('');
+  }, 300);
+}
+
+function tagUser(id, name) {
+  if (!_taggedUsers.find(u => u.id === id)) _taggedUsers.push({ id, name });
+  renderTaggedList();
+}
+
+function removeTag(id) {
+  _taggedUsers = _taggedUsers.filter(u => u.id !== id);
+  renderTaggedList();
+}
+
+function renderTaggedList() {
+  document.getElementById('taggedList').innerHTML = _taggedUsers.map(u =>
+    `<span style="background:rgba(142,167,255,.15);color:#8ea7ff;border:1px solid rgba(142,167,255,.3);border-radius:20px;padding:3px 10px;font-size:11px;display:inline-flex;align-items:center;gap:6px">
+      ${u.name}
+      <span onclick="removeTag('${u.id}')" style="cursor:pointer;opacity:.7">×</span>
+    </span>`
+  ).join('');
+}
+
 // Close modal on overlay click
 document.getElementById('modalOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('modalOverlay')) closeModal();
@@ -460,6 +532,22 @@ document.addEventListener('keydown', e => {
   if (isAdm) document.getElementById('navAdmin').style.display = '';
   const navUser = document.getElementById('navUser');
   if (navUser) navUser.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+
+  // Check for ?view= param
+  const viewParam = new URLSearchParams(location.search).get('view');
+  if (viewParam && viewParam !== _userId) {
+    _viewMode = true;
+    _viewUserId = viewParam;
+    // Fetch owner profile name
+    const ownerProfile = await DB.searchUsers('').then(() => null).catch(() => null);
+    document.getElementById('viewBanner').style.display = '';
+    document.getElementById('btnShare').style.display = 'none';
+    // Hide add-event button
+    const addBtn = document.querySelector('.add-btn');
+    if (addBtn) addBtn.style.display = 'none';
+  } else {
+    document.getElementById('btnShare').style.display = '';
+  }
 
   // Exam countdown + activity
   const [examDate, activity] = await Promise.all([
@@ -514,7 +602,6 @@ document.addEventListener('keydown', e => {
   <div class="sb-section">Comunidade</div>
   <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
   <a class="sb-link" href="agenda.html">📅 Agenda</a>
-  <a class="sb-link" href="grupo.html">👥 Grupos</a>
   <div class="sb-section">2ª Fase</div>
   <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
   <div class="sb-section">Admin</div>

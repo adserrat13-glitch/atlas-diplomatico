@@ -477,6 +477,27 @@ const DB = {
     await _sb.from('agenda_items').delete().eq('id', id);
   },
 
+  async resetUserRanking(userId) {
+    await _sb.from('leaderboard_tps').delete().eq('user_id', userId);
+  },
+
+  async resetAllRankings() {
+    await _sb.from('leaderboard_tps').delete().neq('user_id', '00000000-0000-0000-0000-000000000000');
+  },
+
+  async searchUsers(query) {
+    const { data } = await _sb.from('profiles')
+      .select('id, name, email').ilike('name', `%${query}%`).limit(8);
+    return data || [];
+  },
+
+  async getPublicAgenda(userId, from, to) {
+    const { data } = await _sb.from('agenda_items')
+      .select('*').eq('user_id', userId).gte('date', from).lte('date', to)
+      .order('date').order('time_start', { nullsFirst: true });
+    return data || [];
+  },
+
   // ── DISCURSIVAS ──────────────────────────────────────────────────────
 
   async getDiscursivas(subject = null) {
