@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Espiral — Atlas Diplomático</title>
+  <title>Mapa Mental — Atlas Diplomático</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -15,9 +15,8 @@
       --text:#e8e8e8; --muted:#666; --accent:#8ea7ff;
       --HB:#f87171; --HM:#fbbf24; --PI:#60a5fa; --GEO:#34d399; --ECO:#a78bfa; --DIP:#fb923c;
     }
-    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; overflow-x:hidden; }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; overflow:hidden; }
 
-    /* ── NAV ── */
     nav { position:sticky; top:0; z-index:300; height:52px; background:#000;
       border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
       padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
@@ -38,64 +37,30 @@
       display:flex; align-items:center; justify-content:center; font-size:11px;
       font-weight:700; flex-shrink:0; margin-left:6px; color:#888; cursor:pointer; }
 
-    /* ── HEADER ── */
-    .page-header { padding:24px 24px 0; max-width:1400px; margin:0 auto; }
-    .page-title { font-size:26px; font-weight:900; letter-spacing:-0.5px; }
+    .page-header { padding:14px 24px 0; }
+    .page-title { font-size:20px; font-weight:900; letter-spacing:-0.5px; }
     .page-title span { color:#39ff14; }
-    .page-sub { font-size:13px; color:var(--muted); margin-top:4px; }
+    .page-sub { font-size:11px; color:var(--muted); margin-top:2px; }
 
-    /* ── LEGEND + FILTERS ── */
-    .controls { display:flex; align-items:center; gap:8px; flex-wrap:wrap;
-      padding:16px 24px 0; max-width:1400px; margin:0 auto; }
-    .legend-title { font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-right:4px; }
-    .disc-btn { display:flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px;
-      border:1.5px solid; font-size:11px; font-weight:700; cursor:pointer; transition:.15s; background:transparent; }
-    .disc-btn.active { opacity:1; }
-    .disc-btn.dimmed { opacity:0.35; }
-    .disc-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-    .divider { width:1px; height:20px; background:var(--border); }
-    .view-toggle { display:flex; gap:4px; }
-    .view-btn { padding:4px 10px; border-radius:6px; border:1px solid var(--border);
-      font-size:11px; color:var(--muted); cursor:pointer; background:transparent; transition:.15s; font-family:inherit; }
-    .view-btn.active { background:rgba(255,255,255,0.08); color:var(--text); border-color:rgba(255,255,255,0.2); }
+    .controls { display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:8px 24px 0; }
+    .legend-title { font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-right:2px; }
+    .leg-item { display:flex; align-items:center; gap:4px; font-size:10px; font-weight:700;
+      padding:2px 8px; border-radius:20px; border:1px solid; }
+    .leg-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .divider { width:1px; height:16px; background:var(--border); }
+    .hint { font-size:10px; color:#444; }
 
-    /* ── VENN CANVAS ── */
-    #vennWrap { width:100%; height:calc(100vh - 200px); min-height:500px; position:relative;
-      max-width:1400px; margin:0 auto; padding:0 24px; }
-    #vennSvg { width:100%; height:100%; display:block; }
+    #mmWrap { width:100%; height:calc(100vh - 140px); position:relative; }
+    #mmSvg { width:100%; height:100%; display:block; cursor:grab; }
+    #mmSvg:active { cursor:grabbing; }
 
-    /* SVG styles */
-    .anchor-circle { cursor:pointer; transition:.15s; }
-    .anchor-circle:hover { filter:brightness(1.3); }
-    .anchor-label { font-size:11px; font-weight:900; fill:#fff; text-anchor:middle;
-      pointer-events:none; letter-spacing:.5px; text-transform:uppercase; }
-    .anchor-label-sub { font-size:9px; fill:rgba(255,255,255,0.6); text-anchor:middle; pointer-events:none; }
-    .theme-node { cursor:pointer; transition:opacity .2s; }
-    .theme-node circle { transition:r .2s; }
-    .theme-node:hover circle { filter:brightness(1.4); }
-    .theme-label { font-size:9.5px; fill:#ddd; text-anchor:middle; pointer-events:none;
-      font-family:Inter,sans-serif; font-weight:600; }
-    .link-line { stroke:rgba(255,255,255,0.05); stroke-width:1; pointer-events:none; }
-    .link-line.highlighted { stroke:rgba(255,255,255,0.25); stroke-width:1.5; }
+    .zoom-btns { position:fixed; bottom:20px; right:20px; z-index:200;
+      display:flex; flex-direction:column; gap:4px; }
+    .zoom-btns button { width:32px; height:32px; border-radius:8px;
+      border:1px solid rgba(255,255,255,0.15); background:rgba(15,17,23,0.92);
+      color:#bbb; font-size:15px; cursor:pointer; font-family:inherit; transition:.15s; }
+    .zoom-btns button:hover { background:rgba(40,44,60,0.95); color:#fff; }
 
-    /* ── GRID VIEW ── */
-    #gridView { display:none; max-width:1400px; margin:0 auto; padding:16px 24px 40px;
-      display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
-    #gridView.hidden { display:none; }
-    .cluster-card { background:var(--surface); border:1px solid var(--border); border-radius:12px;
-      padding:14px 16px; cursor:pointer; transition:.2s; position:relative; overflow:hidden; }
-    .cluster-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
-    .cluster-card:hover { border-color:rgba(255,255,255,0.2); transform:translateY(-1px); }
-    .cc-icon { font-size:20px; margin-bottom:8px; }
-    .cc-name { font-size:13px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:8px; }
-    .cc-badges { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:8px; }
-    .cc-badge { font-size:9px; font-weight:800; padding:2px 6px; border-radius:10px;
-      letter-spacing:.5px; text-transform:uppercase; }
-    .cc-subtemas { font-size:10px; color:var(--muted); line-height:1.5; }
-    .cc-count { position:absolute; top:12px; right:12px; font-size:9px; font-weight:700;
-      color:var(--muted); background:rgba(255,255,255,0.05); border-radius:8px; padding:2px 6px; }
-
-    /* ── DRAWER ── */
     .drawer-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:400;
       display:none; justify-content:flex-end; }
     .drawer-overlay.open { display:flex; }
@@ -110,7 +75,6 @@
     .drawer-badges { display:flex; gap:6px; flex-wrap:wrap; }
     .drawer-badge { font-size:11px; font-weight:800; padding:4px 10px; border-radius:20px;
       letter-spacing:.5px; text-transform:uppercase; }
-    .drawer-section { }
     .drawer-section h5 { font-size:9px; letter-spacing:1.5px; color:var(--muted);
       text-transform:uppercase; margin-bottom:8px; }
     .drawer-chips { display:flex; flex-wrap:wrap; gap:5px; }
@@ -118,9 +82,8 @@
       border-radius:16px; padding:3px 10px; font-size:11px; color:var(--text); }
     .drawer-edital { display:flex; flex-direction:column; gap:4px; }
     .edital-link { display:flex; align-items:center; gap:6px; padding:6px 8px;
-      background:rgba(255,255,255,0.04); border-radius:8px; text-decoration:none;
-      font-size:11px; color:var(--muted); border:1px solid transparent; transition:.15s; }
-    .edital-link:hover { border-color:var(--border); color:var(--text); }
+      background:rgba(255,255,255,0.04); border-radius:8px; font-size:11px;
+      color:var(--muted); border:1px solid transparent; }
     .edital-link-subj { font-size:9px; font-weight:800; width:28px; text-align:center; flex-shrink:0; }
     .drawer-actions { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
     .drawer-actions a, .drawer-actions button {
@@ -131,19 +94,14 @@
     .btn-secondary { background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--muted); }
     .btn-secondary:hover { border-color:rgba(255,255,255,0.2); color:var(--text); }
 
-    /* ── TOOLTIP ── */
     #tooltip { position:fixed; background:#1a1d2a; border:1px solid var(--border);
-      border-radius:8px; padding:8px 12px; font-size:11px; pointer-events:none;
-      opacity:0; transition:opacity .15s; z-index:500; max-width:200px; }
-    #tooltip .tt-name { font-weight:700; color:var(--text); margin-bottom:3px; }
+      border-radius:8px; padding:7px 11px; font-size:11px; pointer-events:none;
+      opacity:0; transition:opacity .12s; z-index:500; max-width:220px; }
+    #tooltip .tt-name { font-weight:700; color:var(--text); margin-bottom:2px; }
     #tooltip .tt-subj { color:var(--muted); font-size:10px; }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width:600px) {
-      .page-title { font-size:20px; }
-      #vennWrap { height:calc(100vh - 160px); padding:0 8px; }
-      .drawer { padding:16px; }
-    }
+    .mm-node { transition:filter .15s; }
+    .mm-node:hover { filter:brightness(1.3); }
   </style>
 </head>
 <body>
@@ -163,259 +121,220 @@
 </nav>
 
 <div class="page-header">
-  <div class="page-title">Eixos <span>Espiral</span></div>
-  <div class="page-sub">Diagrama de Venn interdisciplinar — temas conectados entre as 6 matérias do CACD</div>
+  <div class="page-title">Mapa <span>Mental</span></div>
+  <div class="page-sub">PI e HB como raízes — conexões interdisciplinares CACD</div>
 </div>
 
-<div class="controls" id="controls">
-  <span class="legend-title">Filtrar:</span>
-  <button class="disc-btn active" data-subj="HB" style="color:var(--HB);border-color:var(--HB)">
-    <div class="disc-dot" style="background:var(--HB)"></div>HB
-  </button>
-  <button class="disc-btn active" data-subj="HM" style="color:var(--HM);border-color:var(--HM)">
-    <div class="disc-dot" style="background:var(--HM)"></div>HM
-  </button>
-  <button class="disc-btn active" data-subj="PI" style="color:var(--PI);border-color:var(--PI)">
-    <div class="disc-dot" style="background:var(--PI)"></div>PI
-  </button>
-  <button class="disc-btn active" data-subj="GEO" style="color:var(--GEO);border-color:var(--GEO)">
-    <div class="disc-dot" style="background:var(--GEO)"></div>GEO
-  </button>
-  <button class="disc-btn active" data-subj="ECO" style="color:var(--ECO);border-color:var(--ECO)">
-    <div class="disc-dot" style="background:var(--ECO)"></div>ECO
-  </button>
-  <button class="disc-btn active" data-subj="DIP" style="color:var(--DIP);border-color:var(--DIP)">
-    <div class="disc-dot" style="background:var(--DIP)"></div>DIP
-  </button>
+<div class="controls">
+  <span class="legend-title">Legenda:</span>
+  <span class="leg-item" style="color:var(--PI);border-color:#60a5fa30"><span class="leg-dot" style="background:var(--PI)"></span>PI</span>
+  <span class="leg-item" style="color:var(--HB);border-color:#f8717130"><span class="leg-dot" style="background:var(--HB)"></span>HB</span>
   <div class="divider"></div>
-  <div class="view-toggle">
-    <button class="view-btn active" id="btnVenn">Venn</button>
-    <button class="view-btn" id="btnGrid">Grid</button>
-  </div>
+  <span class="leg-item" style="color:var(--HM);border-color:#fbbf2430"><span class="leg-dot" style="background:var(--HM)"></span>HM</span>
+  <span class="leg-item" style="color:var(--ECO);border-color:#a78bfa30"><span class="leg-dot" style="background:var(--ECO)"></span>ECO</span>
+  <span class="leg-item" style="color:var(--GEO);border-color:#34d39930"><span class="leg-dot" style="background:var(--GEO)"></span>GEO</span>
+  <span class="leg-item" style="color:var(--DIP);border-color:#fb923c30"><span class="leg-dot" style="background:var(--DIP)"></span>DIP</span>
+  <div class="divider"></div>
+  <span class="hint">Scroll para zoom · Arraste para mover · Clique para detalhes</span>
 </div>
 
-<!-- VENN VIEW -->
-<div id="vennWrap">
-  <svg id="vennSvg"></svg>
+<div id="mmWrap">
+  <svg id="mmSvg"></svg>
 </div>
 
-<!-- GRID VIEW -->
-<div id="gridView" class="hidden"></div>
+<div class="zoom-btns">
+  <button onclick="zoomBy(1.3)" title="Ampliar">+</button>
+  <button onclick="zoomReset()" title="Resetar">⊙</button>
+  <button onclick="zoomBy(0.77)" title="Reduzir">−</button>
+</div>
 
-<!-- DRAWER -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)closeDrawer()">
   <div class="drawer" id="drawer">
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
     <div class="drawer-icon" id="dIcon"></div>
     <div class="drawer-name" id="dName"></div>
     <div class="drawer-badges" id="dBadges"></div>
-
     <div class="drawer-section">
-      <h5>Subtemas do docx</h5>
+      <h5>Subtemas</h5>
       <div class="drawer-chips" id="dChips"></div>
     </div>
-
     <div class="drawer-section">
       <h5>Tópicos do edital</h5>
       <div class="drawer-edital" id="dEdital"></div>
     </div>
-
-    <div class="drawer-actions" id="dActions">
-      <button class="btn-primary" id="dBtnEstudar" onclick="estudarEixo()">🎯 Estudar este eixo</button>
+    <div class="drawer-actions">
+      <button class="btn-primary" onclick="estudarEixo()">🎯 Estudar este eixo</button>
       <a class="btn-secondary" href="flashcards.html">← Voltar aos decks</a>
     </div>
   </div>
 </div>
 
-<!-- TOOLTIP -->
 <div id="tooltip">
   <div class="tt-name" id="ttName"></div>
   <div class="tt-subj" id="ttSubj"></div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// DATA
-// ─────────────────────────────────────────────────────────────────────────────
 const SUBJ_COLOR = {
   HB:'#f87171', HM:'#fbbf24', PI:'#60a5fa', GEO:'#34d399', ECO:'#a78bfa', DIP:'#fb923c'
 };
 const SUBJ_LABEL = {
   HB:'Hist. Brasil', HM:'Hist. Mundial', PI:'Pol. Internac.', GEO:'Geografia', ECO:'Economia', DIP:'Direito'
 };
-
-// edital_items IDs (confirmed from DB)
-const EDITAL_META = {
-  'dd37bdc4': {code:'HM1', title:'Estruturas econômicas', subj:'HM'},
-  'b3626390': {code:'HM2', title:'Revoluções', subj:'HM'},
-  '788c572e': {code:'HM3', title:'Relações internacionais', subj:'HM'},
-  'a3d9fb8a': {code:'HM4', title:'Colonialismo e imperialismo', subj:'HM'},
-  '0edee248': {code:'HM5', title:'Evolução política nas Américas', subj:'HM'},
-  'da08cfbe': {code:'HM6', title:'Ideias e regimes políticos', subj:'HM'},
-  'd3aa53cc': {code:'HB1', title:'O período colonial', subj:'HB'},
-  '6786345b': {code:'HB2', title:'O processo de independência', subj:'HB'},
-  '9ed3d769': {code:'HB7', title:'A Era Vargas', subj:'HB'},
-  '55f3674f': {code:'HB8', title:'A República Liberal', subj:'HB'},
-  'b93c6498': {code:'HB9', title:'O Regime Militar', subj:'HB'},
-  'dcd9364b': {code:'HB10', title:'O processo democrático', subj:'HB'},
-  'd82d95c9': {code:'HB11', title:'Impactos digitais séc.XXI', subj:'HB'},
-  '8f3927b4': {code:'PI1', title:'RI: conceitos e paradigmas', subj:'PI'},
-  'd113538c': {code:'PI2', title:'Política externa brasileira', subj:'PI'},
-  '057c3cef': {code:'PI3', title:'O Brasil e a América do Sul', subj:'PI'},
-  '1da9cc1c': {code:'PI6', title:'EUA: política externa', subj:'PI'},
-  '0bb7dded': {code:'PI7', title:'União Europeia', subj:'PI'},
-  'dfbebc52': {code:'PI13', title:'Agenda internacional', subj:'PI'},
-  'fb242d18': {code:'PI15', title:'Blocos econômicos', subj:'PI'},
-  '760be643': {code:'PI17', title:'G-20, IBAS e BRICS', subj:'PI'},
-  'e9c8d871': {code:'PI9', title:'África e relações com o Brasil', subj:'PI'},
-  '4c645673': {code:'PI10', title:'O Brasil e a Ásia', subj:'PI'},
-  'b9553abb': {code:'ECO1', title:'Microeconomia', subj:'ECO'},
-  'a61bb950': {code:'ECO2', title:'Macroeconomia', subj:'ECO'},
-  '6c79cb98': {code:'ECO3', title:'Economia internacional', subj:'ECO'},
-  'cb2de1bb': {code:'ECO4', title:'História econômica brasileira', subj:'ECO'},
-  '2d5bcd71': {code:'ECO5', title:'Bancos digitais e economia', subj:'ECO'},
-  '6291ef65': {code:'GEO1', title:'História da Geografia', subj:'GEO'},
-  'a3ff0d25': {code:'GEO2', title:'A Geografia da população', subj:'GEO'},
-  'be7d5d71': {code:'GEO3', title:'Geografia econômica', subj:'GEO'},
-  'd11d6819': {code:'GEO6', title:'Geografia política', subj:'GEO'},
-  '527792eb': {code:'GEO7', title:'Geografia e gestão ambiental', subj:'GEO'},
-  'ee9d2cc5': {code:'DIP3', title:'Constituição', subj:'DIP'},
-  'd1005c20': {code:'DIP4', title:'Estado: elementos e soberania', subj:'DIP'},
-  '3beda66c': {code:'DIP5', title:'Estado democrático de direito', subj:'DIP'},
-  'e3003f72': {code:'DIP15', title:'Direito Internacional', subj:'DIP'},
-  '264fb4bc': {code:'DIP18', title:'Surgimento de Estados', subj:'DIP'},
-  '25d5e195': {code:'DIP23', title:'Fontes do DIP e Tratados', subj:'DIP'},
-  '96d89555': {code:'DIP25', title:'ONU, OEA, organizações', subj:'DIP'},
-  '459e5de5': {code:'DIP26', title:'Integração Regional/MERCOSUL', subj:'DIP'},
-  '8b1404e5': {code:'DIP27', title:'Uso da força, segurança coletiva', subj:'DIP'},
-  'f01356d5': {code:'DIP28', title:'Direitos humanos internacionais', subj:'DIP'},
-  '9c3ef0cc': {code:'DIP32', title:'DI Meio Ambiente e Mar', subj:'DIP'},
-  '010b1cef': {code:'DIP7', title:'Processo legislativo', subj:'DIP'},
-  'fb49121a': {code:'DIP9', title:'Administração Pública', subj:'DIP'},
-  '399ccc08': {code:'DIP20', title:'Povo, nacionalidade, estrangeiro', subj:'DIP'},
-  '59cd5180': {code:'DIP29', title:'Conflitos armados e DIH', subj:'DIP'},
-  '9316a2e4': {code:'DIP30', title:'Direito penal internacional', subj:'DIP'},
-  '56d8d751': {code:'HM7', title:'A vida cultural (tecnologia)', subj:'HM'},
+const SUBJ_ICON = {
+  HB:'🇧🇷', HM:'🌍', PI:'🤝', GEO:'🗺️', ECO:'📈', DIP:'⚖️'
 };
 
-const CLUSTERS = [
-  // ── EXCLUSIVOS ─────────────────────────────────────────────────────────────
-  {id:1, name:'Microeconomia e Mercados', icon:'📊',
-   subjects:['ECO'], edital_ids:['b9553abb'],
-   subtemas:['Oferta e demanda','Elasticidade','Concorrência perfeita','Monopólio','Oligopólio','Externalidades','Bens públicos','Teoria dos jogos','Falhas de mercado','Excedente do consumidor']},
+const EDITAL_META = {
+  'dd37bdc4':{code:'HM1',title:'Estruturas econômicas',subj:'HM'},
+  'b3626390':{code:'HM2',title:'Revoluções',subj:'HM'},
+  '788c572e':{code:'HM3',title:'Relações internacionais séc.XX',subj:'HM'},
+  'a3d9fb8a':{code:'HM4',title:'Colonialismo e imperialismo',subj:'HM'},
+  '0edee248':{code:'HM5',title:'Evolução política nas Américas',subj:'HM'},
+  'da08cfbe':{code:'HM6',title:'Ideias e regimes políticos',subj:'HM'},
+  '56d8d751':{code:'HM8',title:'RI e Tecnologia Séc. XXI',subj:'HM'},
+  'd3aa53cc':{code:'HB1',title:'O período colonial',subj:'HB'},
+  '6786345b':{code:'HB2',title:'O processo de independência',subj:'HB'},
+  '62b3ee69':{code:'HB5',title:'O Segundo Reinado',subj:'HB'},
+  '042c3d74':{code:'HB6',title:'A Primeira República',subj:'HB'},
+  '9ed3d769':{code:'HB7',title:'A Era Vargas',subj:'HB'},
+  '55f3674f':{code:'HB8',title:'A República Liberal',subj:'HB'},
+  'b93c6498':{code:'HB9',title:'O Regime Militar',subj:'HB'},
+  'dcd9364b':{code:'HB10',title:'O processo democrático',subj:'HB'},
+  '8f3927b4':{code:'PI1',title:'RI: conceitos e paradigmas',subj:'PI'},
+  'd113538c':{code:'PI2',title:'Política externa brasileira',subj:'PI'},
+  '057c3cef':{code:'PI3',title:'O Brasil e a América do Sul',subj:'PI'},
+  '1da9cc1c':{code:'PI6',title:'EUA: política externa',subj:'PI'},
+  '0bb7dded':{code:'PI7',title:'União Europeia',subj:'PI'},
+  'dfbebc52':{code:'PI13',title:'Agenda internacional',subj:'PI'},
+  'fb242d18':{code:'PI15',title:'Blocos econômicos',subj:'PI'},
+  '760be643':{code:'PI17',title:'G-20, IBAS e BRICS',subj:'PI'},
+  'e9c8d871':{code:'PI9',title:'África e relações com o Brasil',subj:'PI'},
+  'a61bb950':{code:'ECO2',title:'Macroeconomia',subj:'ECO'},
+  '6c79cb98':{code:'ECO3',title:'Economia internacional',subj:'ECO'},
+  'cb2de1bb':{code:'ECO4',title:'História econômica brasileira',subj:'ECO'},
+  '6291ef65':{code:'GEO1',title:'História da Geografia',subj:'GEO'},
+  'a3ff0d25':{code:'GEO2',title:'A Geografia da população',subj:'GEO'},
+  'be7d5d71':{code:'GEO3',title:'Geografia econômica',subj:'GEO'},
+  'd11d6819':{code:'GEO6',title:'Geografia política',subj:'GEO'},
+  '527792eb':{code:'GEO7',title:'Gestão ambiental',subj:'GEO'},
+  'ee9d2cc5':{code:'DIP3',title:'Constituição',subj:'DIP'},
+  'd1005c20':{code:'DIP4',title:'Estado e soberania',subj:'DIP'},
+  'e3003f72':{code:'DIP15',title:'Direito Internacional',subj:'DIP'},
+  '459e5de5':{code:'DIP26',title:'Integração Regional/MERCOSUL',subj:'DIP'},
+  '8b1404e5':{code:'DIP27',title:'Uso da força e segurança',subj:'DIP'},
+  'f01356d5':{code:'DIP28',title:'Direitos humanos internacionais',subj:'DIP'},
+  '0e07fe2e':{code:'DIP31',title:'Comércio internacional e OMC',subj:'DIP'},
+};
 
-  {id:2, name:'Climatologia e Biomas', icon:'🌿',
-   subjects:['GEO'], edital_ids:['527792eb'],
-   subtemas:['Biomas brasileiros','Mudanças climáticas','Recursos hídricos','Gestão ambiental','Desertificação','Amazônia','Cerrado','Mata Atlântica','Zonas climáticas']},
-
-  {id:3, name:'Processo Legislativo e Adm. Pública', icon:'📋',
-   subjects:['DIP'], edital_ids:['010b1cef','fb49121a'],
-   subtemas:['Medida provisória','Lei complementar','Controle constitucionalidade','Administração direta','Autarquias','Licitações','Responsabilidade civil do Estado','Processo administrativo']},
-
-  {id:4, name:'Geopolítica Clássica', icon:'🗺️',
-   subjects:['GEO'], edital_ids:['d11d6819','6291ef65'],
-   subtemas:['Ratzel e Lebensraum','Mackinder','Fronteiras políticas','Espaço vital','Heartland e Rimland','Poder marítimo','Determinismo geográfico','Possibilismo de La Blache']},
-
-  // ── SOBREPOSIÇÃO 2 DISCIPLINAS ──────────────────────────────────────────────
-  {id:5, name:'Liberalismo e Independência', icon:'🕊️',
-   subjects:['HM','HB'], edital_ids:['dd37bdc4','6786345b'],
-   subtemas:['Adam Smith','Fisiocracia','Locke e Montesquieu','Revolução Francesa','Independência do Brasil','Liberalismo e escravidão','Congresso de Viena','Restauração conservadora','Constitucionalismo liberal']},
-
-  {id:6, name:'Capitalismo e Crises', icon:'📉',
-   subjects:['HM','ECO'], edital_ids:['dd37bdc4','a61bb950','6c79cb98'],
-   subtemas:['Crise de 1929','New Deal','Keynesianismo','Welfare State','Neoliberalismo','Thatcherismo','Stagflação','Crise 2008','Crise do liberalismo clássico']},
-
-  {id:19, name:'Constitucionalismo Brasileiro', icon:'📜',
-   subjects:['DIP','HB'], edital_ids:['ee9d2cc5','3beda66c','dcd9364b'],
-   subtemas:['Poder constituinte','CF/1988','Controle de constitucionalidade','STF','Cláusulas pétreas','Direitos fundamentais','Federalismo brasileiro','Constituições históricas do Brasil']},
-
-  {id:17, name:'Socialismo e Regimes Políticos', icon:'⭐',
-   subjects:['HM','HB'], edital_ids:['da08cfbe','b93c6498'],
-   subtemas:['Marxismo e mais-valia','Revolução Russa','Maoísmo','Fascismo e nazismo','Integralismo brasileiro','Regime Militar','PCB','Guerrilha urbana no Brasil','Socialdemocracia']},
-
-  // ── SOBREPOSIÇÃO 3 DISCIPLINAS ──────────────────────────────────────────────
-  {id:7, name:'Colonialismo e Expansão Territorial', icon:'🌍',
-   subjects:['HM','GEO','HB'], edital_ids:['a3d9fb8a','6291ef65','d3aa53cc'],
-   subtemas:['Grandes Navegações','Tratado de Tordesilhas','Cartografia colonial','América Portuguesa','Missões jesuíticas','Pacto colonial','Imperialismo séc.XIX','Descolonização','Sistema-mundo moderno']},
-
-  {id:9, name:'Era Vargas e Desenvolvimentismo', icon:'🇧🇷',
-   subjects:['HB','ECO','PI'], edital_ids:['9ed3d769','cb2de1bb','d113538c'],
-   subtemas:['Estado Novo','ISI — substituição de importações','BNDE/BNDES','Petrobrás','Alinhamento e ruptura com EUA','Política trabalhista','Fascismo e varguismo','Milagre econômico']},
-
-  {id:10, name:'Soberania e Estado Moderno', icon:'🏛️',
-   subjects:['DIP','PI','HM'], edital_ids:['d1005c20','264fb4bc','8f3927b4','788c572e'],
-   subtemas:['Paz de Westfália','Elementos do Estado','Reconhecimento de Estado','Soberania e intervenção','Realismo nas RI','Atores não-estatais','Estado federal','Formas de governo']},
-
-  {id:11, name:'Guerra Fria e Bipolaridade', icon:'☢️',
-   subjects:['HM','PI','ECO'], edital_ids:['788c572e','8f3927b4','a61bb950','55f3674f'],
-   subtemas:['EUA vs URSS','Détente','Corrida armamentista','Plano Marshall','OTAN','Política Externa Independente','Não-alinhamento','Fim da Guerra Fria']},
-
-  {id:13, name:'Política Externa Brasileira', icon:'🤝',
-   subjects:['PI','HB','DIP'], edital_ids:['d113538c','55f3674f','b93c6498','dcd9364b','e3003f72'],
-   subtemas:['Política Externa Independente','Pragmatismo Responsável','Autonomia pela participação','Diplomacia presidencial','Universalismo','Cooperação Sul-Sul','PEB e direitos humanos','Art.4º CF/88']},
-
-  {id:18, name:'ONU e Multilateralismo', icon:'🕊️',
-   subjects:['DIP','PI','HM'], edital_ids:['96d89555','8f3927b4','788c572e','8b1404e5'],
-   subtemas:['Carta da ONU','Conselho de Segurança','Veto das potências','Operações de paz','OEA','Carta Democrática Interamericana','Agências ONU','Reforma do CSNU']},
-
-  {id:23, name:'Imperialismo e África/Ásia', icon:'🌏',
-   subjects:['HM','PI','GEO'], edital_ids:['a3d9fb8a','e9c8d871','4c645673','6291ef65'],
-   subtemas:['Corrida pela África','Conferência de Berlim','Descolonização africana','Movimentos de libertação','Ásia e expansão europeia','China contemporânea','PEB para África','CPLP']},
-
-  {id:24, name:'Conflitos Armados e DIH', icon:'⚔️',
-   subjects:['DIP','PI','HM'], edital_ids:['8b1404e5','59cd5180','9316a2e4','788c572e'],
-   subtemas:['Convenções de Genebra','DIH','TPI','Operações de paz da ONU','Terrorismo e contraterrorismo','Uso da força — art.2(4) ONU','Guerras mundiais','Desarmamento e não-proliferação']},
-
-  {id:21, name:'Território e Fronteiras', icon:'📍',
-   subjects:['GEO','DIP','HB'], edital_ids:['d11d6819','264fb4bc','e3003f72','d3aa53cc'],
-   subtemas:['Fronteiras terrestres e marítimas','Formação do território brasileiro','Tratados coloniais','Plataforma continental','ZEE','ZOPACAS','Limites Brasil-vizinhos','Soberania territorial']},
-
-  {id:20, name:'Migrações e População', icon:'🧭',
-   subjects:['GEO','DIP','PI'], edital_ids:['a3ff0d25','399ccc08','59cd5180'],
-   subtemas:['Refugiados e ACNUR','Direito ao asilo','Migrações econômicas','Brain drain','Êxodo rural brasileiro','Migração nordestina','Xenofobia','Políticas migratórias']},
-
-  // ── SOBREPOSIÇÃO 4 DISCIPLINAS ──────────────────────────────────────────────
-  {id:8, name:'Industrialização e Urbanização', icon:'🏭',
-   subjects:['HM','HB','GEO','ECO'], edital_ids:['dd37bdc4','9ed3d769','be7d5d71','cb2de1bb'],
-   subtemas:['1ª e 2ª Revolução Industrial','Fordismo/Taylorismo','Urbanização industrial','ISI no Brasil','Urbanização brasileira','Geografia urbana','Êxodo rural','Periferias metropolitanas']},
-
-  {id:12, name:'Bretton Woods e Ordem Econômica', icon:'💰',
-   subjects:['HM','ECO','PI','DIP'], edital_ids:['dd37bdc4','a61bb950','6c79cb98','8f3927b4'],
-   subtemas:['FMI','BIRD','GATT/OMC','Padrão-ouro-dólar','Consenso de Washington','Ajuste estrutural','Crise cambial','Balanço de pagamentos','Hegemonia americana pós-1945']},
-
-  {id:14, name:'Integração Regional e MERCOSUL', icon:'🌎',
-   subjects:['PI','DIP','ECO','GEO'], edital_ids:['057c3cef','459e5de5','6c79cb98','be7d5d71'],
-   subtemas:['Tratado de Assunção','Tarifa Externa Comum','UNASUL','IIRSA/COSIPLAN','Regionalismo aberto','Solução de controvérsias MERCOSUL','Integração energética','Assimetrias regionais']},
-
-  {id:16, name:'Globalização e Nova Divisão do Trabalho', icon:'🌐',
-   subjects:['HM','ECO','GEO','PI'], edital_ids:['dd37bdc4','6c79cb98','be7d5d71','fb242d18'],
-   subtemas:['Pós-fordismo','Toyotismo','Cadeias globais de valor','Multinacionais','Desindustrialização','Financeirização','Comércio Sul-Sul','BRICS e emergentes']},
-
-  {id:22, name:'Meio Ambiente e Recursos', icon:'🌱',
-   subjects:['GEO','DIP','PI','ECO'], edital_ids:['527792eb','9c3ef0cc','dfbebc52','6c79cb98'],
-   subtemas:['Acordos de Paris','COP','Protocolo de Quioto','Rio+20','DI Ambiental','Recursos naturais e poder','Petróleo e geopolítica','Segurança hídrica']},
-
-  // ── SOBREPOSIÇÃO 5-6 DISCIPLINAS (CENTRO) ──────────────────────────────────
-  {id:15, name:'Direitos Humanos e Democracia', icon:'✊',
-   subjects:['DIP','HM','HB','PI','GEO'], edital_ids:['f01356d5','da08cfbe','dcd9364b','dfbebc52','a3ff0d25'],
-   subtemas:['Declaração Universal DH','Sistema Interamericano','CIDH','Redemocratização brasileira','CF/1988 e direitos fundamentais','Terceira onda democrática','Agenda 2030','Direitos sociais']},
-
-  {id:25, name:'Revolução Digital e Séc. XXI', icon:'💻',
-   subjects:['HM','HB','PI','ECO'], edital_ids:['56d8d751','d82d95c9','dfbebc52','2d5bcd71'],
-   subtemas:['Redes sociais e política','Fake news e democracia','Economia de plataformas','Bancos digitais','LGPD','Cibersegurança','IA e relações internacionais','Desinformação e eleições']},
+const PI_TOPICS = [
+  {id:'PI1', label:'RI: Conceitos e Paradigmas', edital_id:'8f3927b4',
+   subtemas:['Realismo','Liberalismo','Construtivismo','Hard/Soft power','Atores não-estatais','Interdependência complexa','Governança global'],
+   links:['HM3','DIP15','DIP4','HM6']},
+  {id:'PI2', label:'Política Externa Brasileira', edital_id:'d113538c',
+   subtemas:['PEI (1961-64)','Pragmatismo Responsável','Autonomia pela participação','Universalismo','Diplomacia presidencial','Cooperação Sul-Sul'],
+   links:['ECO4','HM3']},
+  {id:'PI3', label:'Brasil e América do Sul', edital_id:'057c3cef',
+   subtemas:['MERCOSUL','UNASUL','IIRSA/COSIPLAN','Liderança brasileira','Integração energética','Conselho Defesa Sul-Am.'],
+   links:['ECO3','DIP26','GEO6','GEO3']},
+  {id:'PI6', label:'EUA: Política Externa', edital_id:'1da9cc1c',
+   subtemas:['Hegemonia americana','Doutrina Monroe','Containment','Unilateralismo','Relações Brasil-EUA','Bretton Woods'],
+   links:['HM3','HM5','ECO2']},
+  {id:'PI7', label:'União Europeia', edital_id:'0bb7dded',
+   subtemas:['Tratado de Roma','Maastricht','Euro','Brexit','Crise europeia','Relações UE-Mercosul'],
+   links:['HM1','ECO3']},
+  {id:'PI13', label:'Agenda Internacional', edital_id:'dfbebc52',
+   subtemas:['Direitos humanos','Meio ambiente','Segurança alimentar','Saúde global','Tecnologia e RI','Agenda 2030'],
+   links:['DIP28','GEO7','DIP27','HM8']},
+  {id:'PI15', label:'Blocos Econômicos', edital_id:'fb242d18',
+   subtemas:['OMC','NAFTA/USMCA','RCEP','CPTPP','Protecionismo','Promoção comercial'],
+   links:['ECO3','DIP31','DIP26']},
+  {id:'PI17', label:'BRICS, G-20 e IBAS', edital_id:'760be643',
+   subtemas:['Surgimento dos BRICS','Banco dos BRICS','G-20 financeiro','Coalizões Sul-Sul','IBAS','Potências emergentes'],
+   links:['ECO3','HM8','GEO3']},
+  {id:'PI9', label:'África e Relações c/ Brasil', edital_id:'e9c8d871',
+   subtemas:['Descolonização africana','CPLP','Cooperação técnica','PEB para África','UEMOA','Diáspora africana'],
+   links:['HM4','GEO2']},
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────────────────────────────────────
-let activeSubjects = new Set(['HB','HM','PI','GEO','ECO','DIP']);
-let currentView = 'venn';
-let selectedCluster = null;
-let simulation = null;
+const HB_TOPICS = [
+  {id:'HB1', label:'O Período Colonial', edital_id:'d3aa53cc',
+   subtemas:['Tratado de Tordesilhas','Capitanias hereditárias','Economia açucareira','Escravidão africana','Quilombos','Pacto colonial','Missões jesuíticas'],
+   links:['HM4','GEO1']},
+  {id:'HB2', label:'O Processo de Independência', edital_id:'6786345b',
+   subtemas:['Transferência da corte','Abertura dos portos','Inconfidência Mineira','Liberalismo e independência','José Bonifácio','Reconhecimento internacional'],
+   links:['HM2','HM1','DIP4']},
+  {id:'HB5', label:'O Segundo Reinado', edital_id:'62b3ee69',
+   subtemas:['Café e expansão econômica','Abolição da escravatura','Guerra do Paraguai','Imigração europeia','Industrialização incipiente'],
+   links:['HM1','HM4','ECO4']},
+  {id:'HB6', label:'A Primeira República', edital_id:'042c3d74',
+   subtemas:['Política do café-com-leite','Coronelismo','Cangaço','Revolta da Vacina','Contestado','Tenentismo'],
+   links:['HM5','ECO4']},
+  {id:'HB7', label:'A Era Vargas', edital_id:'9ed3d769',
+   subtemas:['Revolução de 30','Estado Novo','CLT','ISI','Getulismo','Petrobrás e BNDES','Trabalhismo'],
+   links:['ECO4','HM6','HM1']},
+  {id:'HB8', label:'A República Liberal', edital_id:'55f3674f',
+   subtemas:['JK e Brasília','Política Externa Independente','Jango e reformas de base','Populismo','Desenvolvimentismo','Plano de Metas'],
+   links:['HM3','ECO4']},
+  {id:'HB9', label:'O Regime Militar', edital_id:'b93c6498',
+   subtemas:['Golpe de 64','AI-5','Milagre econômico','Abertura política','Dívida externa','Guerrilha urbana e rural'],
+   links:['HM6','HM3','ECO2']},
+  {id:'HB10', label:'O Processo Democrático', edital_id:'dcd9364b',
+   subtemas:['Constituição de 1988','Plano Real','Redemocratização','Collor e impeachment','Era Lula','Crise política'],
+   links:['DIP3','DIP28','ECO2']},
+];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// AUTH (countdown + user)
-// ─────────────────────────────────────────────────────────────────────────────
+const CROSS_NODES = [
+  {id:'HM1', label:'Estruturas Econômicas', subj:'HM', edital_id:'dd37bdc4',
+   subtemas:['Rev. Industrial','Capitalismo','Keynesianismo','Neoliberalismo','Welfare State','Fordismo']},
+  {id:'HM2', label:'Revoluções', subj:'HM', edital_id:'b3626390',
+   subtemas:['Rev. Francesa','Rev. Americana','Rev. Industrial','Rev. Russa','Marxismo']},
+  {id:'HM3', label:'RI no Século XX', subj:'HM', edital_id:'788c572e',
+   subtemas:['Guerra Fria','Bipolaridade','Détente','Pós-Guerra Fria','Ordem multipolar']},
+  {id:'HM4', label:'Colonialismo e Imperialismo', subj:'HM', edital_id:'a3d9fb8a',
+   subtemas:['Corrida pela África','Imperialismo europeu','Descolonização','Conferência de Berlim']},
+  {id:'HM5', label:'Política nas Américas', subj:'HM', edital_id:'0edee248',
+   subtemas:['Doutrina Monroe','Intervencionismo EUA','Pan-americanismo','América Latina séc.XX']},
+  {id:'HM6', label:'Ideias e Regimes Políticos', subj:'HM', edital_id:'da08cfbe',
+   subtemas:['Fascismo','Nazismo','Socialismo','Democracia liberal','Totalitarismo']},
+  {id:'HM8', label:'RI e Tecnologia Séc. XXI', subj:'HM', edital_id:'56d8d751',
+   subtemas:['Redes sociais e RI','Fake news','Ciberguerra','Diplomacia digital']},
+  {id:'ECO2', label:'Macroeconomia', subj:'ECO', edital_id:'a61bb950',
+   subtemas:['PIB','Política fiscal','Política monetária','IS-LM','Inflação','Metas de inflação']},
+  {id:'ECO3', label:'Economia Internacional', subj:'ECO', edital_id:'6c79cb98',
+   subtemas:['Balanço de pagamentos','FMI e BIRD','OMC','Globalização financeira','Cadeias globais de valor']},
+  {id:'ECO4', label:'Hist. Econômica Brasileira', subj:'ECO', edital_id:'cb2de1bb',
+   subtemas:['Ciclos econômicos','ISI','Milagre econômico','Plano Real','Desindustrialização']},
+  {id:'GEO1', label:'História da Geografia', subj:'GEO', edital_id:'6291ef65',
+   subtemas:['Determinismo','Possibilismo','Ratzel','La Blache','Colonialismo e cartografia']},
+  {id:'GEO2', label:'Geografia da População', subj:'GEO', edital_id:'a3ff0d25',
+   subtemas:['Distribuição espacial','Migrações','Transição demográfica','IDH','Urbanização']},
+  {id:'GEO3', label:'Geografia Econômica', subj:'GEO', edital_id:'be7d5d71',
+   subtemas:['Divisão internacional do trabalho','Globalização produtiva','Multinacionais','Commodities']},
+  {id:'GEO6', label:'Geografia Política', subj:'GEO', edital_id:'d11d6819',
+   subtemas:['Geopolítica','Mackinder','Fronteiras','Território e poder','Espaço vital']},
+  {id:'GEO7', label:'Gestão Ambiental', subj:'GEO', edital_id:'527792eb',
+   subtemas:['Biomas','Recursos hídricos','Mudanças climáticas','Desertificação','Amazônia']},
+  {id:'DIP3', label:'Constituição', subj:'DIP', edital_id:'ee9d2cc5',
+   subtemas:['CF/1988','Poder constituinte','Controle de constitucionalidade','STF','Cláusulas pétreas']},
+  {id:'DIP4', label:'Estado e Soberania', subj:'DIP', edital_id:'d1005c20',
+   subtemas:['Elementos do Estado','Soberania','Formas de governo','Reconhecimento de Estado','Federalismo']},
+  {id:'DIP15', label:'Direito Internacional', subj:'DIP', edital_id:'e3003f72',
+   subtemas:['DIP e direito interno','Fontes do DI','Jus cogens','Soft law','Acordos executivos']},
+  {id:'DIP26', label:'Integração e MERCOSUL', subj:'DIP', edital_id:'459e5de5',
+   subtemas:['Tratado de Assunção','TEC','Parlasul','Solução de controvérsias','DI da integração']},
+  {id:'DIP27', label:'Uso da Força e Segurança', subj:'DIP', edital_id:'8b1404e5',
+   subtemas:['Art.2(4) ONU','Legítima defesa','Operações de paz','Terrorismo','Desarmamento']},
+  {id:'DIP28', label:'Direitos Humanos Intern.', subj:'DIP', edital_id:'f01356d5',
+   subtemas:['DUDH','CIDH','Comitês ONU','Sistema Interamericano','Tratados ratificados']},
+  {id:'DIP31', label:'Comércio Intern. e OMC', subj:'DIP', edital_id:'0e07fe2e',
+   subtemas:['GATT/OMC','Órgão de solução de controvérsias','Antidumping','Subsídios','Cláusula NMF']},
+];
+
+let selectedCluster = null;
+let zoomBehavior = null;
+let svgSelection = null;
+
 async function initAuth() {
   const user = await DB.getUser();
   if (!user) { location.href = 'login.html'; return; }
@@ -423,242 +342,322 @@ async function initAuth() {
   const initials = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
   document.getElementById('navUser').textContent = initials;
   if (profile?.role === 'admin') document.getElementById('navAdmin').style.display = '';
-
   const examDate = await DB.getExamDate();
   const days = Math.ceil((examDate - Date.now()) / 86400000);
   document.getElementById('navCountdown').textContent = days > 0 ? `D-${days}` : 'CACD';
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// VENN (D3 force simulation)
-// ─────────────────────────────────────────────────────────────────────────────
-function buildVenn() {
-  const wrap = document.getElementById('vennWrap');
-  const W = wrap.clientWidth;
-  const H = wrap.clientHeight;
-  const cx = W / 2, cy = H / 2;
-  const R = Math.min(W, H) * 0.34;
+function buildMindMap() {
+  const wrap = document.getElementById('mmWrap');
+  const Ws = wrap.clientWidth;
+  const Hs = wrap.clientHeight;
 
-  const svg = d3.select('#vennSvg');
+  // Virtual canvas
+  const W = Math.max(Ws, 1200);
+  const ROW = 58;
+  const H = CROSS_NODES.length * ROW + 160; // 22*58+160 = 1436
+
+  // Column centers
+  const C_PI  = 90;
+  const C_PIT = 285;
+  const C_X   = W / 2;
+  const C_HBT = W - 285;
+  const C_HB  = W - 90;
+
+  // Node half-widths/heights
+  const RW=60, RH=31;  // root half-dimensions
+  const TW=82, TH=24;  // topic half-dimensions
+  const CW=87, CH=23;  // cross half-dimensions
+
+  // Y positions
+  const piYs = PI_TOPICS.map((_, i) => 80 + (i + 1) * (H - 160) / (PI_TOPICS.length + 1));
+  const hbYs = HB_TOPICS.map((_, i) => 80 + (i + 1) * (H - 160) / (HB_TOPICS.length + 1));
+  const crossYs = CROSS_NODES.map((_, i) => 80 + i * ROW + ROW / 2);
+  const rootY = H / 2;
+
+  const crossPos = {};
+  CROSS_NODES.forEach((n, i) => { crossPos[n.id] = {x: C_X, y: crossYs[i]}; });
+  const crossIds = new Set(CROSS_NODES.map(n => n.id));
+
+  const svg = d3.select('#mmSvg');
   svg.selectAll('*').remove();
+  svgSelection = svg;
 
-  // ── defs: glow filter ──
-  const defs = svg.append('defs');
-  const glow = defs.append('filter').attr('id','glow');
-  glow.append('feGaussianBlur').attr('stdDeviation','3').attr('result','blur');
-  const feMerge = glow.append('feMerge');
-  feMerge.append('feMergeNode').attr('in','blur');
-  feMerge.append('feMergeNode').attr('in','SourceGraphic');
+  const g = svg.append('g').attr('class','mm-root');
 
-  // ── Discipline anchor positions (hexagon) ──
-  const SUBJS = ['HM','PI','DIP','GEO','ECO','HB'];
-  const anchors = SUBJS.map((s, i) => {
-    const angle = (i * 2 * Math.PI / 6) - Math.PI / 2;
-    return { id: s, x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
-  });
-  const anchorMap = Object.fromEntries(anchors.map(a => [a.id, a]));
+  zoomBehavior = d3.zoom()
+    .scaleExtent([0.15, 4])
+    .on('zoom', e => g.attr('transform', e.transform));
+  svg.call(zoomBehavior);
 
-  // ── Filter clusters by active subjects ──
-  const visibleClusters = CLUSTERS.filter(c =>
-    c.subjects.some(s => activeSubjects.has(s))
-  );
+  // Initial zoom: fit height, center horizontally
+  const scale0 = (Hs / H) * 0.88;
+  const tx0 = (Ws - W * scale0) / 2;
+  svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(tx0, 8).scale(scale0));
 
-  // ── Compute target position for each cluster (centroid of its disciplines) ──
-  function targetPos(cluster) {
-    const pts = cluster.subjects.filter(s => activeSubjects.has(s)).map(s => anchorMap[s]).filter(Boolean);
-    if (!pts.length) return { tx: cx, ty: cy };
-    return { tx: pts.reduce((a,p)=>a+p.x,0)/pts.length, ty: pts.reduce((a,p)=>a+p.y,0)/pts.length };
+  // ── EDGES ──────────────────────────────────────────────────────────────────
+  const eg = g.append('g');
+
+  function edge(x1, y1, x2, y2, color, sw) {
+    const mx = (x1 + x2) / 2;
+    eg.append('path')
+      .attr('d', `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`)
+      .attr('fill','none').attr('stroke', color)
+      .attr('stroke-width', sw).attr('stroke-linecap','round');
   }
 
-  // ── Nodes for simulation ──
-  const nodes = visibleClusters.map(c => {
-    const {tx, ty} = targetPos(c);
-    return { ...c, x: tx + (Math.random()-.5)*40, y: ty + (Math.random()-.5)*40, tx, ty };
-  });
+  // PI root → PI topics
+  PI_TOPICS.forEach((_, i) =>
+    edge(C_PI+RW, rootY, C_PIT-TW, piYs[i], SUBJ_COLOR.PI+'44', 1.5));
 
-  // ── Draw links (lines from cluster to anchor) ──
-  const linkGroup = svg.append('g').attr('class','links');
-  const links = [];
-  nodes.forEach(n => {
-    n.subjects.filter(s => activeSubjects.has(s)).forEach(s => {
-      links.push({ source: n, target: anchorMap[s] });
+  // HB root → HB topics
+  HB_TOPICS.forEach((_, i) =>
+    edge(C_HB-RW, rootY, C_HBT+TW, hbYs[i], SUBJ_COLOR.HB+'44', 1.5));
+
+  // PI topics → cross nodes
+  PI_TOPICS.forEach((t, i) =>
+    (t.links||[]).filter(id=>crossIds.has(id)).forEach(id => {
+      const cp = crossPos[id];
+      const cn = CROSS_NODES.find(n=>n.id===id);
+      edge(C_PIT+TW, piYs[i], C_X-CW, cp.y, SUBJ_COLOR[cn.subj]+'3a', 1);
+    }));
+
+  // HB topics → cross nodes
+  HB_TOPICS.forEach((t, i) =>
+    (t.links||[]).filter(id=>crossIds.has(id)).forEach(id => {
+      const cp = crossPos[id];
+      const cn = CROSS_NODES.find(n=>n.id===id);
+      edge(C_HBT-TW, hbYs[i], C_X+CW, cp.y, SUBJ_COLOR[cn.subj]+'3a', 1);
+    }));
+
+  // ── NODES ──────────────────────────────────────────────────────────────────
+  const ng = g.append('g');
+
+  function wrapText(text, maxCh) {
+    const words = text.split(' ');
+    const lines = []; let line = '';
+    words.forEach(w => {
+      const t = line ? line+' '+w : w;
+      if (t.length > maxCh && line) { lines.push(line); line = w; }
+      else line = t;
     });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  function drawNode(cx, cy, hw, hh, color, rx, data, labelCh, idText, idRight) {
+    const grp = ng.append('g')
+      .attr('class','mm-node')
+      .attr('transform',`translate(${cx-hw},${cy-hh})`)
+      .style('cursor','pointer')
+      .on('click', () => openDrawerForNode(data))
+      .on('mouseover', e => showTip(e, data.label, SUBJ_LABEL[data.subj]||data.subj))
+      .on('mousemove', moveTip).on('mouseout', hideTip);
+
+    grp.append('rect')
+      .attr('width', hw*2).attr('height', hh*2).attr('rx', rx)
+      .attr('fill', color+'1c').attr('stroke', color).attr('stroke-width', hh>26 ? 2.5 : 1.5);
+
+    if (idText) {
+      grp.append('text')
+        .attr('x', idRight ? hw*2-7 : 7).attr('y', 12)
+        .attr('text-anchor', idRight ? 'end' : 'start')
+        .attr('fill', color).attr('font-size', 8).attr('font-weight', 800)
+        .attr('font-family','Inter,sans-serif').text(idText);
+    }
+
+    const lines = wrapText(data.label, labelCh);
+    const lh = 12;
+    const startY = hh - ((lines.length-1)*lh)/2;
+    lines.forEach((l, i) =>
+      grp.append('text')
+        .attr('x', hw).attr('y', startY + i*lh)
+        .attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('fill', i===0?'#e0e0e0':'#bbb').attr('font-size', hh>26?9:9.5)
+        .attr('font-weight', 600).attr('font-family','Inter,sans-serif').text(l)
+    );
+    return grp;
+  }
+
+  // Cross nodes
+  CROSS_NODES.forEach(n => {
+    const {x,y} = crossPos[n.id];
+    const color = SUBJ_COLOR[n.subj];
+    const grp = ng.append('g')
+      .attr('class','mm-node')
+      .attr('transform',`translate(${x-CW},${y-CH})`)
+      .style('cursor','pointer')
+      .on('click', () => openDrawerForNode(n))
+      .on('mouseover', e => showTip(e, n.id+' — '+n.label, SUBJ_LABEL[n.subj]))
+      .on('mousemove', moveTip).on('mouseout', hideTip);
+
+    grp.append('rect')
+      .attr('width',CW*2).attr('height',CH*2).attr('rx',7)
+      .attr('fill',color+'18').attr('stroke',color).attr('stroke-width',1.5);
+
+    grp.append('text').attr('x',6).attr('y',11)
+      .attr('fill',color).attr('font-size',7.5).attr('font-weight',800)
+      .attr('font-family','Inter,sans-serif').text(n.subj);
+
+    const lines = wrapText(n.label, 21);
+    const lh = 12;
+    const startY = CH - ((lines.length-1)*lh)/2;
+    lines.forEach((l,i) =>
+      grp.append('text').attr('x',CW).attr('y',startY+i*lh)
+        .attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9.5)
+        .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
+    );
   });
 
-  const linkLines = linkGroup.selectAll('line').data(links).enter().append('line')
-    .attr('class','link-line')
-    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-    .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+  // PI topics
+  PI_TOPICS.forEach((t,i) => {
+    const color = SUBJ_COLOR.PI;
+    const grp = ng.append('g')
+      .attr('class','mm-node')
+      .attr('transform',`translate(${C_PIT-TW},${piYs[i]-TH})`)
+      .style('cursor','pointer')
+      .on('click', () => openDrawerForNode({...t, subj:'PI'}))
+      .on('mouseover', e => showTip(e, t.label, 'Política Internacional'))
+      .on('mousemove', moveTip).on('mouseout', hideTip);
 
-  // ── Draw anchor circles ──
-  const anchorGroup = svg.append('g').attr('class','anchors');
-  const anchorNodes = anchorGroup.selectAll('g').data(anchors).enter().append('g')
-    .attr('class','anchor-circle')
-    .attr('transform', d => `translate(${d.x},${d.y})`)
-    .style('cursor','pointer')
-    .on('click', (e, d) => toggleAnchorFilter(d.id));
+    grp.append('rect')
+      .attr('width',TW*2).attr('height',TH*2).attr('rx',7)
+      .attr('fill',color+'18').attr('stroke',color).attr('stroke-width',1.5);
 
-  anchorNodes.append('circle')
-    .attr('r', 38)
-    .attr('fill', d => SUBJ_COLOR[d.id] + '18')
-    .attr('stroke', d => SUBJ_COLOR[d.id])
-    .attr('stroke-width', 2)
-    .attr('filter','url(#glow)');
+    grp.append('text').attr('x',7).attr('y',11)
+      .attr('fill',color).attr('font-size',7.5).attr('font-weight',800)
+      .attr('font-family','Inter,sans-serif').text(t.id);
 
-  anchorNodes.append('text').attr('class','anchor-label')
-    .attr('dy', '-4')
-    .attr('fill', d => SUBJ_COLOR[d.id])
-    .text(d => d.id);
-
-  anchorNodes.append('text').attr('class','anchor-label-sub')
-    .attr('dy', '10')
-    .text(d => SUBJ_LABEL[d.id]);
-
-  // ── Draw theme nodes ──
-  const nodeGroup = svg.append('g').attr('class','theme-nodes');
-  const nodeEls = nodeGroup.selectAll('g').data(nodes).enter().append('g')
-    .attr('class','theme-node')
-    .attr('transform', d => `translate(${d.x},${d.y})`)
-    .on('mouseover', showTooltip)
-    .on('mousemove', moveTooltip)
-    .on('mouseout', hideTooltip)
-    .on('click', (e, d) => { e.stopPropagation(); openDrawer(d); });
-
-  // Node radius proportional to subject count
-  const rScale = d => 14 + d.subjects.length * 4;
-
-  nodeEls.append('circle')
-    .attr('r', rScale)
-    .attr('fill', d => {
-      if (d.subjects.length === 1) return SUBJ_COLOR[d.subjects[0]] + 'cc';
-      // Gradient via average
-      const cols = d.subjects.map(s => SUBJ_COLOR[s]);
-      return cols[0] + 'aa';
-    })
-    .attr('stroke', d => {
-      const c = d.subjects.filter(s => activeSubjects.has(s));
-      return c.length ? SUBJ_COLOR[c[0]] : '#555';
-    })
-    .attr('stroke-width', 1.5)
-    .attr('filter','url(#glow)');
-
-  // Discipline dots inside node
-  nodeEls.each(function(d) {
-    const g = d3.select(this);
-    const n = d.subjects.length;
-    d.subjects.forEach((s, i) => {
-      const a = (i / n) * 2 * Math.PI - Math.PI / 2;
-      const dr = rScale(d) * 0.5;
-      g.append('circle')
-        .attr('r', 3)
-        .attr('cx', Math.cos(a) * dr)
-        .attr('cy', Math.sin(a) * dr)
-        .attr('fill', SUBJ_COLOR[s]);
-    });
+    const lines = wrapText(t.label, 18);
+    const lh = 11;
+    const startY = TH - ((lines.length-1)*lh)/2;
+    lines.forEach((l,i) =>
+      grp.append('text').attr('x',TW).attr('y',startY+i*lh)
+        .attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9)
+        .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
+    );
   });
 
-  // Node label (wrapped, max 2 lines)
-  nodeEls.each(function(d) {
-    const words = d.name.split(' ');
-    const g = d3.select(this);
-    const r = rScale(d);
-    // Simple 2-line wrap at midpoint
-    const mid = Math.ceil(words.length / 2);
-    const line1 = words.slice(0, mid).join(' ');
-    const line2 = words.slice(mid).join(' ');
-    g.append('text').attr('class','theme-label').attr('dy', line2 ? '-5' : '3').text(line1);
-    if (line2) g.append('text').attr('class','theme-label').attr('dy', '8').text(line2);
+  // HB topics
+  HB_TOPICS.forEach((t,i) => {
+    const color = SUBJ_COLOR.HB;
+    const grp = ng.append('g')
+      .attr('class','mm-node')
+      .attr('transform',`translate(${C_HBT-TW},${hbYs[i]-TH})`)
+      .style('cursor','pointer')
+      .on('click', () => openDrawerForNode({...t, subj:'HB'}))
+      .on('mouseover', e => showTip(e, t.label, 'História do Brasil'))
+      .on('mousemove', moveTip).on('mouseout', hideTip);
+
+    grp.append('rect')
+      .attr('width',TW*2).attr('height',TH*2).attr('rx',7)
+      .attr('fill',color+'18').attr('stroke',color).attr('stroke-width',1.5);
+
+    grp.append('text').attr('x',TW*2-7).attr('y',11)
+      .attr('text-anchor','end')
+      .attr('fill',color).attr('font-size',7.5).attr('font-weight',800)
+      .attr('font-family','Inter,sans-serif').text(t.id);
+
+    const lines = wrapText(t.label, 18);
+    const lh = 11;
+    const startY = TH - ((lines.length-1)*lh)/2;
+    lines.forEach((l,i) =>
+      grp.append('text').attr('x',TW).attr('y',startY+i*lh)
+        .attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9)
+        .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
+    );
   });
 
-  // ── Force simulation ──
-  if (simulation) simulation.stop();
-  simulation = d3.forceSimulation(nodes)
-    .force('attract', () => {
-      nodes.forEach(n => {
-        const k = 0.12;
-        n.vx += (n.tx - n.x) * k;
-        n.vy += (n.ty - n.y) * k;
-      });
-    })
-    .force('collide', d3.forceCollide(d => rScale(d) + 6).strength(0.8))
-    .force('boundary', () => {
-      const pad = 50;
-      nodes.forEach(n => {
-        if (n.x < pad) n.vx += (pad - n.x) * 0.1;
-        if (n.x > W-pad) n.vx += (W-pad - n.x) * 0.1;
-        if (n.y < pad) n.vy += (pad - n.y) * 0.1;
-        if (n.y > H-pad) n.vy += (H-pad - n.y) * 0.1;
-      });
-    })
-    .alphaDecay(0.02)
-    .on('tick', () => {
-      nodeEls.attr('transform', d => `translate(${d.x},${d.y})`);
-      linkLines
-        .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
-    });
+  // PI root
+  {
+    const color = SUBJ_COLOR.PI;
+    const grp = ng.append('g')
+      .attr('class','mm-node')
+      .attr('transform',`translate(${C_PI-RW},${rootY-RH})`)
+      .style('cursor','pointer')
+      .on('click', () => openDrawerForNode({
+        id:'PI', label:'Política Internacional', subj:'PI', edital_id:null,
+        subtemas:['Teoria das RI','Política externa brasileira','Blocos econômicos','Agenda global','BRICS','ONU','Diplomacia multilateral'],
+        edital_ids: PI_TOPICS.map(t=>t.edital_id),
+      }));
+
+    grp.append('rect')
+      .attr('width',RW*2).attr('height',RH*2).attr('rx',12)
+      .attr('fill',color+'28').attr('stroke',color).attr('stroke-width',2.5);
+
+    grp.append('text').attr('x',RW).attr('y',RH-4)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill',color).attr('font-size',22).attr('font-weight',900)
+      .attr('font-family','Inter,sans-serif').text('PI');
+
+    grp.append('text').attr('x',RW).attr('y',RH+14)
+      .attr('text-anchor','middle').attr('fill','#999')
+      .attr('font-size',8).attr('font-family','Inter,sans-serif').text('Pol. Internacional');
+  }
+
+  // HB root
+  {
+    const color = SUBJ_COLOR.HB;
+    const grp = ng.append('g')
+      .attr('class','mm-node')
+      .attr('transform',`translate(${C_HB-RW},${rootY-RH})`)
+      .style('cursor','pointer')
+      .on('click', () => openDrawerForNode({
+        id:'HB', label:'História do Brasil', subj:'HB', edital_id:null,
+        subtemas:['Período Colonial','Independência','Segundo Reinado','Primeira República','Era Vargas','República Liberal','Regime Militar','Redemocratização'],
+        edital_ids: HB_TOPICS.map(t=>t.edital_id),
+      }));
+
+    grp.append('rect')
+      .attr('width',RW*2).attr('height',RH*2).attr('rx',12)
+      .attr('fill',color+'28').attr('stroke',color).attr('stroke-width',2.5);
+
+    grp.append('text').attr('x',RW).attr('y',RH-4)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill',color).attr('font-size',22).attr('font-weight',900)
+      .attr('font-family','Inter,sans-serif').text('HB');
+
+    grp.append('text').attr('x',RW).attr('y',RH+14)
+      .attr('text-anchor','middle').attr('fill','#999')
+      .attr('font-size',8).attr('font-family','Inter,sans-serif').text('História do Brasil');
+  }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// GRID VIEW
-// ─────────────────────────────────────────────────────────────────────────────
-function buildGrid() {
-  const grid = document.getElementById('gridView');
-  const visible = CLUSTERS.filter(c => c.subjects.some(s => activeSubjects.has(s)));
+function openDrawerForNode(nodeData) {
+  const subj = nodeData.subj || 'PI';
+  const editalIds = nodeData.edital_ids || (nodeData.edital_id ? [nodeData.edital_id] : []);
+  selectedCluster = {
+    icon: SUBJ_ICON[subj] || '📌',
+    name: nodeData.label,
+    subjects: [subj],
+    subtemas: nodeData.subtemas || [],
+    edital_ids: editalIds,
+  };
 
-  grid.innerHTML = visible.map(c => {
-    const color = SUBJ_COLOR[c.subjects[0]];
-    const badges = c.subjects.map(s =>
-      `<span class="cc-badge" style="background:${SUBJ_COLOR[s]}22;color:${SUBJ_COLOR[s]}">${s}</span>`
-    ).join('');
-    return `
-      <div class="cluster-card" onclick="openDrawer(CLUSTERS.find(x=>x.id===${c.id}))"
-           style="border-top:3px solid ${color}">
-        <div class="cc-count">${c.subjects.length} mat.</div>
-        <div class="cc-icon">${c.icon}</div>
-        <div class="cc-name">${c.name}</div>
-        <div class="cc-badges">${badges}</div>
-        <div class="cc-subtemas">${c.subtemas.slice(0,4).join(' · ')}</div>
-      </div>`;
-  }).join('');
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DRAWER
-// ─────────────────────────────────────────────────────────────────────────────
-function openDrawer(cluster) {
-  selectedCluster = cluster;
-  document.getElementById('dIcon').textContent = cluster.icon;
-  document.getElementById('dName').textContent = cluster.name;
-
-  // Badges
-  document.getElementById('dBadges').innerHTML = cluster.subjects.map(s =>
+  document.getElementById('dIcon').textContent = selectedCluster.icon;
+  document.getElementById('dName').textContent = selectedCluster.name;
+  document.getElementById('dBadges').innerHTML = selectedCluster.subjects.map(s =>
     `<span class="drawer-badge" style="background:${SUBJ_COLOR[s]}22;color:${SUBJ_COLOR[s]}">${s} — ${SUBJ_LABEL[s]}</span>`
   ).join('');
-
-  // Subtemas chips
-  document.getElementById('dChips').innerHTML = cluster.subtemas.map(s =>
+  document.getElementById('dChips').innerHTML = selectedCluster.subtemas.map(s =>
     `<span class="drawer-chip">${s}</span>`
   ).join('');
-
-  // Edital topics
-  document.getElementById('dEdital').innerHTML = cluster.edital_ids.map(id => {
+  document.getElementById('dEdital').innerHTML = editalIds.map(id => {
     const m = EDITAL_META[id];
     if (!m) return '';
     return `<span class="edital-link">
-      <span class="edital-link-subj" style="color:${SUBJ_COLOR[m.subj]}">${m.code}</span>
-      ${m.title}
+      <span class="edital-link-subj" style="color:${SUBJ_COLOR[m.subj]}">${m.code}</span>${m.title}
     </span>`;
-  }).join('');
+  }).filter(Boolean).join('');
 
-  // Open
   document.getElementById('drawerOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
 }
 
 function closeDrawer() {
   document.getElementById('drawerOverlay').classList.remove('open');
-  document.body.style.overflow = '';
   selectedCluster = null;
 }
 
@@ -666,92 +665,47 @@ function estudarEixo() {
   if (!selectedCluster) return;
   const ids = selectedCluster.edital_ids.join(',');
   const name = encodeURIComponent(selectedCluster.name);
-  // Navigate to flashcards, which will pick up spiral params after deck select
   location.href = `flashcards.html?spiral=${ids}&spiral_name=${name}`;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TOOLTIP
-// ─────────────────────────────────────────────────────────────────────────────
-function showTooltip(event, d) {
-  document.getElementById('ttName').textContent = d.icon + ' ' + d.name;
-  document.getElementById('ttSubj').textContent = d.subjects.join(' · ');
+function showTip(event, name, subj) {
+  document.getElementById('ttName').textContent = name;
+  document.getElementById('ttSubj').textContent = subj;
   document.getElementById('tooltip').style.opacity = '1';
-  moveTooltip(event);
+  moveTip(event);
 }
-function moveTooltip(event) {
+function moveTip(event) {
   const tt = document.getElementById('tooltip');
   tt.style.left = (event.clientX + 14) + 'px';
   tt.style.top  = (event.clientY - 10) + 'px';
 }
-function hideTooltip() {
-  document.getElementById('tooltip').style.opacity = '0';
+function hideTip() { document.getElementById('tooltip').style.opacity = '0'; }
+
+function zoomBy(factor) {
+  if (!svgSelection || !zoomBehavior) return;
+  svgSelection.transition().duration(250).call(zoomBehavior.scaleBy, factor);
+}
+function zoomReset() {
+  if (!svgSelection || !zoomBehavior) return;
+  const wrap = document.getElementById('mmWrap');
+  const Ws = wrap.clientWidth, Hs = wrap.clientHeight;
+  const W = Math.max(Ws, 1200);
+  const H = CROSS_NODES.length * 58 + 160;
+  const scale0 = (Hs / H) * 0.88;
+  const tx0 = (Ws - W * scale0) / 2;
+  svgSelection.transition().duration(350)
+    .call(zoomBehavior.transform, d3.zoomIdentity.translate(tx0, 8).scale(scale0));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FILTERS
-// ─────────────────────────────────────────────────────────────────────────────
-function toggleAnchorFilter(subj) {
-  if (activeSubjects.has(subj)) {
-    if (activeSubjects.size === 1) return; // keep at least one
-    activeSubjects.delete(subj);
-  } else {
-    activeSubjects.add(subj);
-  }
-  // Sync filter buttons
-  document.querySelectorAll('.disc-btn').forEach(btn => {
-    const s = btn.dataset.subj;
-    btn.classList.toggle('active', activeSubjects.has(s));
-    btn.classList.toggle('dimmed', !activeSubjects.has(s));
-  });
-  rebuildView();
-}
-
-document.querySelectorAll('.disc-btn').forEach(btn => {
-  btn.addEventListener('click', () => toggleAnchorFilter(btn.dataset.subj));
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// VIEW TOGGLE
-// ─────────────────────────────────────────────────────────────────────────────
-document.getElementById('btnVenn').addEventListener('click', () => {
-  currentView = 'venn';
-  document.getElementById('btnVenn').classList.add('active');
-  document.getElementById('btnGrid').classList.remove('active');
-  document.getElementById('vennWrap').style.display = '';
-  document.getElementById('gridView').classList.add('hidden');
-  buildVenn();
-});
-
-document.getElementById('btnGrid').addEventListener('click', () => {
-  currentView = 'grid';
-  document.getElementById('btnGrid').classList.add('active');
-  document.getElementById('btnVenn').classList.remove('active');
-  document.getElementById('vennWrap').style.display = 'none';
-  document.getElementById('gridView').classList.remove('hidden');
-  buildGrid();
-});
-
-function rebuildView() {
-  if (currentView === 'venn') buildVenn();
-  else buildGrid();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RESIZE
-// ─────────────────────────────────────────────────────────────────────────────
 let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => { if (currentView === 'venn') buildVenn(); }, 200);
+  resizeTimer = setTimeout(buildMindMap, 250);
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────────────────────
 (async () => {
   await initAuth();
-  buildVenn();
+  buildMindMap();
 })();
 </script>
 </body>
