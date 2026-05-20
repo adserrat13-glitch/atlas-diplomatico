@@ -596,13 +596,14 @@
       return h > 0 ? `${h}h ${m}m` : `${m}m`;
     }
 
-    function loadReviewDeck(id) {
+    async function loadReviewDeck(id) {
       const decks = getValidReviewDecks();
       const deck = decks.find(d => d.id === id);
-      if (!deck) return;
+      if (!deck) { alert('Deck não encontrado.'); return; }
       deckName = deck.name;
       allCards = deck.cards;
-      showOptions();
+      try { await showOptions(); }
+      catch(e) { alert('Erro ao abrir deck: ' + e.message); }
     }
 
     function showReviewSection() {
@@ -783,7 +784,8 @@
     }
 
     async function showOptions() {
-      cardStatusMap = await DB.getCardStatusMap(deckName);
+      try { cardStatusMap = await DB.getCardStatusMap(deckName); }
+      catch(e) { cardStatusMap = {}; }
       const unknownCount = allCards.filter(c => {
         const s = cardStatusMap[c.q];
         return !s || s.status === 'unknown';
@@ -793,8 +795,7 @@
       document.getElementById('deckCount').textContent = allCards.length;
       document.getElementById('btnUnknown').textContent = `Revisar não sei (${unknownCount})`;
       showView('viewOptions');
-      await autoMapToEdital(deckName, allCards);
-      loadEditalSection();
+      autoMapToEdital(deckName, allCards).then(() => loadEditalSection()).catch(() => {});
       // Auto-start spiral study if arriving from espiral.html
       const spiralIds = sessionStorage.getItem('spiral_ids');
       if (spiralIds && allCards.length) {
