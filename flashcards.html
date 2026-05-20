@@ -598,7 +598,7 @@
 
     async function loadReviewDeck(id) {
       const decks = getValidReviewDecks();
-      const deck = decks.find(d => d.id === id);
+      const deck = decks.find(d => String(d.id) === String(id));
       if (!deck) { alert('Deck não encontrado.'); return; }
       deckName = deck.name;
       allCards = deck.cards;
