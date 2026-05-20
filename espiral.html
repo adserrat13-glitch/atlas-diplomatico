@@ -102,6 +102,11 @@
 
     .mm-node { transition:filter .15s; }
     .mm-node:hover { filter:brightness(1.3); }
+    .cov-badge-circle { pointer-events:none; }
+    .cov-info { display:flex; align-items:center; gap:10px; padding:8px 10px;
+      background:rgba(255,255,255,0.04); border-radius:8px; }
+    .cov-count { font-size:22px; font-weight:900; line-height:1; }
+    .cov-label { color:var(--muted); font-size:11px; line-height:1.3; }
   </style>
 </head>
 <body>
@@ -161,6 +166,10 @@
     <div class="drawer-section">
       <h5>Tópicos do edital</h5>
       <div class="drawer-edital" id="dEdital"></div>
+    </div>
+    <div class="drawer-section" id="dCoverageSection" style="display:none">
+      <h5>Cobertura de flashcards</h5>
+      <div id="dCoverageInfo"></div>
     </div>
     <div class="drawer-actions">
       <button class="btn-primary" onclick="estudarEixo()">🎯 Estudar este eixo</button>
@@ -334,6 +343,30 @@ const CROSS_NODES = [
 let selectedCluster = null;
 let zoomBehavior = null;
 let svgSelection = null;
+let coverageMap = {};
+
+function nodeToPrefix(id) {
+  if (/\d/.test(id)) return id.replace(/^([A-Z]+)(\d+)$/, '$1.$2');
+  return id + '.';
+}
+function getSubtreeCount(prefix) {
+  let total = 0;
+  for (const [k, v] of Object.entries(coverageMap))
+    if (k === prefix || k.startsWith(prefix + '.')) total += v;
+  return total;
+}
+function addCovBadge(grp, fw, count, color) {
+  if (!count) return;
+  const label = count >= 1000 ? (Math.floor(count / 100) / 10) + 'k' : String(count);
+  grp.append('circle').attr('cx', fw).attr('cy', 0).attr('r', 8)
+    .attr('fill', color).attr('stroke', '#0f1117').attr('stroke-width', 1.5)
+    .attr('class', 'cov-badge-circle');
+  grp.append('text').attr('x', fw).attr('y', 0)
+    .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+    .attr('fill', '#000').attr('font-size', count >= 1000 ? 5 : count >= 100 ? 5.5 : 6.5)
+    .attr('font-weight', 900).attr('font-family', 'Inter,sans-serif')
+    .attr('pointer-events', 'none').text(label);
+}
 
 async function initAuth() {
   const user = await DB.getUser();
@@ -508,6 +541,7 @@ function buildMindMap() {
         .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9.5)
         .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
     );
+    addCovBadge(grp, CW*2, getSubtreeCount(nodeToPrefix(n.id)), color);
   });
 
   // PI topics
@@ -538,6 +572,7 @@ function buildMindMap() {
         .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9)
         .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
     );
+    addCovBadge(grp, TW*2, getSubtreeCount(nodeToPrefix(t.id)), color);
   });
 
   // HB topics
@@ -569,6 +604,7 @@ function buildMindMap() {
         .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9)
         .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
     );
+    addCovBadge(grp, TW*2, getSubtreeCount(nodeToPrefix(t.id)), color);
   });
 
   // PI root
@@ -596,6 +632,7 @@ function buildMindMap() {
     grp.append('text').attr('x',RW).attr('y',RH+14)
       .attr('text-anchor','middle').attr('fill','#999')
       .attr('font-size',8).attr('font-family','Inter,sans-serif').text('Pol. Internacional');
+    addCovBadge(grp, RW*2, getSubtreeCount('PI.'), color);
   }
 
   // HB root
@@ -623,6 +660,7 @@ function buildMindMap() {
     grp.append('text').attr('x',RW).attr('y',RH+14)
       .attr('text-anchor','middle').attr('fill','#999')
       .attr('font-size',8).attr('font-family','Inter,sans-serif').text('História do Brasil');
+    addCovBadge(grp, RW*2, getSubtreeCount('HB.'), color);
   }
 }
 
@@ -652,6 +690,17 @@ function openDrawerForNode(nodeData) {
       <span class="edital-link-subj" style="color:${SUBJ_COLOR[m.subj]}">${m.code}</span>${m.title}
     </span>`;
   }).filter(Boolean).join('');
+
+  const prefix = nodeToPrefix(nodeData.id || '');
+  const covCount = getSubtreeCount(prefix);
+  const covSec = document.getElementById('dCoverageSection');
+  if (covCount > 0) {
+    covSec.style.display = '';
+    document.getElementById('dCoverageInfo').innerHTML =
+      `<div class="cov-info"><span class="cov-count" style="color:${SUBJ_COLOR[subj]}">${covCount.toLocaleString('pt-BR')}</span><span class="cov-label">flashcards cobrem este tópico</span></div>`;
+  } else {
+    covSec.style.display = 'none';
+  }
 
   document.getElementById('drawerOverlay').classList.add('open');
 }
@@ -705,6 +754,10 @@ window.addEventListener('resize', () => {
 
 (async () => {
   await initAuth();
+  try {
+    const r = await fetch('ESPIRAL/raizes_coverage.json');
+    if (r.ok) coverageMap = await r.json();
+  } catch(e) {}
   buildMindMap();
 })();
 </script>
