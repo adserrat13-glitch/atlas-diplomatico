@@ -103,6 +103,53 @@
     .mm-node { transition:filter .15s; }
     .mm-node:hover { filter:brightness(1.3); }
     .cov-badge-circle { pointer-events:none; }
+
+    /* ── Study overlay ─────────────────────────────────────────────────────── */
+    .study-ov { position:fixed; inset:0; background:#0a0c12; z-index:600;
+      display:none; flex-direction:column; overflow:hidden; }
+    .study-ov.open { display:flex; }
+    .study-hdr { display:flex; align-items:center; gap:12px; padding:14px 20px;
+      border-bottom:1px solid var(--border); flex-shrink:0; }
+    .study-hdr-title { font-size:14px; font-weight:800; flex:1; white-space:nowrap;
+      overflow:hidden; text-overflow:ellipsis; }
+    .study-hdr-close { background:none; border:none; color:var(--muted); font-size:18px;
+      cursor:pointer; padding:4px 8px; border-radius:6px; }
+    .study-hdr-close:hover { color:#fff; background:rgba(255,255,255,0.08); }
+    .study-prog-bar { height:3px; background:var(--border); flex-shrink:0; }
+    .study-prog-fill { height:100%; transition:width .3s; }
+    .study-body { flex:1; display:flex; flex-direction:column; align-items:center;
+      justify-content:center; padding:24px 16px; gap:20px; }
+    .study-counter { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.5px; }
+    .study-card-wrap { perspective:1000px; width:min(520px,95vw); height:220px; }
+    .study-card { width:100%; height:100%; position:relative; transform-style:preserve-3d;
+      transition:transform 0.45s cubic-bezier(0.4,0.2,0.2,1); cursor:pointer; }
+    .study-card.flipped { transform:rotateY(180deg); }
+    .sc-face { position:absolute; inset:0; backface-visibility:hidden;
+      border-radius:16px; border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      padding:24px; font-size:14px; line-height:1.6; text-align:center; font-weight:500; }
+    .sc-front { background:#14161f; color:var(--text); }
+    .sc-back  { background:#1a1d2a; color:var(--text); transform:rotateY(180deg); }
+    .study-hint { font-size:11px; color:#444; }
+    .study-btns { display:flex; gap:10px; }
+    .study-btns button { padding:10px 24px; border-radius:10px; font-size:13px;
+      font-weight:700; cursor:pointer; font-family:inherit; border:none; transition:.15s; }
+    .sb-known   { background:#16a34a; color:#fff; }
+    .sb-known:hover { background:#15803d; }
+    .sb-unknown { background:#b91c1c; color:#fff; }
+    .sb-unknown:hover { background:#991b1b; }
+    .sb-skip    { background:rgba(255,255,255,0.08); color:var(--muted); border:1px solid var(--border); }
+    .sb-skip:hover { color:var(--text); }
+    .study-summary { display:flex; flex-direction:column; align-items:center; gap:16px;
+      max-width:400px; width:100%; }
+    .ss-title { font-size:22px; font-weight:900; }
+    .ss-stats { display:flex; gap:16px; }
+    .ss-stat { text-align:center; padding:12px 20px; border-radius:12px;
+      background:rgba(255,255,255,0.04); border:1px solid var(--border); }
+    .ss-stat-n { font-size:24px; font-weight:900; }
+    .ss-stat-l { font-size:10px; color:var(--muted); letter-spacing:.5px; text-transform:uppercase; }
+    .ss-btn { padding:12px 32px; border-radius:10px; font-size:14px; font-weight:700;
+      cursor:pointer; font-family:inherit; border:none; background:var(--accent); color:#0f1117; }
     .cov-info { display:flex; align-items:center; gap:10px; padding:8px 10px;
       background:rgba(255,255,255,0.04); border-radius:8px; }
     .cov-count { font-size:22px; font-weight:900; line-height:1; }
@@ -176,6 +223,18 @@
       <a class="btn-secondary" href="flashcards.html">← Voltar aos decks</a>
     </div>
   </div>
+</div>
+
+<div class="study-ov" id="studyOv">
+  <div class="study-hdr">
+    <button class="study-hdr-close" onclick="closeStudy()">✕</button>
+    <div class="study-hdr-title" id="sHdrTitle"></div>
+    <div class="study-counter" id="sCounter"></div>
+  </div>
+  <div class="study-prog-bar">
+    <div class="study-prog-fill" id="sProgFill" style="width:0%"></div>
+  </div>
+  <div class="study-body" id="sBody"></div>
 </div>
 
 <div id="tooltip">
@@ -344,6 +403,127 @@ let selectedCluster = null;
 let zoomBehavior = null;
 let svgSelection = null;
 let coverageMap = {};
+let studyData = null;
+let studyQueue = [];
+let studyIdx = 0;
+let studyStats = {known:0, unknown:0, skip:0};
+let cardFlipped = false;
+
+function getStudyCards(prefix) {
+  if (!studyData) return [];
+  const cards = [];
+  const seen = new Set();
+  for (const [k, arr] of Object.entries(studyData)) {
+    if (k === prefix || k.startsWith(prefix + '.') ||
+        (prefix.endsWith('.') && k.startsWith(prefix))) {
+      for (const [q, a] of arr) {
+        if (!seen.has(q)) { seen.add(q); cards.push({q, a}); }
+      }
+    }
+  }
+  return cards.sort(() => Math.random() - 0.5);
+}
+
+async function estudarEixo() {
+  if (!selectedCluster) return;
+  const prefix = nodeToPrefix(selectedCluster.id || '');
+  const color = SUBJ_COLOR[selectedCluster.subjects[0]] || '#8ea7ff';
+
+  if (!studyData) {
+    try {
+      const r = await fetch('ESPIRAL/raizes_study.json');
+      if (!r.ok) throw new Error('Arquivo não encontrado');
+      studyData = await r.json();
+    } catch(e) {
+      alert('Erro ao carregar dados de estudo: ' + e.message); return;
+    }
+  }
+
+  studyQueue = getStudyCards(prefix);
+  if (!studyQueue.length) { alert('Nenhum flashcard encontrado para este tópico.'); return; }
+
+  studyIdx = 0;
+  studyStats = {known:0, unknown:0, skip:0};
+  document.getElementById('sHdrTitle').textContent = selectedCluster.name;
+  document.getElementById('sProgFill').style.background = color;
+  closeDrawer();
+  document.getElementById('studyOv').classList.add('open');
+  renderStudyCard();
+}
+
+function renderStudyCard() {
+  const body = document.getElementById('sBody');
+  const total = studyQueue.length;
+  const pct = total ? (studyIdx / total * 100) : 0;
+  document.getElementById('sProgFill').style.width = pct + '%';
+  document.getElementById('sCounter').textContent = `${studyIdx + 1} / ${total}`;
+  cardFlipped = false;
+  const card = studyQueue[studyIdx];
+  body.innerHTML = `
+    <div class="study-card-wrap">
+      <div class="study-card" id="sCard" onclick="flipStudyCard()">
+        <div class="sc-face sc-front">${escHtml(card.q)}</div>
+        <div class="sc-face sc-back">${escHtml(card.a)}</div>
+      </div>
+    </div>
+    <div class="study-hint" id="sHint">Clique no card para ver a resposta</div>
+    <div class="study-btns" id="sBtns" style="display:none">
+      <button class="sb-known"   onclick="answerStudy('known')">✓ Sei</button>
+      <button class="sb-unknown" onclick="answerStudy('unknown')">↺ Revisar</button>
+      <button class="sb-skip"    onclick="answerStudy('skip')">→ Pular</button>
+    </div>`;
+}
+
+function flipStudyCard() {
+  const card = document.getElementById('sCard');
+  if (!card) return;
+  cardFlipped = !cardFlipped;
+  card.classList.toggle('flipped', cardFlipped);
+  if (cardFlipped) {
+    document.getElementById('sHint').style.display = 'none';
+    document.getElementById('sBtns').style.display = 'flex';
+  }
+}
+
+function answerStudy(result) {
+  studyStats[result]++;
+  studyIdx++;
+  if (studyIdx >= studyQueue.length) { showStudySummary(); return; }
+  renderStudyCard();
+}
+
+function showStudySummary() {
+  document.getElementById('sProgFill').style.width = '100%';
+  document.getElementById('sCounter').textContent =
+    `${studyQueue.length} / ${studyQueue.length}`;
+  document.getElementById('sBody').innerHTML = `
+    <div class="study-summary">
+      <div class="ss-title">Sessão concluída!</div>
+      <div class="ss-stats">
+        <div class="ss-stat">
+          <div class="ss-stat-n" style="color:#16a34a">${studyStats.known}</div>
+          <div class="ss-stat-l">Sabia</div>
+        </div>
+        <div class="ss-stat">
+          <div class="ss-stat-n" style="color:#b91c1c">${studyStats.unknown}</div>
+          <div class="ss-stat-l">Revisar</div>
+        </div>
+        <div class="ss-stat">
+          <div class="ss-stat-n" style="color:#888">${studyStats.skip}</div>
+          <div class="ss-stat-l">Pulos</div>
+        </div>
+      </div>
+      <button class="ss-btn" onclick="closeStudy()">← Voltar ao mapa</button>
+    </div>`;
+}
+
+function closeStudy() {
+  document.getElementById('studyOv').classList.remove('open');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
 function nodeToPrefix(id) {
   if (/\d/.test(id)) return id.replace(/^([A-Z]+)(\d+)$/, '$1.$2');
@@ -708,13 +888,6 @@ function openDrawerForNode(nodeData) {
 function closeDrawer() {
   document.getElementById('drawerOverlay').classList.remove('open');
   selectedCluster = null;
-}
-
-function estudarEixo() {
-  if (!selectedCluster) return;
-  const ids = selectedCluster.edital_ids.join(',');
-  const name = encodeURIComponent(selectedCluster.name);
-  location.href = `flashcards.html?spiral=${ids}&spiral_name=${name}`;
 }
 
 function showTip(event, name, subj) {

@@ -439,6 +439,22 @@ def write_coverage(cards: list[dict], path: Path) -> None:
     print(f"  -> Coverage: {path}")
 
 
+# ─── Saída Study JSON (compacto para espiral.html) ────────────────────────────
+def write_study_json(cards: list[dict], path: Path) -> None:
+    """Gera {raiz_key: [[pergunta, resposta], ...]} sem duplicatas por raiz."""
+    index: dict[str, list[list[str]]] = defaultdict(list)
+    seen: dict[str, set[str]] = defaultdict(set)
+    for c in cards:
+        for rk in c["raizes_relacionadas"]:
+            q = c["pergunta"]
+            if q not in seen[rk]:
+                seen[rk].add(q)
+                index[rk].append([q, c["resposta"]])
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(dict(index), f, ensure_ascii=False)
+    print(f"  -> Study JSON: {path}")
+
+
 # ─── Main ──────────────────────────────────────────────────────────────────────
 def main() -> None:
     print(">> Carregando edital...")
@@ -466,6 +482,7 @@ def main() -> None:
     write_json(all_cards, raizes, OUT_JSON)
     write_report(all_cards, raizes, OUT_MD)
     write_coverage(all_cards, ESPIRAL / "raizes_coverage.json")
+    write_study_json(all_cards, ESPIRAL / "raizes_study.json")
 
     sem_raiz = sum(1 for c in all_cards if not c["raizes_relacionadas"])
     print(f"\nOK! {len(all_cards)} cards, {sem_raiz} sem raiz "
