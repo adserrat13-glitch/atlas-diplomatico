@@ -795,6 +795,19 @@
       showView('viewOptions');
       await autoMapToEdital(deckName, allCards);
       loadEditalSection();
+      // Auto-start spiral study if arriving from espiral.html
+      const spiralIds = sessionStorage.getItem('spiral_ids');
+      if (spiralIds && allCards.length) {
+        const spiralName = sessionStorage.getItem('spiral_name') || 'Eixo Espiral';
+        sessionStorage.removeItem('spiral_ids');
+        sessionStorage.removeItem('spiral_name');
+        document.getElementById('spiralHint')?.remove();
+        setTimeout(() => {
+          if (confirm(`Iniciar estudo do eixo espiral "${spiralName}"?`)) {
+            startStudy('spiral', spiralIds);
+          }
+        }, 300);
+      }
     }
 
     // ── TOPIC PANEL ──────────────────────────────────────────────────────
@@ -1170,23 +1183,6 @@
       hint.innerHTML = `🌀 Modo Espiral: <strong style="color:#fff">${decodeURIComponent(spiralName||'Eixo')}</strong> — selecione um deck para estudar este eixo <span style="margin-left:auto;cursor:pointer;color:#666" onclick="this.closest('#spiralHint').remove();sessionStorage.removeItem('spiral_ids');sessionStorage.removeItem('spiral_name');">✕</span>`;
       document.body.appendChild(hint);
     })();
-
-    // Hook into showOptions to auto-start spiral if pending
-    const _origShowOptions = showOptions;
-    async function showOptions() {
-      await _origShowOptions.call(this, ...arguments);
-      const spiralIds = sessionStorage.getItem('spiral_ids');
-      if (!spiralIds || !allCards.length) return;
-      const spiralName = sessionStorage.getItem('spiral_name') || 'Eixo Espiral';
-      sessionStorage.removeItem('spiral_ids');
-      sessionStorage.removeItem('spiral_name');
-      document.getElementById('spiralHint')?.remove();
-      setTimeout(() => {
-        if (confirm(`Iniciar estudo do eixo espiral "${spiralName}"?`)) {
-          startStudy('spiral', spiralIds);
-        }
-      }, 300);
-    }
 
     // Auto-load from URL param (?file=path&subject=ID)
     (async function autoLoad() {

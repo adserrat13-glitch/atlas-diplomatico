@@ -848,6 +848,7 @@ function openDrawerForNode(nodeData) {
   const subj = nodeData.subj || 'PI';
   const editalIds = nodeData.edital_ids || (nodeData.edital_id ? [nodeData.edital_id] : []);
   selectedCluster = {
+    id: nodeData.id,
     icon: SUBJ_ICON[subj] || '📌',
     name: nodeData.label,
     subjects: [subj],
