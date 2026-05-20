@@ -241,7 +241,7 @@ function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
 /* ── LOAD CSV ── */
 async function loadCSV(){
   try{
-    const res = await fetch(encodeURI('FLASHCARDS/HISTORIA DO BRASIL/CRONOLOGIA 2.csv'));
+    const res = await fetch(encodeURI('LINHA DO TEMPO GAME/CCRONOLOGIA.csv'));
     if(!res.ok) throw new Error('HTTP '+res.status);
     const buf = await res.arrayBuffer();
     let text;
