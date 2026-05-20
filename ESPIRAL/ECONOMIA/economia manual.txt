@@ -1,0 +1,726 @@
+#separator:tab
+#html:true
+#tags column:3
+O que é microeconomia?	Estudo do comportamento de consumidores e empresas.	
+Por que a microeconomia é importante?	Porque analisa como alocar recursos escassos.	
+O que é demanda do consumidor?	Quantidade que o consumidor deseja a cada preço.	
+Por que a demanda depende do preço?	Por causa da lei da demanda.	
+O que são preferências do consumidor?	Gostos e prioridades na escolha de bens.	
+Por que as preferências devem ser completas?	Para que o consumidor possa sempre decidir.	
+O que é transitividade nas preferências?	Se A &gt; B e B &gt; C, então A &gt; C.	
+Por que a não-saciabilidade é assumida?	Porque mais é preferido a menos.	
+O que são curvas de indiferença?	Combinações de bens com mesma satisfação.	
+O que é restrição orçamentária?	Limite imposto pela renda e preços.	
+Por que ocorre o equilíbrio do consumidor?	Para maximizar a utilidade dentro do orçamento.	
+O que mostra a curva de demanda?	Relação entre preço e quantidade demandada.	
+Por que a curva de demanda é decrescente?	Porque quando o preço cai, a demanda aumenta.	
+O que desloca a curva de demanda?	Renda, preferências, preços de outros bens, expectativas.	
+O que é elasticidade-preço da demanda?	Variação da demanda frente ao preço do próprio bem.	
+Por que a demanda pode ser elástica?	Porque responde fortemente a mudanças de preço.	
+O que é elasticidade-renda da demanda?	Mudança na demanda com variação na renda.	
+Por que bens inferiores têm elasticidade negativa?	Porque a demanda cai quando a renda sobe.	
+O que são bens normais?	Aqueles cuja demanda aumenta com a renda.	
+Por que usamos elasticidade na microeconomia?	Para medir sensibilidade da demanda.	
+O que é oferta do produtor?	Quantidade ofertada a diferentes preços.	
+Por que a oferta depende do preço?	Maior preço incentiva produção.	
+O que são fatores de produção?	Recursos usados para produzir.	
+O que representa a terra na produção?	Recursos naturais.	
+O que representa o trabalho?	Esforço humano.	
+O que é capital na produção?	Máquinas e equipamentos.	
+O que é empreendedorismo?	Organização e gestão dos fatores.	
+Por que o empreendedor assume riscos?	Para obter lucro.	
+O que é função de produção?	Relação entre insumos e produto.	
+O que é produto total (PT)?	Quantidade total produzida.	
+O que é produto marginal (PM)?	Variação no total por unidade extra.	
+O que é produto médio (PMe)?	Média produzida por fator.	
+Por que o PM pode cair?	Lei dos rendimentos decrescentes.	
+O que é a lei dos rendimentos decrescentes?	Aumentos menores após certo ponto.	
+Por que a combinação dos fatores é importante?	Maximiza produção.	
+O que é elasticidade-preço da oferta?	Sensibilidade da oferta ao preço.	
+Por que a oferta pode ser elástica?	Fácil ajuste à variação de preço.	
+O que é oferta elástica?	Varia muito com o preço.	
+O que é oferta inelástica?	Varia pouco com o preço.	
+O que é oferta unitária?	Variação proporcional ao preço.	
+Por que o tempo afeta a elasticidade?	Ajustes levam tempo.	
+Por que a capacidade ociosa aumenta elasticidade?	Permite resposta rápida à demanda.	
+O que é capacidade ociosa?	Recursos não utilizados.	
+Por que produtos armazenáveis são mais elásticos?	Permitem ajustar oferta com o tempo.	
+O que afeta a elasticidade da oferta?	Tempo, capacidade ociosa, armazenamento.	
+O que é concorrência perfeita?	Mercado com muitos vendedores e produtos iguais.	
+Por que a concorrência perfeita é idealizada?	Porque raramente existe na prática.	
+O que são produtos homogêneos?	Bens idênticos.	
+Por que empresas são price takers?	Não influenciam o preço.	
+O que significa livre entrada e saída?	Sem barreiras ao mercado.	
+O que é informação perfeita?	Acesso total a preços e dados.	
+O que é monopólio?	Um só fornecedor.	
+Por que o monopolista define o preço?	Porque não tem concorrência.	
+O que são barreiras de entrada?	Obstáculos ao ingresso no mercado.	
+O que é um exemplo de monopólio?	Concessionária de água.	
+O que é oligopólio?	Poucas empresas dominam o mercado.	
+Por que há interdependência no oligopólio?	Empresas influenciam umas às outras.	
+O que são produtos diferenciados?	Bens com características únicas.	
+O que é um exemplo de oligopólio?	Indústria automobilística.	
+Por que o oligopólio exige análise estratégica?	Empresas reagem entre si.	
+O que é macroeconomia?	Estudo da economia como um todo.	
+Por que macroeconomia é importante?	Analisa grandes indicadores.	
+O que é contabilidade nacional?	Medição da atividade econômica.	
+Por que usamos o PIB?	Para medir a produção total.	
+O que é PIB?	Valor dos bens e serviços finais.	
+O que a macroeconomia estuda?	Renda, emprego, inflação, investimento.	
+Por que macro difere da micro?	Macro olha o todo, micro o individual.	
+O que são agregados econômicos?	Indicadores amplos como renda e consumo.	
+Por que medir a renda nacional?	Para avaliar o desempenho econômico.	
+O que é um indicador econômico?	Medida do estado da economia.	
+O que é produto?	Valor de bens e serviços.	
+Por que evitamos contar insumos intermediários?	Para evitar dupla contagem.	
+O que é o PIB?	Produto Interno Bruto.	
+O que mede o PIB pela ótica da produção?	Bens e serviços finais.	
+Por que usar a ótica da renda no PIB?	Para somar rendimentos.	
+O que é a ótica da despesa?	Soma dos gastos finais.	
+O que é renda?	Valor distribuído da produção.	
+Por que a renda depende do produto?	Porque vem da produção.	
+O que é renda nacional?	Renda de residentes.	
+Por que medir a renda pessoal?	Reflete ganhos das famílias.	
+O que é renda disponível?	Renda após impostos.	
+O que famílias fazem com a renda disponível?	Consomem ou poupam.	
+Por que o produto gera renda?	Usa fatores de produção.	
+O que é um fator de produção?	Trabalho, terra, capital.	
+Por que produto = renda numa economia fechada?	Sem perdas externas.	
+O que a teoria clássica defende?	Ajuste automático.	
+Por que o mercado se ajusta na teoria clássica?	Pela flexibilidade de preços.	
+O que é pleno emprego para os clássicos?	Situação natural.	
+Por que o desemprego é temporário para os clássicos?	Mercado se ajusta.	
+O que Keynes criticou nos clássicos?	Falta de demanda.	
+Por que Keynes valorizou o curto prazo?	Mercados são lentos.	
+O que impulsiona a renda para Keynes?	Demanda agregada.	
+Por que investimento importa para Keynes?	Gera emprego e renda.	
+O que o governo deve fazer segundo Keynes?	Intervir na economia.	
+Por que Keynes vê desemprego como possível no equilíbrio?	Demanda insuficiente.	
+O que é autorregulação?	Ajuste automático.	
+Por que o mercado se ajusta sozinho para os clássicos?	Preços flexíveis.	
+O que é pleno emprego?	Uso total dos fatores.	
+Por que o desemprego é voluntário para os clássicos?	Escolha pessoal.	
+O que diz a Lei de Say?	Oferta cria demanda.	
+Por que não há superprodução para os clássicos?	Demanda se ajusta.	
+O que a crise de 1929 mostrou?	Falha do mercado.	
+Por que Keynes criticou os clássicos?	Ignoram desemprego.	
+O que impulsiona a economia segundo Keynes?	Demanda agregada.	
+Por que há desemprego involuntário para Keynes?	Demanda insuficiente.	
+O que é rigidez salarial?	Salário inflexível.	
+Por que rigidez salarial impede equilíbrio?	Desemprego persiste.	
+O que o governo deve fazer segundo Keynes?	Estimular demanda.	
+Por que usar política fiscal?	Aumentar consumo.	
+O que é política monetária?	Redução dos juros.	
+Por que Keynes rejeita a Lei de Say?	Oferta não gera demanda.	
+O que acontece com estoques sem venda?	Queda na produção.	
+O que é oferta agregada?	Produção total ofertada.	
+Por que a curva da OA é positiva no curto prazo?	Preços sobem, produção cresce.	
+O que é OA de longo prazo?	Curva vertical.	
+Por que a OA é vertical no longo prazo?	Limites dos fatores.	
+O que são fatores de produção?	Terra, trabalho, capital.	
+O que causa recessão para Keynes?	Baixa demanda.	
+Por que o Estado é necessário segundo Keynes?	Estabilizar economia.	
+O que o clássico pensa do papel do governo?	Não necessário.	
+O que é demanda agregada?	Gastos totais.	
+Por que o investimento entra na DA?	Expansão produtiva.	
+O que são exportações líquidas?	Exportações - importações.	
+Por que o consumo é importante na DA?	Gasto familiar.	
+O que é equilíbrio macroeconômico?	Cruzamento DA e OA.	
+Por que choques na demanda afetam a economia?	Muda produção/preços.	
+O que é PIB?	Produção interna.	
+Por que usamos ótica da produção?	Evitar dupla contagem.	
+O que é ótica da despesa?	Soma de gastos.	
+Por que o PIB inclui apenas bens finais?	Evitar duplicidade.	
+O que é PNB?	Renda de residentes.	
+Por que o PNB difere do PIB?	Renda externa.	
+O que é Renda Nacional?	Renda dos fatores.	
+Por que deduzir depreciação na RN?	Capital desgastado.	
+O que é renda disponível?	Renda líquida.	
+Por que a renda disponível é importante?	Define consumo.	
+O que mede o Balanço de Pagamentos?	Transações externas.	
+Por que a conta corrente é relevante?	Fluxo de bens e rendas.	
+O que é balança comercial?	Exportações - importações.	
+Por que há déficit comercial?	Importar mais.	
+O que é conta financeira?	Fluxo de capitais.	
+Por que existem erros e omissões?	Falhas nos registros.	
+O que são reservas internacionais?	Dólares e ouro.	
+Por que países acumulam reservas?	Estabilidade cambial.	
+O que é superávit externo?	Receitas &gt; pagamentos.	
+O que é balanço de pagamentos?	Registro externo.	
+Por que ele é importante?	Avaliar transações.	
+O que é conta corrente?	Comércio e rendas.	
+Por que pode haver déficit nela?	Mais importações.	
+O que é balança comercial?	Exportações - importações.	
+Por que exportar mais é positivo?	Gera divisas.	
+O que é balança de serviços?	Serviços importados/exportados.	
+Por que turismo afeta a conta corrente?	Entrada ou saída de moeda.	
+O que é renda primária?	Juros, lucros e salários.	
+Por que salários entram na conta corrente?	Fator de produção.	
+O que é renda secundária?	Transferências unilaterais.	
+Por que remessas são relevantes?	Aumentam renda externa.	
+O que é conta de capital?	Transferências de capital.	
+Por que perdão de dívida entra nela?	Doação externa.	
+O que é conta financeira?	Fluxo de capitais.	
+Por que investimento direto é importante?	Geração de produção.	
+O que é investimento em carteira?	Ações e títulos.	
+Por que há variação nas reservas?	Compensar desequilíbrios.	
+O que são reservas internacionais?	Moedas estrangeiras.	
+Por que reservas são necessárias?	Cobrir emergências.	
+O que é liquidez externa?	Pagamento no curto prazo.	
+Por que medir reservas/importações?	Segurança externa.	
+O que é solvência externa?	Capacidade de pagar dívidas.	
+Por que medir dívida/PIB?	Avaliar peso da dívida.	
+O que indica serviço da dívida/exportações alto?	Risco elevado.	
+O que é gasto corrente?	Manutenção de serviços.	
+Por que o governo paga aposentadorias?	Obrigação social.	
+O que são gastos de capital?	Investimentos públicos.	
+Por que construir hospitais é gasto de capital?	Aumenta capacidade.	
+O que são receitas correntes?	Tributos e transferências.	
+Por que cobrar imposto?	Financiar o Estado.	
+O que é receita de capital?	Empréstimos e venda de ativos.	
+Por que o governo emite títulos?	Obter recursos.	
+O que é política orçamentária?	Planejamento de gastos e receitas.	
+Por que o orçamento precisa ser aprovado?	Controle legislativo.	
+O que é equilíbrio orçamentário?	Receitas = despesas.	
+Por que buscar equilíbrio orçamentário?	Sustentabilidade fiscal.	
+O que é superávit orçamentário?	Receitas &gt; despesas.	
+Por que superávit é positivo?	Reduz dívida.	
+O que é déficit orçamentário?	Despesas &gt; receitas.	
+Por que o déficit preocupa?	Aumenta dívida pública.	
+O que é superávit primário?	Sem contar juros da dívida.	
+Por que excluir os juros no superávit primário?	Medir esforço fiscal real.	
+O que é superávit nominal?	Inclui todos os gastos.	
+Por que considerar juros no nominal?	Mostra total da necessidade.	
+O que é déficit primário?	Déficit sem juros.	
+Por que o déficit primário é monitorado?	Avalia gestão fiscal.	
+O que é déficit nominal?	Inclui os juros da dívida.	
+Por que déficits altos são arriscados?	Aumentam dívida e juros.	
+O que pode causar inflação?	Gastos excessivos.	
+O que é Equivalência Ricardiana?	Dívida ou imposto têm mesmo efeito.	
+Por que aumentar impostos reduz o déficit?	Aumenta receitas.	
+O que o governo faz para reduzir o déficit?	Corta gastos ou aumenta tributos.	
+Por que a dívida pública preocupa?	Aumenta encargos futuros.	
+O que é responsabilidade fiscal?	Controle das contas públicas.	
+Por que a LRF é importante?	Garante equilíbrio fiscal.	
+O que é a Lei de Responsabilidade Fiscal?	Regras para controlar gastos públicos.	
+Por que o governo emite dívida?	Financiar déficits.	
+O que são reformas estruturais?	Mudanças para eficiência do gasto.	
+Por que a Equivalência Ricardiana é criticada?	Supõe consumidores ideais.	
+O que é papel alocativo do governo?	Fornecer bens públicos.	
+Por que fornecer educação é papel do Estado?	É bem público essencial.	
+O que é função distributiva do governo?	Reduzir desigualdade.	
+Por que usar impostos progressivos?	Reduzir desigualdade.	
+O que é papel estabilizador do governo?	Conter ciclos econômicos.	
+Por que o governo investe em infraestrutura?	Estimular crescimento.	
+O que é endividamento público?	Empréstimos para cobrir gastos.	
+Por que dívida alta gera riscos?	Eleva juros e limita políticas.	
+O que é política fiscal expansionista?	Aumento de gastos ou corte de impostos.	
+Por que fazer política fiscal contracionista?	Controlar inflação.	
+O que é sustentabilidade fiscal?	Equilíbrio das contas no tempo.	
+Por que buscar equilíbrio fiscal?	Evitar crise e garantir credibilidade.	
+O que é objetivo de estabilidade econômica?	Controlar inflação e crescimento.	
+Por que política fiscal ajuda no emprego?	Estimula produção.	
+O que é papel do governo no desenvolvimento?	Promover crescimento e inovação.	
+O que é tributação na política fiscal?	Alterar alíquotas para influenciar consumo.	
+Por que o governo usa tributação?	Controlar consumo e arrecadação.	
+O que são gastos públicos?	Investimentos em infraestrutura e serviços.	
+Por que o governo aumenta os gastos públicos?	Estimular a economia.	
+O que são transferências diretas?	Programas como Bolsa Família.	
+Por que o governo faz transferências?	Redistribuir renda.	
+O que é endividamento público?	Emissão de títulos para financiar gastos.	
+Por que o governo emite dívida pública?	Financiar seus gastos.	
+O que é impacto fiscal sobre os juros?	Déficit aumenta demanda por crédito.	
+Por que déficits fiscais afetam as taxas de juros?	Aumentam a demanda por financiamento.	
+O que é inflação gerada por gastos públicos?	Pressão nos preços por excessos de gastos.	
+Por que emissão de moeda pode causar inflação?	Aumenta a demanda sem aumentar oferta.	
+O que é risco fiscal?	Perda de credibilidade do governo.	
+Por que altos níveis de dívida pública afetam o câmbio?	Afetam confiança dos investidores.	
+O que é o efeito crowding-out?	Redução de crédito privado devido ao endividamento público.	
+Por que o endividamento público pode prejudicar o crédito privado?	Reduz a disponibilidade de crédito.	
+O que é consumo?	Gastos das famílias em bens e serviços.	
+Por que a renda disponível influencia o consumo?	Maior renda gera maior consumo.	
+O que são fatores que influenciam o consumo?	Renda, juros e confiança.	
+Por que juros altos desestimulam o consumo?	Aumentam o custo do crédito.	
+O que é investimento?	Gastos das empresas em bens de capital.	
+Por que a taxa de juros influencia o investimento?	Juros altos tornam os empréstimos mais caros.	
+O que são os fatores que influenciam o investimento?	Juros, expectativas e política fiscal.	
+Por que expectativas econômicas influenciam o investimento?	Se a economia crescer, mais investimento.	
+O que é política fiscal estimulando o investimento?	Redução de impostos ou subsídios.	
+Por que a confiança do consumidor afeta o consumo?	Expectativas influenciam decisões de compra.	
+O que é poupança?	Parte da renda não consumida.	
+Por que a poupança é importante para o crédito?	Forma a base do crédito para empresas.	
+O que a poupança influencia no crescimento econômico?	Fundamento para investimentos futuros.	
+O que são gastos correntes do governo?	Salários, benefícios e compras de materiais.	
+O que são investimentos do governo?	Construção de infraestrutura.	
+Por que o gasto público estimula a economia?	Aumenta a demanda agregada.	
+O que pode acontecer se os gastos do governo excedem as receitas?	Déficits fiscais.	
+O que é o modelo IS-LM-BP?	Modelo que analisa mercados de bens, monetário e externo.	
+O que a curva IS representa?	Equilíbrio no mercado de bens.	
+O que a curva IS indica?	Combinacões de taxa de juros e produção no mercado de bens.	
+Por que a curva IS tem inclinação negativa?	Taxas de juros mais altas reduzem os investimentos.	
+O que a curva LM representa?	Equilíbrio no mercado monetário.	
+Por que a curva LM tem inclinação positiva?	Aumento da produção eleva a demanda por moeda.	
+O que a curva BP representa?	Equilíbrio no balanço de pagamentos.	
+O que determina a inclinação da curva BP?	Mobilidade de capitais.	
+O que acontece se há alta mobilidade de capitais na curva BP?	A curva BP fica quase horizontal.	
+O que acontece se há baixa mobilidade de capitais na curva BP?	A curva BP se torna mais inclinada.	
+O que a política fiscal expansiva faz com a curva IS?	Desloca a curva IS para a direita.	
+O que a política fiscal expansiva causa na economia?	Aumenta o produto e pode aumentar os juros.	
+O que pode ocorrer na balança de pagamentos com política fiscal expansiva?	Déficits externos com alta importação.	
+O que a política monetária expansiva faz com a curva LM?	Desloca a curva LM para a direita.	
+O que a política monetária expansiva faz com os juros?	Reduz os juros.	
+O que pode ocorrer na balança de pagamentos com a política monetária expansiva?	Desvalorização da moeda.	
+O que a política de comércio exterior pode fazer com a curva BP?	Deslocar a curva BP.	
+Por que o controle cambial pode deslocar a curva BP?	Afeta o equilíbrio externo.	
+O que tarifas podem fazer com a curva BP?	Alterar o equilíbrio no setor externo.	
+O que o Modelo IS analisa?	O equilíbrio no mercado de bens.	
+O que é a demanda agregada no Modelo IS?	Consumo + investimento + gastos do governo + exportações líquidas.	
+O que significa equilíbrio no mercado de bens?	Quando a produção é igual à demanda agregada.	
+O que a curva IS representa?	Combinações de taxa de juros e produção em equilíbrio no mercado de bens.	
+O que a curva IS indica?	Equilíbrio entre oferta de bens e demanda de bens.	
+O que a curva IS mostra?	Taxa de juros e nível de produção no equilíbrio.	
+O que é a inclinação negativa da curva IS?	A relação inversa entre taxa de juros e produção.	
+Por que a curva IS tem inclinação negativa?	Taxa de juros baixa aumenta o investimento e consumo.	
+O que acontece com o investimento quando a taxa de juros cai?	O investimento aumenta.	
+O que ocorre com o consumo quando a taxa de juros cai?	O consumo aumenta.	
+O que acontece com a produção quando o investimento aumenta?	A produção aumenta.	
+O que ocorre quando a taxa de juros sobe?	A poupança aumenta e o consumo diminui.	
+O que acontece com os investimentos quando a taxa de juros sobe?	Os investimentos diminuem.	
+O que a curva IS mostra no equilíbrio?	A produção igual à demanda agregada.	
+O que resulta da taxa de juros baixa na curva IS?	Aumento da produção.	
+O que resulta da taxa de juros alta na curva IS?	Diminuição da produção.	
+O que afeta o Modelo IS?	Taxa de juros, expectativas econômicas, políticas fiscais.	
+O que acontece com a curva IS com uma política fiscal expansiva?	A curva IS se desloca para a direita.	
+O que acontece com a curva IS com uma política monetária expansiva?	A curva IS se desloca para a direita.	
+O que significa política fiscal expansiva no Modelo IS?	Aumento de gastos públicos ou redução de impostos.	
+O que significa política monetária expansiva no Modelo IS?	Redução da taxa de juros.	
+O que ocorre quando a curva IS se desloca para a direita?	A produção e a renda aumentam.	
+O que é a relação entre a taxa de juros e a produção no Modelo IS?	Inversamente proporcional (taxa de juros baixa aumenta a produção).	
+O que é uma política monetária no Modelo IS?	Controle da oferta de moeda e taxa de juros.	
+O que uma política fiscal expansiva faz com a economia?	Aumenta a produção e a renda.	
+O que afeta a produção no Modelo IS?	Mudanças nas taxas de juros e investimentos.	
+O que o Modelo LM analisa?	O mercado monetário (oferta e demanda por moeda).	
+O que é a oferta de moeda?	A quantidade de dinheiro que o banco central coloca na economia.	
+O que é a demanda por moeda?	O quanto as pessoas e empresas querem manter em dinheiro.	
+O que significa equilíbrio no mercado monetário?	Quando a oferta de moeda é igual à demanda por moeda.	
+O que a curva LM representa?	Combinações de taxa de juros e produção em que o mercado monetário está em equilíbrio.	
+O que significa a inclinação positiva da curva LM?	A relação direta entre taxa de juros e nível de produção.	
+Por que a curva LM tem inclinação positiva?	Aumento na produção leva a maior demanda por moeda, o que aumenta a taxa de juros.	
+O que acontece quando a produção aumenta no Modelo LM?	A demanda por moeda aumenta, e a taxa de juros sobe.	
+O que acontece quando a produção diminui no Modelo LM?	A demanda por moeda diminui, e a taxa de juros cai.	
+O que é necessário para equilibrar o mercado monetário?	A oferta de moeda deve ser igual à demanda por moeda.	
+O que ocorre quando a produção e a demanda por moeda aumentam?	A taxa de juros precisa subir para equilibrar a oferta e demanda de moeda.	
+O que ocorre quando a produção e a demanda por moeda diminuem?	A taxa de juros precisa cair para equilibrar a oferta e demanda de moeda.	
+O que é necessário para equilibrar a oferta de moeda e a demanda?	Ajuste na taxa de juros.	
+O que a curva LM mostra?	A taxa de juros e o nível de produção que equilibram o mercado monetário.	
+O que acontece com a taxa de juros quando a produção aumenta?	A taxa de juros sobe.	
+O que acontece com a taxa de juros quando a produção diminui?	A taxa de juros cai.	
+O que é política monetária expansiva no Modelo LM?	Redução da taxa de juros ou aumento da oferta de moeda.	
+O que a política monetária expansiva faz com a curva LM?	Desloca a curva LM para a direita.	
+O que ocorre com a taxa de juros quando a política monetária é expansiva?	A taxa de juros diminui.	
+O que a política monetária contracionista faz com a curva LM?	Desloca a curva LM para a esquerda.	
+O que acontece com a taxa de juros quando a política monetária é contracionista?	A taxa de juros sobe.	
+O que acontece com o consumo quando a taxa de juros diminui?	O consumo aumenta.	
+O que acontece com o consumo quando a taxa de juros sobe?	O consumo diminui.	
+O que a política monetária expansiva incentiva?	O consumo e o investimento.	
+O que a política monetária contracionista desestimula?	O consumo e o investimento.	
+O que é o equilíbrio LM?	A igualdade entre oferta de moeda e demanda por moeda.	
+O que é a Balança de Pagamentos?	O registro de todas as transações econômicas de um país com o resto do mundo.	
+O que a Balança de Pagamentos mostra?	Como o dinheiro entra e sai do país.	
+O que é a Conta Corrente?	Registra transações de bens, serviços, renda e transferências correntes.	
+O que a Balança Comercial registra?	A diferença entre exportações e importações de bens.	
+O que é a Renda na Conta Corrente?	Pagamentos e recebimentos de lucros, dividendos e juros.	
+O que são Transferências Correntes?	Remessas de dinheiro, ajudas internacionais, etc.	
+O que é a Conta de Capital?	Registra transações de bens não financeiros, como compra e venda de imóveis.	
+O que a Conta Financeira registra?	Transações financeiras, como investimentos, empréstimos e emissões de dívidas.	
+O que são Investimentos Diretos?	Compra de ativos ou montagem de filiais em outro país.	
+O que são Investimentos de Portfólio?	Compra e venda de ações e títulos entre países.	
+O que são Empréstimos na Conta Financeira?	Empréstimos tomados ou concedidos entre países.	
+O que é necessário para a Balança de Pagamentos estar equilibrada?	As transações de débito devem ser compensadas por transações de crédito.	
+O que é superávit na Balança de Pagamentos?	Quando há mais entradas de recursos do que saídas.	
+O que é déficit na Balança de Pagamentos?	Quando há mais saídas de recursos do que entradas.	
+O que a Curva BP no Modelo IS-LM-BP representa?	O equilíbrio da Balança de Pagamentos.	
+O que significa o equilíbrio da Balança de Pagamentos?	Quando o valor que entra no país é igual ao valor que sai.	
+O que acontece quando a soma das exportações e importações é zero?	Há equilíbrio na Balança de Pagamentos.	
+O que influencia a Curva BP em países com alta mobilidade de capitais?	A taxa de juros interna é muito influenciada pelos fluxos internacionais de capital.	
+O que acontece com a Curva BP em países com alta mobilidade de capitais?	Ela tende a ser quase horizontal.	
+O que acontece com a Curva BP em países com baixa mobilidade de capitais?	Ela tende a ser mais inclinada.	
+O que determina a taxa de juros interna em países com baixa mobilidade de capitais?	A economia doméstica.	
+O que é necessário para que a Balança de Pagamentos tenha saldo zero?	As transações internas e externas se igualam.	
+O que ocorre quando um país tem déficit na Balança de Pagamentos?	O valor das saídas de recursos supera o das entradas.	
+O que ocorre quando um país tem superávit na Balança de Pagamentos?	O valor das entradas de recursos supera o das saídas.	
+O que as transferências correntes incluem na Conta Corrente?	Remessas de dinheiro e ajudas internacionais.	
+O que a Conta de Capital registra em relação a propriedades?	Compra ou venda de imóveis e terras entre países.	
+O que representa o saldo da Balança de Pagamentos?	A diferença entre entradas e saídas de recursos.	
+O que é registrado como crédito na conta corrente?	As exportações de bens, como o café.	
+O que é registrado como débito na conta corrente?	As importações de bens, como os automóveis.	
+O que acontece se o Brasil exporta mais café do que importa carros?	Superávit na conta corrente.	
+O que acontece se o Brasil importa mais carros do que exporta café?	Déficit na conta corrente.	
+O que pode o Brasil fazer para cobrir um déficit na conta corrente?	Buscar investimentos estrangeiros.	
+O que representa a Curva IS?	O equilíbrio no mercado de bens.	
+Qual é a forma da Curva IS?	Decrescente.	
+O que a Curva IS mostra?	A relação entre taxa de juros e renda no mercado de bens.	
+O que a Curva IS reflete?	Como juros mais baixos incentivam investimentos.	
+O que representa a Curva LM?	O equilíbrio no mercado monetário.	
+Qual é a forma da Curva LM?	Crescente.	
+O que a Curva LM mostra?	Como a renda maior eleva a demanda por moeda.	
+O que a Curva LM reflete?	A relação entre juros e a demanda por moeda.	
+O que representa a Curva BP?	O equilíbrio da Balança de Pagamentos.	
+O que depende da mobilidade de capital na Curva BP?	A inclinação da curva.	
+O que acontece se a mobilidade de capital for alta?	A Curva BP será quase horizontal.	
+O que acontece se a mobilidade de capital for baixa?	A Curva BP será inclinada positivamente.	
+O que acontece com a taxa de câmbio fixa?	O Banco Central intervém para manter a taxa.	
+O que acontece com uma política fiscal expansionista em taxa fixa?	Desloca a Curva IS para a direita.	
+O que ocorre quando a política fiscal expansionista aumenta a produção?	Atração de capital externo.	
+O que faz o Banco Central quando há atração de capital externo em taxa fixa?	Compra moeda estrangeira.	
+O que acontece com a política monetária expansionista em taxa fixa?	A Curva LM desloca para a direita.	
+O que faz o Banco Central para sustentar a moeda com política monetária expansionista?	Vende reservas.	
+O que acontece em um regime de taxa de câmbio flutuante?	A taxa de câmbio se ajusta para equilibrar o BP.	
+O que acontece com a política fiscal expansionista em taxa flutuante?	Desloca a Curva IS para a direita.	
+O que acontece com as importações e o capital em um regime de taxa flutuante?	As importações aumentam e atrai capital.	
+O que indica o ponto onde IS, LM e BP se cruzam?	Equilíbrio simultâneo nos mercados de bens, monetário e externo.	
+O que acontece em um regime de câmbio fixo com mobilidade perfeita de capital?	A política fiscal é eficaz, e a monetária é inútil.	
+O que acontece em um regime de câmbio flutuante com mobilidade perfeita de capital?	A política monetária é eficaz, e a fiscal é inútil.	
+O que assume o modelo de equilíbrio geral sobre os preços?	Preços fixos (curto prazo).	
+O que o modelo simplifica?	Relações complexas como expectativas e dinâmica cambial.	
+O que o modelo de equilíbrio geral não considera?	Efeitos de longo prazo como dívida pública ou inflação.	
+O que a moeda facilita?	As transações.	
+O que é a moeda como meio de troca?	Facilita as trocas de bens e serviços.	
+O que acontece quando você compra um pão com dinheiro?	Usa a moeda como meio de troca.	
+O que a moeda serve como unidade de conta?	Mede o valor dos bens e serviços.	
+O que é a moeda como unidade de conta?	Serve como uma medida comum de valor.	
+O que a moeda permite como reserva de valor?	Guardar poder de compra para o futuro.	
+O que é a moeda como reserva de valor?	Permite que as pessoas guardem seu poder de compra.	
+O que ocorre quando você guarda R$ 100 hoje?	Espera poder comprar a mesma quantidade de bens no futuro.	
+O que é a criação de moeda pelo Banco Central?	Emissão de moeda física (notas e moedas).	
+O que o Banco Central controla ao criar moeda?	A quantidade de dinheiro circulando na economia.	
+O que é a criação de moeda bancária?	Quando os bancos criam dinheiro ao oferecer empréstimos.	
+O que os bancos comerciais fazem ao oferecer empréstimos?	Criam dinheiro bancário.	
+O que acontece quando o banco coloca o valor do empréstimo na sua conta?	Aumenta a quantidade de moeda na economia.	
+O que é a oferta de moeda?	A quantidade de moeda disponível na economia.	
+O que o Banco Central usa para controlar a oferta de moeda?	Políticas monetárias.	
+O que acontece quando o Banco Central compra títulos?	Aumenta a oferta de moeda.	
+O que acontece quando o Banco Central vende títulos?	Reduz a oferta de moeda.	
+O que ocorre quando o Banco Central aumenta a taxa de juros?	Reduz a quantidade de moeda circulando.	
+O que acontece quando o Banco Central reduz a taxa de juros?	Aumenta a oferta de moeda.	
+O que é o depósito compulsório?	A parte dos depósitos que os bancos devem manter em reserva.	
+O que acontece quando o Banco Central reduz a taxa de depósito compulsório?	Os bancos podem emprestar mais dinheiro.	
+O que o Banco Central pode fazer para aumentar a oferta de moeda?	Reduzir a taxa de juros ou o depósito compulsório.	
+O que acontece quando o Banco Central aumenta a taxa de depósito compulsório?	Reduz a oferta de moeda.	
+O que o Banco Central faz para regular a quantidade de moeda em circulação?	Controla a oferta de moeda por meio de operações monetárias.	
+O que é a função da moeda como reserva de valor?	Guardar poder de compra para o futuro.	
+O que acontece com a moeda em um sistema de troca direta (escambo)?	Não facilita as trocas de forma eficiente.	
+O que é a procura por moeda?	A quantidade de dinheiro que as pessoas desejam manter.	
+O que influencia a procura por moeda?	Motivo de transação, precaução e especulativo.	
+O que é o motivo de transação?	Dinheiro mantido para realizar transações do dia a dia.	
+O que aumenta a demanda por moeda devido ao motivo de transação?	Maior atividade econômica.	
+O que é o motivo de precaução?	Dinheiro mantido para cobrir imprevistos ou necessidades futuras.	
+O que pode aumentar a demanda por moeda devido ao motivo de precaução?	Insegurança ou incerteza sobre o futuro.	
+O que é o motivo especulativo?	Dinheiro mantido dependendo da expectativa de mudança nos preços de ativos.	
+O que pode diminuir a demanda por moeda devido ao motivo especulativo?	Expectativa de inflação alta.	
+O que caracteriza a inflação de demanda?	Aumento na demanda sem capacidade de produção suficiente.	
+O que provoca a inflação de demanda?	Aumento de gastos que supera a capacidade de produção.	
+O que caracteriza a inflação de custos?	Aumento nos custos de produção que eleva os preços.	
+O que provoca a inflação de custos?	Aumento de custos de matérias-primas ou salários.	
+O que caracteriza a inflação inercial?	Aumento contínuo de preços devido às expectativas passadas.	
+O que pode causar a inflação inercial?	Expectativa de inflação futura.	
+O que é a relação entre moeda e preços no longo prazo?	O aumento da moeda leva a um aumento de preços se não houver aumento na produção.	
+O que afirma a Teoria Quantitativa da Moeda (TQM)?	A quantidade de moeda aumenta proporcionalmente os preços no longo prazo.	
+O que acontece quando o Banco Central emite mais moeda?	O valor da moeda diminui e os preços sobem.	
+O que é a fórmula clássica da Teoria Quantitativa da Moeda?	M × V = P × Y	
+O que significa M na fórmula da TQM?	M é a quantidade de moeda em circulação.	
+O que significa V na fórmula da TQM?	V é a velocidade de circulação da moeda.	
+O que significa P na fórmula da TQM?	P é o nível de preços.	
+O que significa Y na fórmula da TQM?	Y é a produção de bens e serviços (PIB real).	
+O que acontece se a quantidade de moeda aumenta, mas a produção não?	Resulta em inflação.	
+O que indica a Teoria Quantitativa da Moeda?	A relação entre a quantidade de moeda e os preços.	
+O que a TQM sugere sobre o aumento da oferta de moeda?	Resulta em um aumento proporcional dos preços.	
+O que acontece quando a produção de bens e serviços não acompanha a quantidade de moeda?	Aumento dos preços.	
+O que ocorre no longo prazo com a quantidade de moeda?	Ela tem uma relação direta com o nível de preços.	
+O que é inflação?	Aumento contínuo e generalizado dos preços.	
+O que causa a inflação de demanda?	Demanda maior que a capacidade de produção.	
+O que acontece quando o Banco Central aumenta a oferta de moeda?	A inflação tende a aumentar, se a produção não acompanha.	
+O que a teoria quantitativa diz sobre a emissão de mais dinheiro?	Pode levar a uma queda no valor da moeda e aumento dos preços.	
+O que é política monetária?	Conjunto de ações do Banco Central para controlar a moeda, juros e inflação.	
+O que o Banco Central controla para evitar inflação excessiva?	A oferta de moeda.	
+O que é o papel do Banco Central na política monetária?	Executar a política monetária de controle da moeda e da inflação.	
+O que o Banco Central faz para garantir a estabilidade econômica?	Controla a inflação e promove crescimento econômico.	
+O que é a taxa básica de juros (Selic)?	A taxa de juros definida pelo Banco Central.	
+O que acontece quando o Banco Central eleva a taxa de juros?	Empréstimos ficam mais caros, consumo diminui.	
+O que o Banco Central faz quando reduz a taxa de juros?	Empréstimos ficam mais baratos, consumo aumenta.	
+O que é controle da inflação?	Manter os preços estáveis para preservar o poder de compra.	
+O que é estabilidade econômica?	Manter o crescimento econômico sustentado.	
+O que o Banco Central faz com operações de mercado aberto?	Compra ou vende títulos do governo para controlar a oferta de moeda.	
+O que o Banco Central faz para reduzir a quantidade de moeda em circulação?	Vende títulos do governo.	
+O que é o depósito compulsório?	A quantidade de dinheiro que os bancos devem manter em reserva.	
+O que o Banco Central faz ao reduzir o depósito compulsório?	Aumenta a oferta de moeda.	
+O que o Banco Central faz ao aumentar o depósito compulsório?	Reduz a oferta de moeda.	
+O que acontece quando a inflação é alta?	O Banco Central aumenta a taxa de juros.	
+O que acontece quando a inflação é baixa?	O Banco Central reduz a taxa de juros.	
+O que a alta taxa de juros faz na economia?	Combate a inflação.	
+O que a baixa taxa de juros faz na economia?	Estimula o crescimento econômico.	
+O que é Quantitative Easing (QE)?	Compra de grandes quantidades de ativos financeiros pelo Banco Central.	
+O que o Banco Central busca com o Quantitative Easing?	Aumentar a liquidez e estimular a economia.	
+O que são as taxas de juros negativas?	O Banco Central cobra dos bancos para manter dinheiro com ele.	
+O que as taxas de juros negativas incentivam?	Os bancos a emprestar mais dinheiro.	
+O que é a função do Banco Central em relação ao sistema financeiro?	Supervisionar e garantir a estabilidade do sistema bancário.	
+O que o Banco Central faz para evitar deflação?	Controla a oferta de moeda e taxa de juros.	
+O que o Banco Central visa com o controle da taxa de juros?	Estimular o investimento e controlar a inflação.	
+O que o Banco Central visa com a política monetária?	Garantir a estabilidade econômica.	
+O que são os instrumentos de política monetária?	Taxa de juros, operações de mercado aberto e depósito compulsório.	
+O que acontece quando o Banco Central compra títulos do governo?	Aumenta a oferta de moeda na economia.	
+O que são políticas monetárias não convencionais?	Políticas além das tradicionais, como QE e juros negativos.	
+O que a política monetária não convencional busca?	Estimular a economia quando os instrumentos tradicionais não funcionam.	
+O que pode ocorrer em crises financeiras como a de 2008?	O Banco Central pode adotar Quantitative Easing (QE).	
+O que ocorre quando a economia está em recessão e os juros são baixos?	O consumo e investimento aumentam.	
+O que é regulação do sistema bancário?	Controle das práticas dos bancos pelo Banco Central.	
+O que o Banco Central exige dos bancos para evitar risco sistêmico?	Manutenção de reservas e capital mínimo.	
+O que o Banco Central supervisiona além dos bancos comerciais?	O mercado financeiro e o mercado de capitais.	
+O que a CVM faz no Brasil?	Supervisiona o mercado de capitais e protege investidores.	
+O que significa regulação do sistema financeiro?	Garantir operações seguras e transparentes das instituições financeiras.	
+O que o Banco Central faz para proteger o consumidor bancário?	Regula práticas bancárias como transparência em taxas e tarifas.	
+O que é crescimento econômico?	Aumento da produção de bens e serviços de uma economia.	
+O que é desenvolvimento econômico?	Crescimento econômico mais melhorias na qualidade de vida.	
+O que pode sustentar o crescimento econômico?	Aumento de capital físico, tecnologia e força de trabalho.	
+O que depende do ambiente político para o crescimento econômico?	Condições políticas, sociais e institucionais favoráveis.	
+O que defende a teoria clássica de crescimento econômico?	A acumulação de capital e a divisão do trabalho.	
+O que a teoria neoclássica de crescimento sugere?	Crescimento depende de capital físico, trabalho e tecnologia.	
+O que a teoria de Solow prevê sobre o crescimento econômico?	A taxa de crescimento diminui com o tempo devido aos retornos marginais do capital.	
+O que as teorias endógenas de crescimento defendem?	Crescimento é impulsionado por investimentos em capital humano e inovação.	
+O que Paul Romer contribuiu para as teorias endógenas de crescimento?	A tecnologia e o conhecimento são resultados das decisões econômicas.	
+O que o modelo de Solow destaca como importantes para o crescimento?	Capital físico, trabalho e inovação tecnológica.	
+O que Solow considera a tecnologia em seu modelo de crescimento?	Uma variável exógena que afeta a economia externamente.	
+O que a inovação tecnológica faz no modelo de Solow?	Impulsiona o crescimento econômico, mas com retornos decrescentes.	
+O que ocorre quando não há inovação tecnológica constante, segundo Solow?	O crescimento econômico diminui ao longo do tempo.	
+O que Schumpeter defende sobre inovação no crescimento econômico?	A inovação é um fator chave, e a destruição criativa impulsiona a economia.	
+O que é destruição criativa segundo Schumpeter?	O processo onde novas inovações substituem antigas tecnologias.	
+O que é o papel da inovação no crescimento, segundo Schumpeter?	Impulsionar o crescimento econômico através de inovações disruptivas.	
+O que é a produtividade total dos fatores no modelo de Solow?	A contribuição da tecnologia para o crescimento econômico.	
+O que as teorias clássicas e neoclássicas têm em comum?	Ambas enfatizam o papel do capital, trabalho e mercado livre no crescimento.	
+O que é a acumulação de capital, segundo a teoria clássica?	Investimentos em máquinas e infraestrutura.	
+O que a teoria neoclássica sugere sobre a tecnologia?	A tecnologia é um fator importante, mas o crescimento diminui com o tempo sem inovações.	
+O que é o produto interno bruto (PIB)?	A medida da produção total de bens e serviços em um país.	
+O que o crescimento econômico depende além de recursos físicos?	De decisões políticas, sociais e econômicas eficazes.	
+O que faz o Banco Central para evitar crises bancárias?	Regula práticas prudenciais e exige capital mínimo dos bancos.	
+O que o mercado de capitais envolve?	A emissão e negociação de ações e títulos financeiros.	
+O que a regulação do sistema bancário visa garantir?	Evitar riscos financeiros e proteger os depósitos dos consumidores.	
+O que pode acontecer se o sistema financeiro não for regulado?	Crises financeiras e falta de confiança.	
+O que a supervisão do mercado de capitais busca?	Garantir transparência e proteger os investidores.	
+O que é o modelo Schumpeteriano?	Coloca a inovação como motor do crescimento econômico.	
+O que Schumpeter acredita que impulsiona o crescimento econômico?	A &quot;destruição criativa&quot;.	
+O que é destruição criativa?	Inovações substituem velhos produtos e métodos.	
+O que significa inovação ser um fator endógeno no modelo de Schumpeter?	A inovação surge de dentro da economia.	
+O que Schumpeter enfatiza sobre o papel do empreendedor?	O empreendedor é o agente da inovação.	
+O que acontece com as empresas que não inovam, segundo Schumpeter?	Elas são forçadas a sair do mercado.	
+O que ocorre quando uma empresa cria um novo produto, como um smartphone?	Substitui os antigos produtos e gera novos mercados.	
+O que é o conceito de desemprego?	Situação em que a pessoa procura trabalho, mas não encontra.	
+O que caracteriza o desemprego involuntário?	Quando a pessoa busca trabalho, mas não encontra.	
+O que é necessário para uma pessoa ser considerada desempregada?	Fora do mercado de trabalho, procurando trabalho, disponível para trabalhar.	
+O que é o índice de desemprego?	A principal medida da saúde do mercado de trabalho.	
+O que é o desemprego friccional?	Desemprego temporário durante a transição entre empregos.	
+O que causa o desemprego friccional?	Transição entre empregos ou mudança de cidade/profissão.	
+O que o desemprego friccional indica sobre o mercado de trabalho?	Indica que as pessoas estão buscando melhores oportunidades.	
+O que é o desemprego estrutural?	Desalinhamento entre as habilidades dos trabalhadores e as necessidades do mercado.	
+O que pode causar o desemprego estrutural?	Mudanças tecnológicas ou na estrutura da economia.	
+O que é um exemplo de desemprego estrutural?	Quando trabalhadores são substituídos por tecnologia avançada.	
+O que acontece quando há desemprego estrutural?	Trabalhadores não se adaptam às novas demandas do mercado.	
+O que o modelo de Schumpeter diz sobre a inovação tecnológica?	A inovação tecnológica é fundamental para o crescimento econômico.	
+O que o empreendedor cria, segundo Schumpeter?	Novos mercados e ciclos de crescimento dinâmicos.	
+O que é o impacto da &quot;destruição criativa&quot; na economia?	Criação de novos produtos e mercados, substituindo os antigos.	
+O que caracteriza o desemprego involuntário?	Pessoa que procura trabalho, mas não encontra, apesar de estar disponível.	
+O que o desemprego friccional diz sobre o comportamento dos trabalhadores?	Eles buscam melhores oportunidades.	
+O que pode causar o desemprego estrutural em uma economia?	Mudanças tecnológicas ou fechamento de setores produtivos.	
+O que o modelo Schumpeteriano diz sobre as empresas inovadoras?	Elas criam um ciclo de crescimento dinâmico.	
+O que as inovações criam no mercado, segundo Schumpeter?	Novas indústrias e empregos.	
+O que o modelo de Schumpeter destaca sobre as empresas que não inovam?	Elas não conseguem competir e saem do mercado.	
+O que faz com que as empresas mais inovadoras cresçam, segundo Schumpeter?	A introdução de novas tecnologias e produtos.	
+O que é o papel do empreendedor no crescimento econômico, segundo Schumpeter?	Introduzir inovação e criar novos mercados.	
+O que o desemprego estrutural pode gerar para os trabalhadores?	A necessidade de adaptação e requalificação.	
+O que Schumpeter acredita ser essencial para a evolução econômica?	A destruição criativa e a inovação constante.	
+O que causa o desemprego cíclico?	Flutuações econômicas e recessão.	
+O que acontece com a demanda durante uma recessão?	A demanda por bens e serviços diminui.	
+O que ocorre com o desemprego cíclico quando a economia se recupera?	O desemprego cíclico diminui.	
+O que caracteriza o desemprego sazonal?	Varia de acordo com as estações ou a demanda por certos produtos.	
+O que é um exemplo de desemprego sazonal?	Trabalhadores na agricultura ou turismo.	
+O que acontece com trabalhadores de turismo durante a baixa temporada?	Eles podem ser demitidos.	
+O que determina o nível de emprego em uma economia?	Fatores como crescimento econômico, demanda e tecnologia.	
+O que acontece quando a taxa de crescimento econômico aumenta?	Mais trabalhadores são contratados.	
+O que é a demanda agregada?	A demanda total por bens e serviços na economia.	
+O que ocorre quando a demanda agregada é alta?	As empresas contratam mais trabalhadores.	
+O que pode tornar certos empregos obsoletos?	O desenvolvimento tecnológico.	
+O que a tecnologia pode criar no mercado de trabalho?	Novos setores de empregos.	
+O que pode afetar o nível de emprego, além da tecnologia?	Políticas governamentais e qualificação da força de trabalho.	
+O que políticas fiscais expansionistas podem gerar?	Mais empregos.	
+O que a política monetária influencia?	A oferta de moeda e os juros, afetando o nível de emprego.	
+O que determina o nível de emprego em um país?	A educação e qualificação da força de trabalho.	
+O que países com maior qualificação educacional têm no mercado de trabalho?	Um nível de emprego mais elevado.	
+O que é a taxa de desemprego?	A proporção de desempregados em relação à força de trabalho.	
+O que a taxa de participação mede?	A proporção da população ativa que está no mercado de trabalho.	
+O que é a taxa de participação?	A proporção da população em idade ativa que está empregada ou procurando emprego.	
+O que indica a taxa de emprego?	A proporção de pessoas empregadas em relação à população ativa.	
+O que um aumento na taxa de emprego significa?	Mais pessoas encontrando trabalho.	
+O que são indicadores de qualidade do emprego?	Medidas como salário, segurança no trabalho e informalidade.	
+O que é importante além do número de empregos?	A qualidade do emprego.	
+O que a taxa de desemprego mede?	A proporção de pessoas desempregadas em relação à força de trabalho.	
+O que pode indicar um aumento na taxa de desemprego?	Uma recessão ou redução na demanda por trabalho.	
+O que acontece com o desemprego sazonal fora da temporada de alta demanda?	Ele tende a aumentar.	
+O que é um exemplo de desemprego cíclico?	O aumento do desemprego durante uma recessão.	
+O que as flutuações econômicas causam no mercado de trabalho?	Desemprego cíclico.	
+O que a alta demanda por produtos pode levar no mercado de trabalho?	Aumento da contratação de trabalhadores.	
+O que acontece com o desemprego sazonal na agricultura?	Trabalhadores podem ser demitidos fora da temporada.	
+O que a Lei de Okun relaciona?	Desemprego e crescimento econômico.	
+O que acontece quando o desemprego aumenta, segundo a Lei de Okun?	O crescimento do PIB diminui.	
+O que acontece se o desemprego aumenta em 1%?	O PIB cresce 0,5% a menos.	
+O que a Lei de Okun ajuda a entender?	O impacto do desemprego na produtividade da economia.	
+O que os formuladores de políticas usam a Lei de Okun para prever?	O impacto das flutuações do desemprego no crescimento econômico.	
+O que é economia internacional?	O estudo das interações econômicas entre países.	
+O que envolve o comércio internacional?	A troca de bens e serviços entre países.	
+O que é a vantagem absoluta?	A capacidade de produzir um bem com menos recursos.	
+O que Adam Smith defendia sobre a vantagem absoluta?	Países devem se especializar em bens que produzem com menos recursos.	
+O que um país deve fazer com uma vantagem absoluta?	Especializar-se e exportar o bem.	
+O que é a vantagem comparativa?	Produção de bens com menor custo de oportunidade.	
+O que David Ricardo argumentava sobre vantagens comparativas?	Mesmo sem vantagem absoluta, países podem se beneficiar do comércio.	
+O que o país A deve fazer se tem vantagem comparativa no vinho?	Especializar-se no vinho e exportá-lo.	
+O que é um exemplo de vantagem comparativa?	O país A exporta vinho e o país B exporta queijo.	
+O que as teorias neoclássicas ampliam da teoria de Ricardo?	A ideia das vantagens comparativas com oferta e demanda.	
+O que o modelo Heckscher-Ohlin sugere?	Países exportam bens que usam fatores abundantes.	
+O que países ricos em capital exportam, segundo Heckscher-Ohlin?	Bens que utilizam intensivamente capital.	
+O que países ricos em trabalho exportam, segundo Heckscher-Ohlin?	Bens que exigem muita mão de obra.	
+O que as teorias contemporâneas consideram além das vantagens comparativas?	Tecnologia, inovações e economias de escala.	
+O que são economias de escala?	A redução do custo unitário com o aumento da produção.	
+O que a teoria das economias de escala sugere sobre a produção?	Empresas se especializam em grandes quantidades para reduzir custos.	
+O que as empresas ganham ao reduzir os custos unitários?	Competitividade no mercado internacional.	
+O que a teoria da concorrência imperfeita aborda?	Mercados monopolistas ou oligopolistas com poder de mercado.	
+O que a concorrência imperfeita afeta no comércio?	O comércio internacional.	
+O que as empresas podem fazer em mercados monopolistas?	Ter poder de mercado para influenciar o comércio.	
+O que a concorrência imperfeita pode gerar?	Distúrbios nos mercados internacionais.	
+O que o comércio internacional pode gerar para os países?	Benefícios, aproveitando as vantagens comparativas.	
+O que acontece se um país tem vantagem comparativa?	Ele se especializa na produção e troca de produtos específicos.	
+O que Adam Smith sugeriu sobre a especialização no comércio?	Países devem se especializar e trocar para maximizar ganhos.	
+O que a teoria das vantagens comparativas sugere para os países?	Especialização na produção de bens com menor custo de oportunidade.	
+O que as teorias neoclássicas dizem sobre a dotação de fatores?	Países se especializam nos bens para os quais têm mais recursos.	
+O que a economia internacional envolve além do comércio?	Investimentos e finanças entre países.	
+O que é o comércio intrafirma?	Comércio entre filiais de uma mesma multinacional.	
+O que envolve o comércio intrafirma?	Troca de bens intermediários entre unidades da mesma empresa.	
+O que um exemplo de comércio intrafirma?	Componentes de um carro fabricados em diferentes países pela mesma empresa.	
+O que é o comércio intrassetorial?	Comércio entre países do mesmo setor com produtos semelhantes.	
+O que caracteriza o comércio intrassetorial?	Empresas competem com produtos diferenciados no mesmo setor.	
+O que é um exemplo de comércio intrassetorial?	Países exportando carros com características distintas.	
+O que são economias de escala?	Redução de custos com aumento da produção.	
+O que as economias de escala permitem às empresas?	Tornar-se mais competitivas no mercado internacional.	
+O que é um exemplo de economias de escala?	Produção em massa de componentes eletrônicos para reduzir custos.	
+O que a concorrência imperfeita afeta no comércio internacional?	O poder das grandes empresas de controlar preços e produção.	
+O que é concorrência imperfeita?	Mercado monopolista ou oligopolista com controle de preço.	
+O que Raúl Prebisch e a CEPAL criticaram sobre o comércio?	A desvantagem para países em desenvolvimento nas trocas comerciais.	
+O que Prebisch sugeriu sobre os termos de troca?	Os preços dos produtos primários caem em relação aos industrializados.	
+O que é a industrialização por substituição de importações?	Estratégia para países se tornarem menos dependentes de matérias-primas.	
+O que a CEPAL propôs para países em desenvolvimento?	Industrialização por substituição de importações.	
+O que são termos de troca?	Relação entre os preços das exportações e importações.	
+O que a deterioração dos termos de troca significa?	A queda do valor das exportações em relação às importações.	
+O que pode causar a deterioração dos termos de troca?	Queda nos preços das commodities no mercado global.	
+O que acontece com um país exportador de petróleo quando o preço do petróleo cai?	O país precisa exportar mais petróleo para obter a mesma quantidade de importações.	
+O que acontece com a capacidade de compra de um país com termos de troca deteriorados?	A capacidade de compra do país diminui.	
+O que é a macroeconomia aberta?	Estudo da interação entre a economia doméstica e o resto do mundo.	
+O que a macroeconomia aberta examina?	Taxas de câmbio, fluxos de capital e interações globais.	
+O que afeta a economia doméstica segundo a macroeconomia aberta?	Fluxos de bens, serviços, capitais e finanças internacionais.	
+O que é o efeito das taxas de câmbio na macroeconomia aberta?	Influência nas exportações e importações de um país.	
+O que são fluxos de capital na macroeconomia aberta?	Movimentos de investimentos e recursos financeiros entre países.	
+O que a macroeconomia aberta analisa em relação aos fluxos de capital?	Como os fluxos de capital afetam a economia doméstica.	
+O que a teoria das economias de escala sugere sobre a produção?	Aumentar a produção para reduzir os custos unitários.	
+O que a concorrência imperfeita leva a no mercado internacional?	Grandes empresas dominando o comércio, dificultando a concorrência.	
+O que Prebisch e a CEPAL acreditavam sobre o comércio para os países em desenvolvimento?	O comércio não é vantajoso para países que exportam matérias-primas.	
+O que a crítica de Prebisch sobre os termos de troca sugere?	Países exportadores de commodities perdem em relação aos industrializados.	
+O que pode ocorrer com as importações de um país com a deterioração dos termos de troca?	O país precisa exportar mais para manter o nível de importações.	
+O que é um efeito de economias de escala em grandes empresas?	Elas podem reduzir os preços e ganhar competitividade.	
+O que são fluxos de bens e serviços?	Troca de produtos e serviços entre países.	
+O que inclui o comércio de bens e serviços?	Exportações e importações de bens e serviços.	
+O que são fluxos de capitais?	Investimentos financeiros que cruzam fronteiras.	
+O que são investimentos diretos?	Compra ou construção de fábricas em outro país.	
+O que são investimentos de portfólio?	Compra de ações ou títulos de outro país.	
+O que afeta a balança comercial de um país?	Fluxos de bens e serviços.	
+O que está crescendo com a globalização nos fluxos de serviços?	Serviços prestados por meio da tecnologia.	
+O que são fluxos de serviços?	Turismo, consultoria, seguro, bancos, tecnologia, etc.	
+O que é o regime de câmbio?	Sistema para determinar o valor da moeda em relação a outras.	
+O que é o câmbio flutuante?	A moeda é determinada pelo mercado, sem intervenção governamental.	
+O que determina o câmbio flutuante?	A oferta e a demanda de moeda no mercado.	
+O que pode influenciar a variação do câmbio flutuante?	Políticas monetárias, taxas de juros, eventos econômicos.	
+O que é um exemplo de câmbio flutuante?	O dólar americano e o euro.	
+O que é o câmbio fixo?	A moeda é fixada em relação a outra moeda ou cesta de moedas.	
+O que faz o governo em um regime de câmbio fixo?	Intervém para manter a taxa de câmbio estável.	
+O que é o câmbio híbrido?	Combinação de câmbio flutuante e fixo.	
+O que pode acontecer em um regime de câmbio híbrido?	O governo intervém para evitar variações extremas.	
+O que caracteriza a taxa de câmbio nominal?	O valor da moeda de um país em relação a outra moeda.	
+O que é a taxa de câmbio nominal?	O preço pelo qual você pode trocar uma moeda por outra.	
+O que é um exemplo de taxa de câmbio nominal?	1 USD = 5 BRL	
+O que é a taxa de câmbio real?	Taxa de câmbio ajustada pela inflação.	
+O que influencia a taxa de câmbio real?	A inflação dos países envolvidos.	
+O que é o impacto dos fluxos de bens e serviços na economia?	Afeta a balança comercial e o PIB de um país.	
+O que são os fluxos de capitais em termos de investimentos?	Movimentação de recursos financeiros entre países.	
+O que os fluxos de serviços podem incluir?	Turismo, serviços financeiros, consultoria, etc.	
+O que caracteriza o regime de câmbio fixo?	O valor da moeda é fixado em relação a outra moeda específica.	
+O que o câmbio flutuante permite ao mercado?	Determinar o valor da moeda sem intervenção governamental.	
+O que o governo faz em um câmbio híbrido?	Permite flutuação dentro de uma faixa estabelecida.	
+O que significa um câmbio fixo para a estabilidade econômica?	O valor da moeda permanece estável em relação a outra moeda.	
+O que pode acontecer em mercados com câmbio flutuante?	A moeda pode ter grandes variações dependendo da economia.	
+O que a taxa de câmbio nominal reflete em termos de valores?	O preço da moeda no mercado cambial.	
+O que a taxa de câmbio real representa?	O valor da moeda ajustado pela inflação de ambos os países.	
+O que ajusta a taxa de câmbio real?	Diferença de preços	
+Por que usamos a taxa de câmbio real?	Competitividade	
+O que a taxa real mede além da nominal?	Poder de compra	
+O que mostra a competitividade de um país?	Câmbio real	
+O que influencia a taxa de câmbio?	Juros	
+Por que juros altos atraem capital?	Retorno	
+O que causa valorização cambial?	Superávit	
+O que enfraquece a moeda?	Déficit	
+Por que a inflação afeta o câmbio?	Competitividade	
+O que o banco central usa para controlar o câmbio?	Reservas	
+O que é poupança externa?	Investimento externo	
+O que substitui a poupança interna?	Financiamento externo	
+Por que buscar poupança externa?	Crescimento	
+O que o excesso de dívida pode causar?	Crise	
+O que a moeda forte faz com importados?	Barateia	
+O que acontece com importados quando o câmbio está alto?	Ficam baratos	
+O que causa inflação ao desvalorizar a moeda?	Importações	
+O que o banco central faz com juros para conter inflação?	Aumenta	
+O que juros altos fazem com o consumo?	Reduzem	
+O que é usado para controlar preços?	Juros	
+O que juros altos atraem do exterior?	Capital	
+Por que juros afetam o câmbio?	Investimentos	
+O que tarifas fazem com produtos importados?	Encarecem	
+O que quotas fazem com as importações?	Limitam	
+O que subsídios fazem com produtos nacionais?	Barateiam	
+O que tarifas protegem?	Indústria nacional	
+O que quotas protegem?	Produção interna	
+Por que usar subsídios?	Competitividade	
+O que política comercial tenta equilibrar?	Concorrência	
+O que tarifas podem gerar no exterior?	Retaliação	
+O que são tarifas?	Impostos	
+Por que usar tarifas?	Proteger indústria	
+O que as tarifas fazem com os importados?	Encarecem	
+Por que as tarifas aumentam preços?	Imposto sobre importação	
+O que tarifas geram ao governo?	Receita	
+Por que tarifas podem ser ruins para consumidores?	Preço alto	
+O que tarifas reduzem?	Concorrência estrangeira	
+Por que tarifas causam retaliação?	Reação comercial	
+O que tarifas podem proteger?	Indústrias ineficientes	
+O que tarifas podem distorcer?	Eficiência	
+O que são quotas?	Limites de importação	
+Por que usar quotas?	Reduzir concorrência	
+O que quotas fazem com a oferta?	Limitam	
+O que quotas causam nos preços?	Aumento	
+O que quotas incentivam internamente?	Produção local	
+Quem pode lucrar com quotas?	Importadores	
+O que quotas reduzem?	Eficiência	
+Por que quotas causam tensão?	Restrição comercial	
+O que são subsídios?	Apoio financeiro	
+Por que governos subsidiam empresas?	Competitividade	
+O que subsídios fazem com o preço?	Reduzem	
+O que subsídios podem causar globalmente?	Distúrbios	
+O que os subsídios aumentam?	Exportações	
+O que subsídios custam ao governo?	Gastos	
+Por que subsídios reduzem eficiência?	Falta de incentivo	
+O que é dumping?	Preço abaixo do custo	
+Por que usar medidas antidumping?	Proteger mercado	
+O que normas técnicas garantem?	Qualidade	
+Por que usar barreiras sanitárias?	Saúde pública	
+O que a política comercial pode proteger?	Indústrias locais	

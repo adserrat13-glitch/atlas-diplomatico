@@ -19,9 +19,18 @@ for folder in sorted(os.listdir(fc_root)):
         if files:
             manifest["flashcards"][folder] = files
 
-# TPS
+# TPS (apenas root)
 tps_dir = os.path.join(BASE, "TPS")
-manifest["tps"] = sorted([f for f in os.listdir(tps_dir) if f.lower().endswith('.csv')])
+manifest["tps"] = sorted([f for f in os.listdir(tps_dir)
+                           if f.lower().endswith('.csv')])
+
+# TPS/CONECÇÕES
+conexoes_dir = os.path.join(BASE, "TPS", "CONECÇÕES")
+if os.path.isdir(conexoes_dir):
+    manifest["tps_conexoes"] = sorted([f for f in os.listdir(conexoes_dir)
+                                        if f.lower().endswith('.csv')])
+else:
+    manifest["tps_conexoes"] = []
 
 # Salva
 out = os.path.join(BASE, "manifest.json")
@@ -33,3 +42,4 @@ print("manifest.json gerado com sucesso!")
 print(f"  {len(manifest['flashcards'])} pastas de flashcards")
 print(f"  {total_fc} decks no total")
 print(f"  {len(manifest['tps'])} arquivos TPS")
+print(f"  {len(manifest.get('tps_conexoes', []))} arquivos TPS/CONECÇÕES")

@@ -461,7 +461,7 @@ def main() -> None:
     raizes = load_edital()
     print(f"   {len(raizes)} raizes carregadas")
 
-    csv_files = sorted(f for f in ESPIRAL.glob("*.csv")
+    csv_files = sorted(f for f in ESPIRAL.glob("**/*.csv")
                        if f.name not in ("flashcards_classificados.csv",))
     print(f"\n>> Processando {len(csv_files)} arquivos CSV...")
 

@@ -330,6 +330,7 @@
           💾 Criar deck de revisão
         </button>
         <div id="deckActionRow" style="display:flex;gap:12px;justify-content:center;margin-top:10px"></div>
+        <div id="conexoesSection" style="display:none"></div>
       </div>
       <div class="review-section" id="reviewSection" style="display:none">
         <div class="review-tabs">
@@ -503,7 +504,7 @@
     }
 
     async function loadSimFromPath(filename) {
-      const res = await fetch('SIMULADOS/' + encodeURIComponent(filename));
+      const res = await fetch('TPS/' + encodeURIComponent(filename));
       if (!res.ok) { alert('Erro ao carregar ' + filename); return; }
       const buf = await res.arrayBuffer();
       let text;
@@ -916,6 +917,61 @@
       document.getElementById('deckActionRow').innerHTML = `
         <a class="btn btn-primary" href="flashcards.html?tab=review">▶ Ver Revisões</a>
         <button class="btn btn-secondary" onclick="downloadReviewDeck()">⬇ Baixar CSV</button>`;
+      loadConexoesSection();
+    }
+
+    async function loadConexoesSection() {
+      const m = await loadManifest();
+      const files = m.tps_conexoes || [];
+      if (!files.length) return;
+      const section = document.getElementById('conexoesSection');
+      if (!section) return;
+      section.style.display = 'block';
+      section.innerHTML = `
+        <div style="margin-top:24px;text-align:left;max-width:520px;margin-inline:auto">
+          <div style="font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;
+                      text-transform:uppercase;margin-bottom:10px">Materiais relacionados</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${files.map(f => {
+              const label = f.replace(/\.csv$/i, '');
+              const safe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+              return `<button class="btn btn-secondary" style="text-align:left;justify-content:space-between;display:flex"
+                onclick="openConexao('${safe}')">
+                <span>${label}</span><span style="opacity:.5">→</span>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>`;
+    }
+
+    async function openConexao(filename) {
+      try {
+        const res = await fetch('TPS/CONE%C3%87%C3%95ES/' + encodeURIComponent(filename));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        let text;
+        try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+        catch { text = new TextDecoder('windows-1252').decode(buf); }
+        text = text.replace(/^﻿/, '');
+        const rows = Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data;
+        const cards = rows.filter(r => r[0] && r[1]).map(r => ({q:r[0].trim(), a:r[1].trim()}));
+        if (!cards.length) { alert('Nenhum card encontrado.'); return; }
+        const now = Date.now();
+        const existing = JSON.parse(localStorage.getItem('tps_review_decks')||'[]')
+          .filter(d => d.expiresAt > now);
+        existing.push({
+          id: now,
+          name: filename.replace(/\.csv$/i, ''),
+          cards,
+          source: 'conexao',
+          createdAt: now,
+          expiresAt: now + 7*24*3600*1000
+        });
+        localStorage.setItem('tps_review_decks', JSON.stringify(existing));
+        location.href = 'flashcards.html?tab=review';
+      } catch(e) {
+        alert('Erro ao carregar: ' + e.message);
+      }
     }
 
     function downloadReviewDeck() {

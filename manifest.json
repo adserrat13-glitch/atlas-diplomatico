@@ -80,5 +80,15 @@
     "TPS 2024.csv",
     "TPS 2025.csv",
     "TPS 2026.csv"
+  ],
+  "tps_conexoes": [
+    "FEB eco.csv",
+    "GEOGRAFIA MANUAL geo.csv",
+    "HISTORIA DO BRASIL BORIS FAUSTO.csv",
+    "HPEB DORATIOTO.csv",
+    "POLITICA INTERNACIONAL COLEÇÃO.csv",
+    "POLITICA INTERNACIONAL MANUAL FL.csv",
+    "PORTELA  CONCCEITOS dip.csv",
+    "SARAIVA HM .csv"
   ]
 }
