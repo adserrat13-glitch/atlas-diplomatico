@@ -342,7 +342,7 @@ const DB = {
   // ── SUBJECT FILES ───────────────────────────────────────────────────
 
   async getSubjectFiles() {
-    const { data } = await _sb.from('subject_files').select('*').order('subject_id').order('created_at');
+    const { data } = await _sb.from('subject_files').select('*').order('subject_id').order('name');
     return data || [];
   },
 
