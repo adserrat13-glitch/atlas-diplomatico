@@ -71,15 +71,36 @@
     .island { background:var(--surface);
       border:1px solid var(--border); border-radius:4px; overflow:hidden; position:relative;
       border-left:3px solid var(--subject-color,#fff);
-      transition:box-shadow .2s, transform .2s; }
-    .island:hover { box-shadow:0 0 0 1px rgba(255,255,255,0.25); transform:translateY(-1px); }
-    .island-inner { padding:14px; display:block; text-decoration:none; color:inherit; }
-    .island-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+      transition:box-shadow .2s; }
+    .island:hover { box-shadow:0 0 0 1px rgba(255,255,255,0.2); }
+
+    /* Aba da pasta (sempre visível) */
+    .island-tab { display:flex; align-items:center; gap:8px; padding:8px 12px;
+      cursor:pointer; user-select:none; border-bottom:1px solid var(--border);
+      transition:background .15s; }
+    .island-tab:hover { background:rgba(255,255,255,.04); }
     .island-code { font-size:10px; font-weight:900; letter-spacing:2px;
-      text-transform:uppercase; color:var(--subject-color); }
+      text-transform:uppercase; color:var(--subject-color); flex-shrink:0; }
+    .island-tab-name { flex:1; font-size:10px; color:var(--muted2);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .island-tab-pct  { font-size:10px; font-weight:700; color:var(--muted); flex-shrink:0; }
     .island-streak { font-size:10px; font-weight:900; color:#000;
-      padding:2px 7px; border-radius:20px;
+      padding:2px 7px; border-radius:20px; flex-shrink:0;
       background:var(--neon-yellow); letter-spacing:.3px; }
+    .island-caret  { font-size:10px; color:var(--muted); flex-shrink:0;
+      transition:transform .25s ease; }
+
+    /* Corpo colapsável — grid trick */
+    .island-body       { display:grid; grid-template-rows:1fr;
+      transition:grid-template-rows .28s ease; }
+    .island-body-inner { overflow:hidden; min-height:0; }
+
+    /* Estado fechado */
+    .island--closed .island-tab  { border-bottom:none; }
+    .island--closed .island-caret{ transform:rotate(-90deg); }
+    .island--closed .island-body { grid-template-rows:0fr; }
+
+    .island-inner { padding:10px 14px 12px; display:block; text-decoration:none; color:inherit; }
 
     /* Fill bar */
     .island-fill-wrap { position:relative; height:40px; border-radius:10px;
@@ -489,6 +510,7 @@
 
     // ── RENDER ────────────────────────────────────────────────────────────
     function renderIslands(filesMap) {
+      const saved = JSON.parse(localStorage.getItem('island_collapse') || '{}');
       document.getElementById('islandsGrid').innerHTML = SUBJECTS.map(s => {
         const files = filesMap ? (filesMap.get(s.id) || []) : [];
         const st = getSubjectStats(s.id);
@@ -500,29 +522,34 @@
           return `<a href="${PAGE_FOR[f.type]}?file=${encodeURIComponent(f.path)}&subject=${s.id}" class="fchip ${cls}">${icon} ${f.name}</a>`;
         }).join('');
         const mainLink = `flashcards.html?subject=${s.id}`;
-
-        const hasPct = st.pct > 0;
-        const pctOverlay = hasPct
+        const pctOverlay = st.pct > 0
           ? `<div class="island-pct-overlay">${st.pct}%</div>`
           : `<div class="island-pct-empty">0%</div>`;
+        const closed = saved[s.id] ? 'island--closed' : '';
 
-        return `<div class="island" style="--subject-color:${s.color}">
-          <a class="island-inner" href="${mainLink}">
-            <div class="island-top">
-              <span class="island-code">${s.id}</span>
-              ${streakHtml}
+        return `<div class="island ${closed}" style="--subject-color:${s.color}" data-id="${s.id}">
+          <div class="island-tab" onclick="toggleIsland('${s.id}')">
+            <span class="island-code">${s.id}</span>
+            <span class="island-tab-name">${s.name}</span>
+            <span class="island-tab-pct" id="tabpct-${s.id}">—</span>
+            ${streakHtml}
+            <span class="island-caret">▾</span>
+          </div>
+          <div class="island-body">
+            <div class="island-body-inner">
+              <a class="island-inner" href="${mainLink}">
+                <div class="island-fill-wrap">
+                  <div class="island-fill skeleton" id="fill-${s.id}" style="width:0%"></div>
+                  ${pctOverlay}
+                </div>
+                <div class="island-bottom">
+                  <span class="island-last skeleton" id="last-${s.id}" style="width:48px;height:10px">&nbsp;</span>
+                </div>
+              </a>
+              <div class="island-toggle" onclick="toggleFiles('${s.id}')">Ver arquivos (${files.length}) ⌄</div>
+              <div class="island-files" id="ifiles-${s.id}" style="display:none">${chips}</div>
             </div>
-            <div class="island-fill-wrap">
-              <div class="island-fill skeleton" id="fill-${s.id}" style="width:0%"></div>
-              ${pctOverlay}
-            </div>
-            <div class="island-bottom">
-              <span class="island-name">${s.name}</span>
-              <span class="island-last skeleton" id="last-${s.id}" style="width:48px;height:10px">&nbsp;</span>
-            </div>
-          </a>
-          <div class="island-toggle" onclick="toggleFiles('${s.id}')">Ver arquivos (${files.length}) ⌄</div>
-          <div class="island-files" id="ifiles-${s.id}" style="display:none">${chips}</div>
+          </div>
         </div>`;
       }).join('');
     }
@@ -548,7 +575,17 @@
           lastEl.style.width = ''; lastEl.style.height = '';
           lastEl.textContent = st.lastDate ? relativeDate(st.lastDate) : 'sem sessões';
         }
+        const tabPct = document.getElementById('tabpct-' + s.id);
+        if (tabPct) tabPct.textContent = st.pct > 0 ? st.pct + '%' : '—';
       });
+    }
+
+    function toggleIsland(id) {
+      const island = document.querySelector(`.island[data-id="${id}"]`);
+      const closed = island.classList.toggle('island--closed');
+      const saved  = JSON.parse(localStorage.getItem('island_collapse') || '{}');
+      saved[id]    = closed;
+      localStorage.setItem('island_collapse', JSON.stringify(saved));
     }
 
     function toggleFiles(id) {
