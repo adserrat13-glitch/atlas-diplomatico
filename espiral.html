@@ -174,18 +174,17 @@
 
 <div class="page-header">
   <div class="page-title">Mapa <span>Mental</span></div>
-  <div class="page-sub">PI e HB como raízes — conexões interdisciplinares CACD</div>
+  <div class="page-sub">6 matérias — conexões interdisciplinares CACD</div>
 </div>
 
 <div class="controls">
   <span class="legend-title">Legenda:</span>
-  <span class="leg-item" style="color:var(--PI);border-color:#60a5fa30"><span class="leg-dot" style="background:var(--PI)"></span>PI</span>
-  <span class="leg-item" style="color:var(--HB);border-color:#f8717130"><span class="leg-dot" style="background:var(--HB)"></span>HB</span>
-  <div class="divider"></div>
-  <span class="leg-item" style="color:var(--HM);border-color:#fbbf2430"><span class="leg-dot" style="background:var(--HM)"></span>HM</span>
-  <span class="leg-item" style="color:var(--ECO);border-color:#a78bfa30"><span class="leg-dot" style="background:var(--ECO)"></span>ECO</span>
-  <span class="leg-item" style="color:var(--GEO);border-color:#34d39930"><span class="leg-dot" style="background:var(--GEO)"></span>GEO</span>
-  <span class="leg-item" style="color:var(--DIP);border-color:#fb923c30"><span class="leg-dot" style="background:var(--DIP)"></span>DIP</span>
+  <span class="leg-item" style="color:var(--PI);border-color:#60a5fa30"><span class="leg-dot" style="background:var(--PI)"></span>Internacional</span>
+  <span class="leg-item" style="color:var(--HB);border-color:#f8717130"><span class="leg-dot" style="background:var(--HB)"></span>Brasil</span>
+  <span class="leg-item" style="color:var(--HM);border-color:#fbbf2430"><span class="leg-dot" style="background:var(--HM)"></span>História</span>
+  <span class="leg-item" style="color:var(--ECO);border-color:#a78bfa30"><span class="leg-dot" style="background:var(--ECO)"></span>Economia</span>
+  <span class="leg-item" style="color:var(--GEO);border-color:#34d39930"><span class="leg-dot" style="background:var(--GEO)"></span>Geografia</span>
+  <span class="leg-item" style="color:var(--DIP);border-color:#fb923c30"><span class="leg-dot" style="background:var(--DIP)"></span>Direito</span>
   <div class="divider"></div>
   <span class="hint">Scroll para zoom · Arraste para mover · Clique para detalhes</span>
 </div>
@@ -247,7 +246,7 @@ const SUBJ_COLOR = {
   HB:'#f87171', HM:'#fbbf24', PI:'#60a5fa', GEO:'#34d399', ECO:'#a78bfa', DIP:'#fb923c'
 };
 const SUBJ_LABEL = {
-  HB:'Hist. Brasil', HM:'Hist. Mundial', PI:'Pol. Internac.', GEO:'Geografia', ECO:'Economia', DIP:'Direito'
+  HB:'Brasil', HM:'História', PI:'Internacional', GEO:'Geografia', ECO:'Economia', DIP:'Direito'
 };
 const SUBJ_ICON = {
   HB:'🇧🇷', HM:'🌍', PI:'🤝', GEO:'🗺️', ECO:'📈', DIP:'⚖️'
@@ -295,114 +294,93 @@ const EDITAL_META = {
   '0e07fe2e':{code:'DIP31',title:'Comércio internacional e OMC',subj:'DIP'},
 };
 
-const PI_TOPICS = [
-  {id:'PI1', label:'RI: Conceitos e Paradigmas', edital_id:'8f3927b4',
-   subtemas:['Realismo','Liberalismo','Construtivismo','Hard/Soft power','Atores não-estatais','Interdependência complexa','Governança global'],
-   links:['HM3','DIP15','DIP4','HM6']},
-  {id:'PI2', label:'Política Externa Brasileira', edital_id:'d113538c',
-   subtemas:['PEI (1961-64)','Pragmatismo Responsável','Autonomia pela participação','Universalismo','Diplomacia presidencial','Cooperação Sul-Sul'],
-   links:['ECO4','HM3']},
-  {id:'PI3', label:'Brasil e América do Sul', edital_id:'057c3cef',
-   subtemas:['MERCOSUL','UNASUL','IIRSA/COSIPLAN','Liderança brasileira','Integração energética','Conselho Defesa Sul-Am.'],
-   links:['ECO3','DIP26','GEO6','GEO3']},
-  {id:'PI6', label:'EUA: Política Externa', edital_id:'1da9cc1c',
-   subtemas:['Hegemonia americana','Doutrina Monroe','Containment','Unilateralismo','Relações Brasil-EUA','Bretton Woods'],
-   links:['HM3','HM5','ECO2']},
-  {id:'PI7', label:'União Europeia', edital_id:'0bb7dded',
-   subtemas:['Tratado de Roma','Maastricht','Euro','Brexit','Crise europeia','Relações UE-Mercosul'],
-   links:['HM1','ECO3']},
-  {id:'PI13', label:'Agenda Internacional', edital_id:'dfbebc52',
-   subtemas:['Direitos humanos','Meio ambiente','Segurança alimentar','Saúde global','Tecnologia e RI','Agenda 2030'],
-   links:['DIP28','GEO7','DIP27','HM8']},
-  {id:'PI15', label:'Blocos Econômicos', edital_id:'fb242d18',
-   subtemas:['OMC','NAFTA/USMCA','RCEP','CPTPP','Protecionismo','Promoção comercial'],
-   links:['ECO3','DIP31','DIP26']},
-  {id:'PI17', label:'BRICS, G-20 e IBAS', edital_id:'760be643',
-   subtemas:['Surgimento dos BRICS','Banco dos BRICS','G-20 financeiro','Coalizões Sul-Sul','IBAS','Potências emergentes'],
-   links:['ECO3','HM8','GEO3']},
-  {id:'PI9', label:'África e Relações c/ Brasil', edital_id:'e9c8d871',
-   subtemas:['Descolonização africana','CPLP','Cooperação técnica','PEB para África','UEMOA','Diáspora africana'],
-   links:['HM4','GEO2']},
+// ── 6 subject groups (3 left, 3 right) ────────────────────────────────────────
+const SUBJECTS_LEFT = [
+  {
+    id:'HISTORIA', label:'História', abbr:'HM', subj:'HM', icon:'🌍',
+    subtemas:['Rev. Industrial','Guerra Fria','Colonialismo','Ideologias políticas','América Latina','Pós-Guerra Fria','Diplomacia digital'],
+    topics:[
+      {id:'HM1',label:'Estruturas Econômicas',edital_id:'dd37bdc4',subtemas:['Rev. Industrial','Capitalismo','Keynesianismo','Neoliberalismo','Welfare State','Fordismo']},
+      {id:'HM2',label:'Revoluções',edital_id:'b3626390',subtemas:['Rev. Francesa','Rev. Americana','Rev. Industrial','Rev. Russa','Marxismo']},
+      {id:'HM3',label:'RI no Século XX',edital_id:'788c572e',subtemas:['Guerra Fria','Bipolaridade','Détente','Pós-Guerra Fria','Ordem multipolar']},
+      {id:'HM4',label:'Colonialismo e Imperialismo',edital_id:'a3d9fb8a',subtemas:['Corrida pela África','Imperialismo europeu','Descolonização','Conferência de Berlim']},
+      {id:'HM5',label:'Política nas Américas',edital_id:'0edee248',subtemas:['Doutrina Monroe','Intervencionismo EUA','Pan-americanismo','América Latina séc.XX']},
+      {id:'HM6',label:'Ideias e Regimes Políticos',edital_id:'da08cfbe',subtemas:['Fascismo','Nazismo','Socialismo','Democracia liberal','Totalitarismo']},
+      {id:'HM8',label:'RI e Tecnologia Séc. XXI',edital_id:'56d8d751',subtemas:['Redes sociais e RI','Fake news','Ciberguerra','Diplomacia digital']},
+    ]
+  },
+  {
+    id:'ECONOMIA', label:'Economia', abbr:'ECO', subj:'ECO', icon:'📈',
+    subtemas:['Macroeconomia','Economia Internacional','História Econômica Brasileira'],
+    topics:[
+      {id:'ECO2',label:'Macroeconomia',edital_id:'a61bb950',subtemas:['PIB','Política fiscal','Política monetária','IS-LM','Inflação','Metas de inflação']},
+      {id:'ECO3',label:'Economia Internacional',edital_id:'6c79cb98',subtemas:['Balanço de pagamentos','FMI e BIRD','OMC','Globalização financeira','Cadeias globais de valor']},
+      {id:'ECO4',label:'Hist. Econômica Brasileira',edital_id:'cb2de1bb',subtemas:['Ciclos econômicos','ISI','Milagre econômico','Plano Real','Desindustrialização']},
+    ]
+  },
+  {
+    id:'DIREITO', label:'Direito', abbr:'DIP', subj:'DIP', icon:'⚖️',
+    subtemas:['Constituição','Estado e Soberania','DIP','Integração','Uso da Força','DH Internacionais','Comércio'],
+    topics:[
+      {id:'DIP3',label:'Constituição',edital_id:'ee9d2cc5',subtemas:['CF/1988','Poder constituinte','Controle de constitucionalidade','STF','Cláusulas pétreas']},
+      {id:'DIP4',label:'Estado e Soberania',edital_id:'d1005c20',subtemas:['Elementos do Estado','Soberania','Formas de governo','Reconhecimento de Estado','Federalismo']},
+      {id:'DIP15',label:'Direito Internacional',edital_id:'e3003f72',subtemas:['DIP e direito interno','Fontes do DI','Jus cogens','Soft law','Acordos executivos']},
+      {id:'DIP26',label:'Integração e MERCOSUL',edital_id:'459e5de5',subtemas:['Tratado de Assunção','TEC','Parlasul','Solução de controvérsias','DI da integração']},
+      {id:'DIP27',label:'Uso da Força e Segurança',edital_id:'8b1404e5',subtemas:['Art.2(4) ONU','Legítima defesa','Operações de paz','Terrorismo','Desarmamento']},
+      {id:'DIP28',label:'Direitos Humanos Intern.',edital_id:'f01356d5',subtemas:['DUDH','CIDH','Comitês ONU','Sistema Interamericano','Tratados ratificados']},
+      {id:'DIP31',label:'Comércio Intern. e OMC',edital_id:'0e07fe2e',subtemas:['GATT/OMC','Órgão de solução de controvérsias','Antidumping','Subsídios','Cláusula NMF']},
+    ]
+  },
 ];
 
-const HB_TOPICS = [
-  {id:'HB1', label:'O Período Colonial', edital_id:'d3aa53cc',
-   subtemas:['Tratado de Tordesilhas','Capitanias hereditárias','Economia açucareira','Escravidão africana','Quilombos','Pacto colonial','Missões jesuíticas'],
-   links:['HM4','GEO1']},
-  {id:'HB2', label:'O Processo de Independência', edital_id:'6786345b',
-   subtemas:['Transferência da corte','Abertura dos portos','Inconfidência Mineira','Liberalismo e independência','José Bonifácio','Reconhecimento internacional'],
-   links:['HM2','HM1','DIP4']},
-  {id:'HB5', label:'O Segundo Reinado', edital_id:'62b3ee69',
-   subtemas:['Café e expansão econômica','Abolição da escravatura','Guerra do Paraguai','Imigração europeia','Industrialização incipiente'],
-   links:['HM1','HM4','ECO4']},
-  {id:'HB6', label:'A Primeira República', edital_id:'042c3d74',
-   subtemas:['Política do café-com-leite','Coronelismo','Cangaço','Revolta da Vacina','Contestado','Tenentismo'],
-   links:['HM5','ECO4']},
-  {id:'HB7', label:'A Era Vargas', edital_id:'9ed3d769',
-   subtemas:['Revolução de 30','Estado Novo','CLT','ISI','Getulismo','Petrobrás e BNDES','Trabalhismo'],
-   links:['ECO4','HM6','HM1']},
-  {id:'HB8', label:'A República Liberal', edital_id:'55f3674f',
-   subtemas:['JK e Brasília','Política Externa Independente','Jango e reformas de base','Populismo','Desenvolvimentismo','Plano de Metas'],
-   links:['HM3','ECO4']},
-  {id:'HB9', label:'O Regime Militar', edital_id:'b93c6498',
-   subtemas:['Golpe de 64','AI-5','Milagre econômico','Abertura política','Dívida externa','Guerrilha urbana e rural'],
-   links:['HM6','HM3','ECO2']},
-  {id:'HB10', label:'O Processo Democrático', edital_id:'dcd9364b',
-   subtemas:['Constituição de 1988','Plano Real','Redemocratização','Collor e impeachment','Era Lula','Crise política'],
-   links:['DIP3','DIP28','ECO2']},
-];
-
-const CROSS_NODES = [
-  {id:'HM1', label:'Estruturas Econômicas', subj:'HM', edital_id:'dd37bdc4',
-   subtemas:['Rev. Industrial','Capitalismo','Keynesianismo','Neoliberalismo','Welfare State','Fordismo']},
-  {id:'HM2', label:'Revoluções', subj:'HM', edital_id:'b3626390',
-   subtemas:['Rev. Francesa','Rev. Americana','Rev. Industrial','Rev. Russa','Marxismo']},
-  {id:'HM3', label:'RI no Século XX', subj:'HM', edital_id:'788c572e',
-   subtemas:['Guerra Fria','Bipolaridade','Détente','Pós-Guerra Fria','Ordem multipolar']},
-  {id:'HM4', label:'Colonialismo e Imperialismo', subj:'HM', edital_id:'a3d9fb8a',
-   subtemas:['Corrida pela África','Imperialismo europeu','Descolonização','Conferência de Berlim']},
-  {id:'HM5', label:'Política nas Américas', subj:'HM', edital_id:'0edee248',
-   subtemas:['Doutrina Monroe','Intervencionismo EUA','Pan-americanismo','América Latina séc.XX']},
-  {id:'HM6', label:'Ideias e Regimes Políticos', subj:'HM', edital_id:'da08cfbe',
-   subtemas:['Fascismo','Nazismo','Socialismo','Democracia liberal','Totalitarismo']},
-  {id:'HM8', label:'RI e Tecnologia Séc. XXI', subj:'HM', edital_id:'56d8d751',
-   subtemas:['Redes sociais e RI','Fake news','Ciberguerra','Diplomacia digital']},
-  {id:'ECO2', label:'Macroeconomia', subj:'ECO', edital_id:'a61bb950',
-   subtemas:['PIB','Política fiscal','Política monetária','IS-LM','Inflação','Metas de inflação']},
-  {id:'ECO3', label:'Economia Internacional', subj:'ECO', edital_id:'6c79cb98',
-   subtemas:['Balanço de pagamentos','FMI e BIRD','OMC','Globalização financeira','Cadeias globais de valor']},
-  {id:'ECO4', label:'Hist. Econômica Brasileira', subj:'ECO', edital_id:'cb2de1bb',
-   subtemas:['Ciclos econômicos','ISI','Milagre econômico','Plano Real','Desindustrialização']},
-  {id:'GEO1', label:'História da Geografia', subj:'GEO', edital_id:'6291ef65',
-   subtemas:['Determinismo','Possibilismo','Ratzel','La Blache','Colonialismo e cartografia']},
-  {id:'GEO2', label:'Geografia da População', subj:'GEO', edital_id:'a3ff0d25',
-   subtemas:['Distribuição espacial','Migrações','Transição demográfica','IDH','Urbanização']},
-  {id:'GEO3', label:'Geografia Econômica', subj:'GEO', edital_id:'be7d5d71',
-   subtemas:['Divisão internacional do trabalho','Globalização produtiva','Multinacionais','Commodities']},
-  {id:'GEO6', label:'Geografia Política', subj:'GEO', edital_id:'d11d6819',
-   subtemas:['Geopolítica','Mackinder','Fronteiras','Território e poder','Espaço vital']},
-  {id:'GEO7', label:'Gestão Ambiental', subj:'GEO', edital_id:'527792eb',
-   subtemas:['Biomas','Recursos hídricos','Mudanças climáticas','Desertificação','Amazônia']},
-  {id:'DIP3', label:'Constituição', subj:'DIP', edital_id:'ee9d2cc5',
-   subtemas:['CF/1988','Poder constituinte','Controle de constitucionalidade','STF','Cláusulas pétreas']},
-  {id:'DIP4', label:'Estado e Soberania', subj:'DIP', edital_id:'d1005c20',
-   subtemas:['Elementos do Estado','Soberania','Formas de governo','Reconhecimento de Estado','Federalismo']},
-  {id:'DIP15', label:'Direito Internacional', subj:'DIP', edital_id:'e3003f72',
-   subtemas:['DIP e direito interno','Fontes do DI','Jus cogens','Soft law','Acordos executivos']},
-  {id:'DIP26', label:'Integração e MERCOSUL', subj:'DIP', edital_id:'459e5de5',
-   subtemas:['Tratado de Assunção','TEC','Parlasul','Solução de controvérsias','DI da integração']},
-  {id:'DIP27', label:'Uso da Força e Segurança', subj:'DIP', edital_id:'8b1404e5',
-   subtemas:['Art.2(4) ONU','Legítima defesa','Operações de paz','Terrorismo','Desarmamento']},
-  {id:'DIP28', label:'Direitos Humanos Intern.', subj:'DIP', edital_id:'f01356d5',
-   subtemas:['DUDH','CIDH','Comitês ONU','Sistema Interamericano','Tratados ratificados']},
-  {id:'DIP31', label:'Comércio Intern. e OMC', subj:'DIP', edital_id:'0e07fe2e',
-   subtemas:['GATT/OMC','Órgão de solução de controvérsias','Antidumping','Subsídios','Cláusula NMF']},
+const SUBJECTS_RIGHT = [
+  {
+    id:'INTERNACIONAL', label:'Internacional', abbr:'PI', subj:'PI', icon:'🤝',
+    subtemas:['Teoria das RI','Política Externa Brasileira','América do Sul','EUA','União Europeia','África','Agenda Global','Blocos','BRICS'],
+    topics:[
+      {id:'PI1',label:'RI: Conceitos e Paradigmas',edital_id:'8f3927b4',subtemas:['Realismo','Liberalismo','Construtivismo','Hard/Soft power','Atores não-estatais','Interdependência complexa','Governança global'],links:['HM3','DIP15','DIP4','HM6']},
+      {id:'PI2',label:'Política Externa Brasileira',edital_id:'d113538c',subtemas:['PEI (1961-64)','Pragmatismo Responsável','Autonomia pela participação','Universalismo','Diplomacia presidencial','Cooperação Sul-Sul'],links:['ECO4','HM3']},
+      {id:'PI3',label:'Brasil e América do Sul',edital_id:'057c3cef',subtemas:['MERCOSUL','UNASUL','IIRSA/COSIPLAN','Liderança brasileira','Integração energética','Conselho Defesa Sul-Am.'],links:['ECO3','DIP26','GEO6','GEO3']},
+      {id:'PI6',label:'EUA: Política Externa',edital_id:'1da9cc1c',subtemas:['Hegemonia americana','Doutrina Monroe','Containment','Unilateralismo','Relações Brasil-EUA','Bretton Woods'],links:['HM3','HM5','ECO2']},
+      {id:'PI7',label:'União Europeia',edital_id:'0bb7dded',subtemas:['Tratado de Roma','Maastricht','Euro','Brexit','Crise europeia','Relações UE-Mercosul'],links:['HM1','ECO3']},
+      {id:'PI9',label:'África e Relações c/ Brasil',edital_id:'e9c8d871',subtemas:['Descolonização africana','CPLP','Cooperação técnica','PEB para África','UEMOA','Diáspora africana'],links:['HM4','GEO2']},
+      {id:'PI13',label:'Agenda Internacional',edital_id:'dfbebc52',subtemas:['Direitos humanos','Meio ambiente','Segurança alimentar','Saúde global','Tecnologia e RI','Agenda 2030'],links:['DIP28','GEO7','DIP27','HM8']},
+      {id:'PI15',label:'Blocos Econômicos',edital_id:'fb242d18',subtemas:['OMC','NAFTA/USMCA','RCEP','CPTPP','Protecionismo','Promoção comercial'],links:['ECO3','DIP31','DIP26']},
+      {id:'PI17',label:'BRICS, G-20 e IBAS',edital_id:'760be643',subtemas:['Surgimento dos BRICS','Banco dos BRICS','G-20 financeiro','Coalizões Sul-Sul','IBAS','Potências emergentes'],links:['ECO3','HM8','GEO3']},
+    ]
+  },
+  {
+    id:'BRASIL', label:'Brasil', abbr:'HB', subj:'HB', icon:'🇧🇷',
+    subtemas:['Período Colonial','Independência','Segundo Reinado','Primeira República','Era Vargas','República Liberal','Regime Militar','Redemocratização'],
+    topics:[
+      {id:'HB1',label:'O Período Colonial',edital_id:'d3aa53cc',subtemas:['Tratado de Tordesilhas','Capitanias hereditárias','Economia açucareira','Escravidão africana','Quilombos','Pacto colonial','Missões jesuíticas'],links:['HM4','GEO1']},
+      {id:'HB2',label:'O Processo de Independência',edital_id:'6786345b',subtemas:['Transferência da corte','Abertura dos portos','Inconfidência Mineira','Liberalismo e independência','José Bonifácio','Reconhecimento internacional'],links:['HM2','HM1','DIP4']},
+      {id:'HB5',label:'O Segundo Reinado',edital_id:'62b3ee69',subtemas:['Café e expansão econômica','Abolição da escravatura','Guerra do Paraguai','Imigração europeia','Industrialização incipiente'],links:['HM1','HM4','ECO4']},
+      {id:'HB6',label:'A Primeira República',edital_id:'042c3d74',subtemas:['Política do café-com-leite','Coronelismo','Cangaço','Revolta da Vacina','Contestado','Tenentismo'],links:['HM5','ECO4']},
+      {id:'HB7',label:'A Era Vargas',edital_id:'9ed3d769',subtemas:['Revolução de 30','Estado Novo','CLT','ISI','Getulismo','Petrobrás e BNDES','Trabalhismo'],links:['ECO4','HM6','HM1']},
+      {id:'HB8',label:'A República Liberal',edital_id:'55f3674f',subtemas:['JK e Brasília','Política Externa Independente','Jango e reformas de base','Populismo','Desenvolvimentismo','Plano de Metas'],links:['HM3','ECO4']},
+      {id:'HB9',label:'O Regime Militar',edital_id:'b93c6498',subtemas:['Golpe de 64','AI-5','Milagre econômico','Abertura política','Dívida externa','Guerrilha urbana e rural'],links:['HM6','HM3','ECO2']},
+      {id:'HB10',label:'O Processo Democrático',edital_id:'dcd9364b',subtemas:['Constituição de 1988','Plano Real','Redemocratização','Collor e impeachment','Era Lula','Crise política'],links:['DIP3','DIP28','ECO2']},
+    ]
+  },
+  {
+    id:'GEOGRAFIA', label:'Geografia', abbr:'GEO', subj:'GEO', icon:'🗺️',
+    subtemas:['História da Geografia','Geografia da População','Geografia Econômica','Geografia Política','Gestão Ambiental'],
+    topics:[
+      {id:'GEO1',label:'História da Geografia',edital_id:'6291ef65',subtemas:['Determinismo','Possibilismo','Ratzel','La Blache','Colonialismo e cartografia']},
+      {id:'GEO2',label:'Geografia da População',edital_id:'a3ff0d25',subtemas:['Distribuição espacial','Migrações','Transição demográfica','IDH','Urbanização']},
+      {id:'GEO3',label:'Geografia Econômica',edital_id:'be7d5d71',subtemas:['Divisão internacional do trabalho','Globalização produtiva','Multinacionais','Commodities']},
+      {id:'GEO6',label:'Geografia Política',edital_id:'d11d6819',subtemas:['Geopolítica','Mackinder','Fronteiras','Território e poder','Espaço vital']},
+      {id:'GEO7',label:'Gestão Ambiental',edital_id:'527792eb',subtemas:['Biomas','Recursos hídricos','Mudanças climáticas','Desertificação','Amazônia']},
+    ]
+  },
 ];
 
 let selectedCluster = null;
 let zoomBehavior = null;
 let svgSelection = null;
 let coverageMap = {};
+let mapHeight = 0;
 let studyData = null;
 let studyQueue = [];
 let studyIdx = 0;
@@ -525,7 +503,12 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+const SUBJECT_PREFIX = {
+  HISTORIA:'HM.', ECONOMIA:'ECO.', DIREITO:'DIP.',
+  INTERNACIONAL:'PI.', BRASIL:'HB.', GEOGRAFIA:'GEO.'
+};
 function nodeToPrefix(id) {
+  if (SUBJECT_PREFIX[id]) return SUBJECT_PREFIX[id];
   if (/\d/.test(id)) return id.replace(/^([A-Z]+)(\d+)$/, '$1.$2');
   return id + '.';
 }
@@ -565,32 +548,56 @@ function buildMindMap() {
   const Ws = wrap.clientWidth;
   const Hs = wrap.clientHeight;
 
-  // Virtual canvas
   const W = Math.max(Ws, 1200);
-  const ROW = 58;
-  const H = CROSS_NODES.length * ROW + 160; // 22*58+160 = 1436
+  const ROW = 52;
+  const BAND_PAD = 100;
+
+  // Band heights — proportional to max topics per paired row
+  const bandTopics = [
+    Math.max(SUBJECTS_LEFT[0].topics.length, SUBJECTS_RIGHT[0].topics.length), // 9
+    Math.max(SUBJECTS_LEFT[1].topics.length, SUBJECTS_RIGHT[1].topics.length), // 8
+    Math.max(SUBJECTS_LEFT[2].topics.length, SUBJECTS_RIGHT[2].topics.length), // 7
+  ];
+  const bandHeights = bandTopics.map(n => n * ROW + BAND_PAD);
+  const H = bandHeights.reduce((a,b) => a+b, 0) + 80;
+  mapHeight = H;
+
+  const bandStarts = [
+    40,
+    40 + bandHeights[0],
+    40 + bandHeights[0] + bandHeights[1],
+  ];
+  const bandMids = bandStarts.map((s, i) => s + bandHeights[i] / 2);
 
   // Column centers
-  const C_PI  = 90;
-  const C_PIT = 285;
-  const C_X   = W / 2;
-  const C_HBT = W - 285;
-  const C_HB  = W - 90;
+  const C_L_ROOT   = 90;
+  const C_L_TOPICS = 280;
+  const C_R_TOPICS = W - 280;
+  const C_R_ROOT   = W - 90;
 
-  // Node half-widths/heights
-  const RW=60, RH=31;  // root half-dimensions
-  const TW=82, TH=24;  // topic half-dimensions
-  const CW=87, CH=23;  // cross half-dimensions
+  // Node half-dims
+  const RW=55, RH=26;
+  const TW=82, TH=22;
 
-  // Y positions
-  const piYs = PI_TOPICS.map((_, i) => 80 + (i + 1) * (H - 160) / (PI_TOPICS.length + 1));
-  const hbYs = HB_TOPICS.map((_, i) => 80 + (i + 1) * (H - 160) / (HB_TOPICS.length + 1));
-  const crossYs = CROSS_NODES.map((_, i) => 80 + i * ROW + ROW / 2);
-  const rootY = H / 2;
+  // Y positions within a band
+  function bandYs(bandStart, bandH, n) {
+    return Array.from({length: n}, (_, i) =>
+      bandStart + BAND_PAD/2 + (i + 0.5) * (bandH - BAND_PAD) / n
+    );
+  }
 
-  const crossPos = {};
-  CROSS_NODES.forEach((n, i) => { crossPos[n.id] = {x: C_X, y: crossYs[i]}; });
-  const crossIds = new Set(CROSS_NODES.map(n => n.id));
+  // Build position lookup for all topic nodes
+  const topicPos = {};
+  SUBJECTS_LEFT.forEach((subj, si) => {
+    bandYs(bandStarts[si], bandHeights[si], subj.topics.length).forEach((y, ti) => {
+      topicPos[subj.topics[ti].id] = {x: C_L_TOPICS, y, side:'left', subj: subj.subj};
+    });
+  });
+  SUBJECTS_RIGHT.forEach((subj, si) => {
+    bandYs(bandStarts[si], bandHeights[si], subj.topics.length).forEach((y, ti) => {
+      topicPos[subj.topics[ti].id] = {x: C_R_TOPICS, y, side:'right', subj: subj.subj};
+    });
+  });
 
   const svg = d3.select('#mmSvg');
   svg.selectAll('*').remove();
@@ -603,13 +610,12 @@ function buildMindMap() {
     .on('zoom', e => g.attr('transform', e.transform));
   svg.call(zoomBehavior);
 
-  // Initial zoom: fit height, center horizontally
   const scale0 = (Hs / H) * 0.88;
   const tx0 = (Ws - W * scale0) / 2;
   svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(tx0, 8).scale(scale0));
 
-  // ── EDGES ──────────────────────────────────────────────────────────────────
   const eg = g.append('g');
+  const ng = g.append('g');
 
   function edge(x1, y1, x2, y2, color, sw) {
     const mx = (x1 + x2) / 2;
@@ -619,32 +625,47 @@ function buildMindMap() {
       .attr('stroke-width', sw).attr('stroke-linecap','round');
   }
 
-  // PI root → PI topics
-  PI_TOPICS.forEach((_, i) =>
-    edge(C_PI+RW, rootY, C_PIT-TW, piYs[i], SUBJ_COLOR.PI+'44', 1.5));
+  // Band separator lines
+  [bandStarts[1], bandStarts[2]].forEach(y => {
+    eg.append('line')
+      .attr('x1', 20).attr('y1', y - 6).attr('x2', W - 20).attr('y2', y - 6)
+      .attr('stroke','rgba(255,255,255,0.05)').attr('stroke-width', 1)
+      .attr('stroke-dasharray','5,8');
+  });
 
-  // HB root → HB topics
-  HB_TOPICS.forEach((_, i) =>
-    edge(C_HB-RW, rootY, C_HBT+TW, hbYs[i], SUBJ_COLOR.HB+'44', 1.5));
+  // Root → topics edges
+  SUBJECTS_LEFT.forEach((subj, si) => {
+    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
+    const color = SUBJ_COLOR[subj.subj] + '44';
+    ys.forEach(y => edge(C_L_ROOT+RW, bandMids[si], C_L_TOPICS-TW, y, color, 1.5));
+  });
+  SUBJECTS_RIGHT.forEach((subj, si) => {
+    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
+    const color = SUBJ_COLOR[subj.subj] + '44';
+    ys.forEach(y => edge(C_R_ROOT-RW, bandMids[si], C_R_TOPICS+TW, y, color, 1.5));
+  });
 
-  // PI topics → cross nodes
-  PI_TOPICS.forEach((t, i) =>
-    (t.links||[]).filter(id=>crossIds.has(id)).forEach(id => {
-      const cp = crossPos[id];
-      const cn = CROSS_NODES.find(n=>n.id===id);
-      edge(C_PIT+TW, piYs[i], C_X-CW, cp.y, SUBJ_COLOR[cn.subj]+'3a', 1);
-    }));
-
-  // HB topics → cross nodes
-  HB_TOPICS.forEach((t, i) =>
-    (t.links||[]).filter(id=>crossIds.has(id)).forEach(id => {
-      const cp = crossPos[id];
-      const cn = CROSS_NODES.find(n=>n.id===id);
-      edge(C_HBT-TW, hbYs[i], C_X+CW, cp.y, SUBJ_COLOR[cn.subj]+'3a', 1);
-    }));
-
-  // ── NODES ──────────────────────────────────────────────────────────────────
-  const ng = g.append('g');
+  // Cross-edges: right topics → left/right targets
+  SUBJECTS_RIGHT.forEach(subj => {
+    subj.topics.forEach(t => {
+      (t.links || []).forEach(targetId => {
+        const fp = topicPos[t.id];
+        const tp = topicPos[targetId];
+        if (!fp || !tp) return;
+        const tColor = SUBJ_COLOR[tp.subj] + '3a';
+        if (tp.side === 'left') {
+          edge(C_R_TOPICS-TW, fp.y, C_L_TOPICS+TW, tp.y, tColor, 1);
+        } else {
+          // Same-side arc (right column to right column, arc going outward)
+          const ax = C_R_TOPICS + TW + 90;
+          eg.append('path')
+            .attr('d', `M${C_R_TOPICS+TW},${fp.y} C${ax},${fp.y} ${ax},${tp.y} ${C_R_TOPICS+TW},${tp.y}`)
+            .attr('fill','none').attr('stroke', tColor)
+            .attr('stroke-width', 1).attr('stroke-linecap','round');
+        }
+      });
+    });
+  });
 
   function wrapText(text, maxCh) {
     const words = text.split(' ');
@@ -658,88 +679,23 @@ function buildMindMap() {
     return lines;
   }
 
-  function drawNode(cx, cy, hw, hh, color, rx, data, labelCh, idText, idRight) {
+  function drawTopic(t, subj, cx, cy, idRight) {
+    const color = SUBJ_COLOR[subj];
     const grp = ng.append('g')
       .attr('class','mm-node')
-      .attr('transform',`translate(${cx-hw},${cy-hh})`)
+      .attr('transform',`translate(${cx-TW},${cy-TH})`)
       .style('cursor','pointer')
-      .on('click', () => openDrawerForNode(data))
-      .on('mouseover', e => showTip(e, data.label, SUBJ_LABEL[data.subj]||data.subj))
-      .on('mousemove', moveTip).on('mouseout', hideTip);
-
-    grp.append('rect')
-      .attr('width', hw*2).attr('height', hh*2).attr('rx', rx)
-      .attr('fill', color+'1c').attr('stroke', color).attr('stroke-width', hh>26 ? 2.5 : 1.5);
-
-    if (idText) {
-      grp.append('text')
-        .attr('x', idRight ? hw*2-7 : 7).attr('y', 12)
-        .attr('text-anchor', idRight ? 'end' : 'start')
-        .attr('fill', color).attr('font-size', 8).attr('font-weight', 800)
-        .attr('font-family','Inter,sans-serif').text(idText);
-    }
-
-    const lines = wrapText(data.label, labelCh);
-    const lh = 12;
-    const startY = hh - ((lines.length-1)*lh)/2;
-    lines.forEach((l, i) =>
-      grp.append('text')
-        .attr('x', hw).attr('y', startY + i*lh)
-        .attr('text-anchor','middle').attr('dominant-baseline','middle')
-        .attr('fill', i===0?'#e0e0e0':'#bbb').attr('font-size', hh>26?9:9.5)
-        .attr('font-weight', 600).attr('font-family','Inter,sans-serif').text(l)
-    );
-    return grp;
-  }
-
-  // Cross nodes
-  CROSS_NODES.forEach(n => {
-    const {x,y} = crossPos[n.id];
-    const color = SUBJ_COLOR[n.subj];
-    const grp = ng.append('g')
-      .attr('class','mm-node')
-      .attr('transform',`translate(${x-CW},${y-CH})`)
-      .style('cursor','pointer')
-      .on('click', () => openDrawerForNode(n))
-      .on('mouseover', e => showTip(e, n.id+' — '+n.label, SUBJ_LABEL[n.subj]))
-      .on('mousemove', moveTip).on('mouseout', hideTip);
-
-    grp.append('rect')
-      .attr('width',CW*2).attr('height',CH*2).attr('rx',7)
-      .attr('fill',color+'18').attr('stroke',color).attr('stroke-width',1.5);
-
-    grp.append('text').attr('x',6).attr('y',11)
-      .attr('fill',color).attr('font-size',7.5).attr('font-weight',800)
-      .attr('font-family','Inter,sans-serif').text(n.subj);
-
-    const lines = wrapText(n.label, 21);
-    const lh = 12;
-    const startY = CH - ((lines.length-1)*lh)/2;
-    lines.forEach((l,i) =>
-      grp.append('text').attr('x',CW).attr('y',startY+i*lh)
-        .attr('text-anchor','middle').attr('dominant-baseline','middle')
-        .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9.5)
-        .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
-    );
-    addCovBadge(grp, CW*2, getSubtreeCount(nodeToPrefix(n.id)), color);
-  });
-
-  // PI topics
-  PI_TOPICS.forEach((t,i) => {
-    const color = SUBJ_COLOR.PI;
-    const grp = ng.append('g')
-      .attr('class','mm-node')
-      .attr('transform',`translate(${C_PIT-TW},${piYs[i]-TH})`)
-      .style('cursor','pointer')
-      .on('click', () => openDrawerForNode({...t, subj:'PI'}))
-      .on('mouseover', e => showTip(e, t.label, 'Política Internacional'))
+      .on('click', () => openDrawerForNode({...t, subj}))
+      .on('mouseover', e => showTip(e, t.id+' — '+t.label, SUBJ_LABEL[subj]))
       .on('mousemove', moveTip).on('mouseout', hideTip);
 
     grp.append('rect')
       .attr('width',TW*2).attr('height',TH*2).attr('rx',7)
       .attr('fill',color+'18').attr('stroke',color).attr('stroke-width',1.5);
 
-    grp.append('text').attr('x',7).attr('y',11)
+    grp.append('text')
+      .attr('x', idRight ? TW*2-7 : 7).attr('y', 10)
+      .attr('text-anchor', idRight ? 'end' : 'start')
       .attr('fill',color).attr('font-size',7.5).attr('font-weight',800)
       .attr('font-family','Inter,sans-serif').text(t.id);
 
@@ -753,95 +709,49 @@ function buildMindMap() {
         .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
     );
     addCovBadge(grp, TW*2, getSubtreeCount(nodeToPrefix(t.id)), color);
-  });
+  }
 
-  // HB topics
-  HB_TOPICS.forEach((t,i) => {
-    const color = SUBJ_COLOR.HB;
+  function drawRoot(subj, cx, cy) {
+    const color = SUBJ_COLOR[subj.subj];
     const grp = ng.append('g')
       .attr('class','mm-node')
-      .attr('transform',`translate(${C_HBT-TW},${hbYs[i]-TH})`)
+      .attr('transform',`translate(${cx-RW},${cy-RH})`)
       .style('cursor','pointer')
-      .on('click', () => openDrawerForNode({...t, subj:'HB'}))
-      .on('mouseover', e => showTip(e, t.label, 'História do Brasil'))
+      .on('click', () => openDrawerForNode({
+        id: subj.id, label: subj.label, subj: subj.subj, edital_id: null,
+        subtemas: subj.subtemas, edital_ids: subj.topics.map(t => t.edital_id),
+      }))
+      .on('mouseover', e => showTip(e, subj.label, SUBJ_LABEL[subj.subj]))
       .on('mousemove', moveTip).on('mouseout', hideTip);
 
     grp.append('rect')
-      .attr('width',TW*2).attr('height',TH*2).attr('rx',7)
-      .attr('fill',color+'18').attr('stroke',color).attr('stroke-width',1.5);
+      .attr('width',RW*2).attr('height',RH*2).attr('rx',10)
+      .attr('fill',color+'28').attr('stroke',color).attr('stroke-width',2.5);
 
-    grp.append('text').attr('x',TW*2-7).attr('y',11)
-      .attr('text-anchor','end')
-      .attr('fill',color).attr('font-size',7.5).attr('font-weight',800)
-      .attr('font-family','Inter,sans-serif').text(t.id);
+    grp.append('text').attr('x',RW).attr('y',RH-5)
+      .attr('text-anchor','middle').attr('dominant-baseline','middle')
+      .attr('fill',color).attr('font-size',13).attr('font-weight',900)
+      .attr('font-family','Inter,sans-serif').text(subj.abbr);
 
-    const lines = wrapText(t.label, 18);
-    const lh = 11;
-    const startY = TH - ((lines.length-1)*lh)/2;
-    lines.forEach((l,i) =>
-      grp.append('text').attr('x',TW).attr('y',startY+i*lh)
-        .attr('text-anchor','middle').attr('dominant-baseline','middle')
-        .attr('fill',i===0?'#ddd':'#aaa').attr('font-size',9)
-        .attr('font-weight',600).attr('font-family','Inter,sans-serif').text(l)
-    );
-    addCovBadge(grp, TW*2, getSubtreeCount(nodeToPrefix(t.id)), color);
+    grp.append('text').attr('x',RW).attr('y',RH+11)
+      .attr('text-anchor','middle').attr('fill','#888')
+      .attr('font-size',6.5).attr('font-family','Inter,sans-serif')
+      .text(subj.label.length > 11 ? subj.label.slice(0,10)+'…' : subj.label);
+
+    addCovBadge(grp, RW*2, getSubtreeCount(subj.abbr + '.'), color);
+  }
+
+  // Render all 6 subjects
+  SUBJECTS_LEFT.forEach((subj, si) => {
+    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
+    drawRoot(subj, C_L_ROOT, bandMids[si]);
+    subj.topics.forEach((t, ti) => drawTopic(t, subj.subj, C_L_TOPICS, ys[ti], false));
   });
-
-  // PI root
-  {
-    const color = SUBJ_COLOR.PI;
-    const grp = ng.append('g')
-      .attr('class','mm-node')
-      .attr('transform',`translate(${C_PI-RW},${rootY-RH})`)
-      .style('cursor','pointer')
-      .on('click', () => openDrawerForNode({
-        id:'PI', label:'Política Internacional', subj:'PI', edital_id:null,
-        subtemas:['Teoria das RI','Política externa brasileira','Blocos econômicos','Agenda global','BRICS','ONU','Diplomacia multilateral'],
-        edital_ids: PI_TOPICS.map(t=>t.edital_id),
-      }));
-
-    grp.append('rect')
-      .attr('width',RW*2).attr('height',RH*2).attr('rx',12)
-      .attr('fill',color+'28').attr('stroke',color).attr('stroke-width',2.5);
-
-    grp.append('text').attr('x',RW).attr('y',RH-4)
-      .attr('text-anchor','middle').attr('dominant-baseline','middle')
-      .attr('fill',color).attr('font-size',22).attr('font-weight',900)
-      .attr('font-family','Inter,sans-serif').text('PI');
-
-    grp.append('text').attr('x',RW).attr('y',RH+14)
-      .attr('text-anchor','middle').attr('fill','#999')
-      .attr('font-size',8).attr('font-family','Inter,sans-serif').text('Pol. Internacional');
-    addCovBadge(grp, RW*2, getSubtreeCount('PI.'), color);
-  }
-
-  // HB root
-  {
-    const color = SUBJ_COLOR.HB;
-    const grp = ng.append('g')
-      .attr('class','mm-node')
-      .attr('transform',`translate(${C_HB-RW},${rootY-RH})`)
-      .style('cursor','pointer')
-      .on('click', () => openDrawerForNode({
-        id:'HB', label:'História do Brasil', subj:'HB', edital_id:null,
-        subtemas:['Período Colonial','Independência','Segundo Reinado','Primeira República','Era Vargas','República Liberal','Regime Militar','Redemocratização'],
-        edital_ids: HB_TOPICS.map(t=>t.edital_id),
-      }));
-
-    grp.append('rect')
-      .attr('width',RW*2).attr('height',RH*2).attr('rx',12)
-      .attr('fill',color+'28').attr('stroke',color).attr('stroke-width',2.5);
-
-    grp.append('text').attr('x',RW).attr('y',RH-4)
-      .attr('text-anchor','middle').attr('dominant-baseline','middle')
-      .attr('fill',color).attr('font-size',22).attr('font-weight',900)
-      .attr('font-family','Inter,sans-serif').text('HB');
-
-    grp.append('text').attr('x',RW).attr('y',RH+14)
-      .attr('text-anchor','middle').attr('fill','#999')
-      .attr('font-size',8).attr('font-family','Inter,sans-serif').text('História do Brasil');
-    addCovBadge(grp, RW*2, getSubtreeCount('HB.'), color);
-  }
+  SUBJECTS_RIGHT.forEach((subj, si) => {
+    const ys = bandYs(bandStarts[si], bandHeights[si], subj.topics.length);
+    drawRoot(subj, C_R_ROOT, bandMids[si]);
+    subj.topics.forEach((t, ti) => drawTopic(t, subj.subj, C_R_TOPICS, ys[ti], true));
+  });
 }
 
 function openDrawerForNode(nodeData) {
@@ -913,7 +823,7 @@ function zoomReset() {
   const wrap = document.getElementById('mmWrap');
   const Ws = wrap.clientWidth, Hs = wrap.clientHeight;
   const W = Math.max(Ws, 1200);
-  const H = CROSS_NODES.length * 58 + 160;
+  const H = mapHeight || 1500;
   const scale0 = (Hs / H) * 0.88;
   const tx0 = (Ws - W * scale0) / 2;
   svgSelection.transition().duration(350)
