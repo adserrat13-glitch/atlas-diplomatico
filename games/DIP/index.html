@@ -666,7 +666,7 @@ function startReview() {
     document.getElementById('timerBadge').textContent = fmt(timerSecs);
   }, 1000);
 
-  document.getElementById('gameSectionName').textContent = '🔴 Revisão de Erros — DIP';
+  document.querySelector('.game-section-name').textContent = '🔴 Revisão de Erros — DIP';
   document.getElementById('gameRoundLabel').textContent  = `${roundPairs.length} pares`;
   document.getElementById('gameProg').style.width = '0%';
   showView('viewGame');
