@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>DIP Matching — Atlas Diplomático</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../theme.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#000;color:#fff;font-family:'JetBrains Mono','Courier New',monospace;min-height:100vh}
+
+/* ── NAV ── */
+nav{position:sticky;top:0;z-index:200;height:52px;background:#000;
+  border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;
+  padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;
+  padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;
+  white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{text-decoration:underline}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;
+  border-radius:6px;transition:.15s;white-space:nowrap;display:flex;align-items:center;
+  gap:4px;flex-shrink:0}
+nav a:hover{color:#fff;background:rgba(255,255,255,.06)}
+nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bottom:3px}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);
+  border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;
+  white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  flex-shrink:0;margin-left:6px;color:#888}
+
+/* ── SIDEBAR ── */
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;
+  border-right:1px solid rgba(255,255,255,.07);z-index:199;
+  transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;
+  background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;
+  padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
+.sb-sec{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;
+  padding:12px 16px 4px;text-transform:uppercase}
+.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;
+  text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
+.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
+.sb-link.active{color:#fff}
+
+/* ── VIEWS ── */
+.view{display:none}
+.view.active{display:block}
+
+/* ── LOADING ── */
+.loading-screen{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:60vh;gap:10px;color:#444;font-size:13px}
+.loading-dot{width:6px;height:6px;border-radius:50%;background:#444;
+  animation:loadpulse 1s ease infinite}
+@keyframes loadpulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+/* ── START SCREEN ── */
+.start-hero{max-width:420px;margin:0 auto;padding:64px 16px 60px;text-align:center}
+.start-icon{font-size:52px;margin-bottom:14px}
+.start-hero h1{font-size:26px;font-weight:900;letter-spacing:3px;margin-bottom:6px}
+.start-hero > p{font-size:12px;color:#555;margin-bottom:32px;letter-spacing:.5px}
+.start-progress-wrap{margin-bottom:32px}
+.start-prog-bar{height:6px;background:rgba(255,255,255,.08);border-radius:99px;
+  overflow:hidden;margin-bottom:8px}
+.start-prog-fill{height:100%;background:#fff;border-radius:99px;transition:width .5s}
+.start-prog-label{font-size:11px;color:#444}
+.start-btns{display:flex;flex-direction:column;gap:10px;align-items:center}
+
+/* ── GAME VIEW ── */
+.game-wrap{max-width:600px;margin:0 auto;padding:0 12px 40px}
+
+.game-topbar{display:flex;align-items:center;gap:8px;padding:12px 0 8px;flex-wrap:wrap}
+.game-back{background:none;border:1px solid rgba(255,255,255,.15);color:#666;
+  font-size:10px;font-weight:700;padding:5px 10px;border-radius:6px;cursor:pointer;
+  font-family:inherit;transition:.15s;flex-shrink:0}
+.game-back:hover{color:#fff;border-color:#fff}
+.game-section-name{font-size:12px;font-weight:700;flex:1;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.game-round{font-size:10px;color:#555;flex-shrink:0}
+.timer-badge{font-size:11px;font-weight:700;background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.12);padding:4px 10px;border-radius:20px;
+  flex-shrink:0;font-variant-numeric:tabular-nums}
+.combo-badge{font-size:11px;font-weight:800;color:#000;background:#fbbf24;
+  padding:4px 10px;border-radius:20px;flex-shrink:0}
+.combo-badge.hidden{display:none}
+.combo-badge.pop{animation:comboPop .35s ease}
+@keyframes comboPop{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+.game-prog{height:2px;background:rgba(255,255,255,.06);border-radius:99px;
+  margin-bottom:14px;overflow:hidden}
+.game-prog-fill{height:100%;background:#fff;border-radius:99px;transition:width .5s}
+
+.columns-wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.col-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:#333;
+  margin-bottom:5px;text-transform:uppercase}
+.match-col{display:flex;flex-direction:column;gap:6px}
+
+.match-item{
+  background:#0f0f0f;border:1.5px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:10px 9px;font-size:10.5px;font-weight:600;
+  line-height:1.4;cursor:pointer;
+  transition:background .12s,border-color .12s,transform .1s,opacity .3s;
+  user-select:none;min-height:50px;display:flex;align-items:center;
+  word-break:break-word;hyphens:auto;
+}
+.match-item:hover:not(.is-correct):not(.is-wrong){
+  background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22);
+}
+.match-item.selected{
+  background:rgba(255,255,255,.1);border-color:#fff;
+  transform:scale(1.02);box-shadow:0 0 0 1px rgba(255,255,255,.15);
+}
+.match-item.is-correct{
+  background:rgba(110,231,183,.1);border-color:rgba(110,231,183,.5);
+  color:#6ee7b7;pointer-events:none;
+}
+.match-item.is-wrong{
+  background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.5);
+  color:#f87171;animation:shake .35s ease;
+}
+.match-item.vanish{
+  opacity:0;transform:scale(0.85);pointer-events:none;
+  transition:opacity .3s,transform .3s;
+}
+.match-item.gone{display:none}
+
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
+
+/* ── RESULT ── */
+.result-wrap{max-width:420px;margin:0 auto;padding:40px 16px 60px;text-align:center}
+.result-emoji{font-size:52px;margin-bottom:10px}
+.result-title{font-size:16px;font-weight:800;letter-spacing:.5px;margin-bottom:4px}
+.result-sub{font-size:11px;color:#444;margin-bottom:16px}
+.result-stars{font-size:36px;letter-spacing:4px;color:#fbbf24;margin-bottom:24px}
+
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:28px;text-align:left}
+.result-stat{background:#0a0a0a;border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;padding:14px 12px}
+.result-stat-label{font-size:9px;font-weight:700;letter-spacing:1px;color:#444;
+  text-transform:uppercase;margin-bottom:5px}
+.result-stat-val{font-size:20px;font-weight:800}
+.green{color:#6ee7b7}
+.red{color:#f87171}
+.yellow{color:#fbbf24}
+
+.result-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-r{border:none;border-radius:10px;padding:12px 22px;font-size:12px;
+  font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;letter-spacing:.3px}
+.btn-primary{background:#fff;color:#000}
+.btn-primary:hover{background:#e0e0e0}
+.btn-secondary{background:#111;border:1px solid rgba(255,255,255,.15);color:#fff}
+.btn-secondary:hover{background:#1a1a1a;border-color:rgba(255,255,255,.35)}
+
+/* ── ALL DONE ── */
+.all-done{max-width:440px;margin:40px auto;padding:32px 16px;text-align:center}
+.all-done h2{font-size:18px;font-weight:800;margin-bottom:8px}
+.all-done p{font-size:12px;color:#555}
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="nav-ham" onclick="openSidebar()">☰</button>
+  <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+  <a href="../../index.html">🏠 Início</a>
+  <a href="../../flashcards.html">🃏 Flashcards</a>
+  <a href="../../matching.html">🔤 Palavras</a>
+  <a href="../../gramatica-matching.html">📝 Gramática</a>
+  <a href="index.html" class="active">⚖️ DIP</a>
+  <a href="../../linha-do-tempo.html">🎮 Jogo</a>
+  <a href="../../leaderboard.html">🏆 Ranking</a>
+  <div class="nav-spacer"></div>
+  <div class="nav-cd" id="navCountdown"></div>
+  <div class="nav-user" id="navUser">?</div>
+</nav>
+
+<!-- LOADING -->
+<div id="viewLoading" class="view active">
+  <div class="loading-screen">
+    <div style="font-size:28px">⚖️</div>
+    <div class="loading-dot"></div>
+    <div>Carregando DIP...</div>
+  </div>
+</div>
+
+<!-- START -->
+<div id="viewStart" class="view">
+  <div class="start-hero">
+    <div class="start-icon">⚖️</div>
+    <h1>DIP</h1>
+    <p>Direito Internacional Público</p>
+    <div class="start-progress-wrap">
+      <div class="start-prog-bar">
+        <div class="start-prog-fill" id="startProgFill" style="width:0%"></div>
+      </div>
+      <div class="start-prog-label" id="startProgLabel">0 / 0 pares concluídos</div>
+    </div>
+    <div class="start-btns">
+      <button class="btn-r btn-primary" id="btnStart" onclick="startGame()">Começar</button>
+      <button class="btn-r btn-secondary" id="btnReset" onclick="resetProgress()" style="display:none">↺ Recomeçar do início</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="viewGame" class="view">
+  <div class="game-wrap">
+    <div class="game-topbar">
+      <button class="game-back" onclick="goBackToStart()">← Início</button>
+      <span class="game-section-name">DIP — Matching Pairs</span>
+      <span class="game-round" id="gameRoundLabel"></span>
+      <span class="timer-badge" id="timerBadge">00:00</span>
+      <span class="combo-badge hidden" id="comboBadge">COMBO ×2</span>
+    </div>
+
+    <div class="game-prog">
+      <div class="game-prog-fill" id="gameProg" style="width:0%"></div>
+    </div>
+
+    <div class="columns-wrap">
+      <div>
+        <div class="col-label">Termo</div>
+        <div class="match-col" id="colLeft"></div>
+      </div>
+      <div>
+        <div class="col-label">Correspondente</div>
+        <div class="match-col" id="colRight"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="viewResult" class="view">
+  <div class="result-wrap">
+    <div class="result-emoji" id="resEmoji">🎉</div>
+    <div class="result-title" id="resTitle">Rodada concluída</div>
+    <div class="result-sub" id="resSub"></div>
+    <div class="result-stars" id="resStars">★★★</div>
+    <div class="result-grid">
+      <div class="result-stat">
+        <div class="result-stat-label">Pares certos</div>
+        <div class="result-stat-val green" id="resPairs">0</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">Erros</div>
+        <div class="result-stat-val red" id="resErrors">0</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">Tempo</div>
+        <div class="result-stat-val" id="resTime">0:00</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">Combo máx.</div>
+        <div class="result-stat-val yellow" id="resCombo">0</div>
+      </div>
+    </div>
+    <div class="result-btns">
+      <button class="btn-r btn-secondary" onclick="repeatRound()">↺ Repetir</button>
+      <button class="btn-r btn-primary" id="btnNext" onclick="nextRound()">Próxima Rodada →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALL DONE -->
+<div id="viewDone" class="view">
+  <div class="all-done">
+    <div style="font-size:48px;margin-bottom:16px">🏆</div>
+    <h2>Você completou o DIP!</h2>
+    <p style="margin-top:8px">Todos os pares de Direito Internacional Público concluídos.</p>
+    <div style="margin-top:28px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-r btn-secondary" onclick="resetAndStart()">↺ Recomeçar</button>
+      <button class="btn-r btn-primary" onclick="goBackToStart()">← Início</button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar">
+  <div class="sb-brand">ATLAS <span style="text-decoration:underline">DIPL.</span></div>
+  <div class="sb-sec">Estudo</div>
+  <a class="sb-link" href="../../index.html">🏠 Início</a>
+  <a class="sb-link" href="../../flashcards.html">🃏 Flashcards</a>
+  <a class="sb-link" href="../../analise.html">📊 Análise</a>
+  <a class="sb-link" href="../../matching.html">🔤 Matching Palavras</a>
+  <a class="sb-link" href="../../gramatica-matching.html">📝 Matching Gramática</a>
+  <a class="sb-link active" href="index.html">⚖️ Matching DIP</a>
+  <a class="sb-link" href="../../linha-do-tempo.html">🎮 Jogo Linha do Tempo</a>
+  <a class="sb-link" href="../../cronologia.html">📜 Cronologia</a>
+  <div class="sb-sec">Comunidade</div>
+  <a class="sb-link" href="../../leaderboard.html">🏆 Ranking</a>
+  <a class="sb-link" href="../../agenda.html">📅 Agenda</a>
+  <div class="sb-sec">Admin</div>
+  <a class="sb-link" href="../../admin.html">⚙️ Admin</a>
+</aside>
+
+<script>
+const BATCH_SIZE      = 5;
+const PAIRS_PER_ROUND = 10;
+const PROGRESS_KEY    = 'dip_match_progress';
+
+let allPairs       = [];
+let batchOffset    = 0;
+let roundPairs     = [];
+let batchInRound   = 0;
+let currentBatch   = [];
+let matchMap       = {};
+let leftItems      = [];
+let rightItems     = [];
+let activeItem     = null;
+let matchedInBatch = 0;
+let locked         = false;
+let combo          = 0;
+let maxCombo       = 0;
+let errors         = 0;
+let totalMatched   = 0;
+let timerSecs      = 0;
+let timerInterval  = null;
+
+function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function getProgress(){
+  return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{"batchOffset":0}');
+}
+function saveProgress(){
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify({ batchOffset }));
+}
+
+Papa.parse('DIP.csv', {
+  header: false,
+  delimiter: ';',
+  download: true,
+  skipEmptyLines: true,
+  complete({ data }) {
+    allPairs = data
+      .filter(r => r[0] && r[0] !== 'Front (Termo)' && r[1])
+      .map(r => ({ left: r[0].trim(), right: r[1].trim() }));
+
+    const saved = getProgress();
+    batchOffset = Math.min(saved.batchOffset || 0, allPairs.length);
+
+    renderStart();
+    showView('viewStart');
+  },
+  error(e){
+    document.querySelector('#viewLoading .loading-screen div:last-child').textContent = 'Erro ao carregar CSV: ' + e.message;
+  }
+});
+
+function renderStart(){
+  const total = allPairs.length;
+  const done  = batchOffset;
+  const pct   = total ? (done / total) * 100 : 0;
+
+  document.getElementById('startProgFill').style.width = pct + '%';
+  document.getElementById('startProgLabel').textContent = `${done} / ${total} pares concluídos`;
+
+  document.getElementById('btnStart').textContent =
+    done === 0 ? 'Começar' : done >= total ? 'Ver resultado final' : 'Continuar';
+
+  document.getElementById('btnReset').style.display = done > 0 ? '' : 'none';
+}
+
+function resetProgress(){
+  if (!confirm('Recomeçar do início? O progresso será perdido.')) return;
+  batchOffset = 0;
+  saveProgress();
+  renderStart();
+}
+
+function resetAndStart(){
+  batchOffset = 0;
+  saveProgress();
+  startGame();
+}
+
+function goBackToStart(){
+  clearInterval(timerInterval);
+  renderStart();
+  showView('viewStart');
+}
+
+function startGame(){
+  if (batchOffset >= allPairs.length){
+    showView('viewDone');
+    return;
+  }
+  roundPairs   = allPairs.slice(batchOffset, batchOffset + PAIRS_PER_ROUND);
+  batchInRound = 0;
+  combo        = 0;
+  maxCombo     = 0;
+  errors       = 0;
+  totalMatched = 0;
+  timerSecs    = 0;
+
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    timerSecs++;
+    document.getElementById('timerBadge').textContent = fmt(timerSecs);
+  }, 1000);
+
+  const roundNum    = Math.floor(batchOffset / PAIRS_PER_ROUND) + 1;
+  const totalRounds = Math.ceil(allPairs.length / PAIRS_PER_ROUND);
+  document.getElementById('gameRoundLabel').textContent = `Rodada ${roundNum}/${totalRounds}`;
+  document.getElementById('gameProg').style.width = '0%';
+
+  showView('viewGame');
+  loadBatch();
+}
+
+function loadBatch(){
+  const start    = batchInRound * BATCH_SIZE;
+  currentBatch   = roundPairs.slice(start, start + BATCH_SIZE);
+  matchMap       = {};
+  currentBatch.forEach(p => matchMap[p.left] = p.right);
+  leftItems      = shuffle(currentBatch.map(p => p.left));
+  rightItems     = shuffle(currentBatch.map(p => p.right));
+  matchedInBatch = 0;
+  activeItem     = null;
+  locked         = false;
+
+  updateComboUI();
+  updateProgress();
+  renderColumns();
+}
+
+function renderColumns(){
+  document.getElementById('colLeft').innerHTML = leftItems.map((text, i) =>
+    `<div class="match-item" data-side="left" data-idx="${i}" onclick="tap(this)">${esc(text)}</div>`
+  ).join('');
+
+  document.getElementById('colRight').innerHTML = rightItems.map((text, i) =>
+    `<div class="match-item" data-side="right" data-idx="${i}" onclick="tap(this)">${esc(text)}</div>`
+  ).join('');
+}
+
+function tap(el){
+  if (locked) return;
+  if (el.classList.contains('is-correct') || el.classList.contains('gone')) return;
+
+  const side = el.dataset.side;
+  const idx  = +el.dataset.idx;
+
+  if (!activeItem){
+    activeItem = { side, idx, el };
+    el.classList.add('selected');
+    return;
+  }
+
+  if (activeItem.el === el){
+    el.classList.remove('selected');
+    activeItem = null;
+    return;
+  }
+
+  if (activeItem.side === side){
+    activeItem.el.classList.remove('selected');
+    activeItem = { side, idx, el };
+    el.classList.add('selected');
+    return;
+  }
+
+  const leftIdx  = side === 'left'  ? idx : activeItem.idx;
+  const rightIdx = side === 'right' ? idx : activeItem.idx;
+  const leftEl   = side === 'left'  ? el  : activeItem.el;
+  const rightEl  = side === 'right' ? el  : activeItem.el;
+
+  leftEl.classList.remove('selected');
+  rightEl.classList.remove('selected');
+  activeItem = null;
+  locked = true;
+
+  const isMatch = matchMap[leftItems[leftIdx]] === rightItems[rightIdx];
+
+  if (isMatch){
+    combo++;
+    maxCombo = Math.max(maxCombo, combo);
+    totalMatched++;
+    matchedInBatch++;
+    updateComboUI();
+    updateProgress();
+
+    leftEl.classList.add('is-correct');
+    rightEl.classList.add('is-correct');
+
+    setTimeout(()=>{
+      leftEl.classList.add('vanish');
+      rightEl.classList.add('vanish');
+      setTimeout(()=>{
+        leftEl.classList.add('gone');
+        rightEl.classList.add('gone');
+        locked = false;
+        if (matchedInBatch >= currentBatch.length){
+          setTimeout(advanceBatch, 300);
+        }
+      }, 320);
+    }, 420);
+
+  } else {
+    combo = 0;
+    errors++;
+    updateComboUI();
+    leftEl.classList.add('is-wrong');
+    rightEl.classList.add('is-wrong');
+    setTimeout(()=>{
+      leftEl.classList.remove('is-wrong');
+      rightEl.classList.remove('is-wrong');
+      locked = false;
+    }, 500);
+  }
+}
+
+function updateProgress(){
+  const pct = roundPairs.length ? (totalMatched / roundPairs.length) * 100 : 0;
+  document.getElementById('gameProg').style.width = pct + '%';
+}
+
+function updateComboUI(){
+  const badge = document.getElementById('comboBadge');
+  if (combo >= 2){
+    badge.textContent = `COMBO ×${combo}`;
+    badge.classList.remove('hidden');
+    badge.classList.remove('pop');
+    void badge.offsetWidth;
+    badge.classList.add('pop');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function advanceBatch(){
+  batchInRound++;
+  if (batchInRound * BATCH_SIZE >= roundPairs.length){
+    batchOffset += roundPairs.length;
+    saveProgress();
+    showResult();
+  } else {
+    loadBatch();
+  }
+}
+
+function showResult(){
+  clearInterval(timerInterval);
+
+  const total = roundPairs.length;
+  const acc   = total / (total + errors);
+  const stars = acc >= 0.9 ? 3 : acc >= 0.65 ? 2 : 1;
+
+  document.getElementById('resEmoji').textContent  = errors === 0 ? '🏆' : stars === 3 ? '🎉' : stars === 2 ? '👍' : '💪';
+  document.getElementById('resTitle').textContent  = 'Rodada concluída';
+  document.getElementById('resSub').textContent    = errors === 0 ? 'Sem erros! Perfeito!' : `Precisão: ${Math.round(acc*100)}%`;
+  document.getElementById('resStars').innerHTML    =
+    '<span style="color:#fbbf24">' + '★'.repeat(stars) + '</span>' +
+    '<span style="color:#333">'    + '☆'.repeat(3-stars) + '</span>';
+  document.getElementById('resPairs').textContent  = totalMatched;
+  document.getElementById('resErrors').textContent = errors;
+  document.getElementById('resTime').textContent   = fmt(timerSecs);
+  document.getElementById('resCombo').textContent  = maxCombo;
+
+  const isLast = batchOffset >= allPairs.length;
+  document.getElementById('btnNext').textContent = isLast ? 'Ver conclusão →' : 'Próxima Rodada →';
+
+  showView('viewResult');
+}
+
+function repeatRound(){
+  batchOffset -= roundPairs.length;
+  if (batchOffset < 0) batchOffset = 0;
+  saveProgress();
+  startGame();
+}
+
+function nextRound(){
+  if (batchOffset >= allPairs.length) showView('viewDone');
+  else startGame();
+}
+
+function openSidebar(){
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+(async()=>{
+  try {
+    const user = await DB.requireAuth();
+    const [profile, , examDate] = await Promise.all([
+      DB.getProfile(), DB.isAdmin(), DB.getExamDate()
+    ]);
+    const nu = document.getElementById('navUser');
+    if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+    const nc = document.getElementById('navCountdown');
+    if (nc && examDate) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
