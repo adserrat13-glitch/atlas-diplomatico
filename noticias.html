@@ -631,6 +631,10 @@ function RadarApp() {
   };
 
   const handleRefresh = async () => {
+    setLoading(true);
+    // Trigger server-side ingest (fire-and-forget); wait 3s then reload
+    fetch('/api/ingest', { method: 'POST' }).catch(() => {});
+    await new Promise(r => setTimeout(r, 3000));
     setPage(0);
     await fetchPage(0, filterRef.current, searchRef.current, true);
   };
@@ -688,7 +692,7 @@ function RadarApp() {
           <div className="empty-state">
             <div className="big">📭</div>
             <p>Nenhum artigo no banco de dados ainda.</p>
-            <p className="sub">Execute o backend para popular: <code>npm run ingest</code></p>
+            <p className="sub">Clique em '🔄 Atualizar' para buscar as primeiras notícias.</p>
           </div>
         )}
 
