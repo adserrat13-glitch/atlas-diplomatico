@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>DIP Matching — Atlas Diplomático</title>
+<title>Economia Matching — Atlas Diplomático</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -13,7 +13,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#000;color:#fff;font-family:'JetBrains Mono','Courier New',monospace;min-height:100vh}
 
-/* ── NAV ── */
 nav{position:sticky;top:0;z-index:200;height:52px;background:#000;
   border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;
   padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
@@ -37,13 +36,11 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
   display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
   flex-shrink:0;margin-left:6px;color:#888}
 
-/* ── SIDEBAR ── */
 #sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;
   border-right:1px solid rgba(255,255,255,.07);z-index:199;
   transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
 #sidebar.open{transform:translateX(0)}
-#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;
-  background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
 #sidebar-overlay.open{display:block}
 .sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;
   padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
@@ -54,32 +51,39 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
 .sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
 .sb-link.active{color:#fff}
 
-/* ── VIEWS ── */
 .view{display:none}
 .view.active{display:block}
 
-/* ── LOADING ── */
 .loading-screen{display:flex;flex-direction:column;align-items:center;
   justify-content:center;min-height:60vh;gap:10px;color:#444;font-size:13px}
-.loading-dot{width:6px;height:6px;border-radius:50%;background:#444;
-  animation:loadpulse 1s ease infinite}
+.loading-dot{width:6px;height:6px;border-radius:50%;background:#444;animation:loadpulse 1s ease infinite}
 @keyframes loadpulse{0%,100%{opacity:.3}50%{opacity:1}}
 
-/* ── START SCREEN ── */
-.start-hero{max-width:420px;margin:0 auto;padding:64px 16px 60px;text-align:center}
-.start-icon{font-size:52px;margin-bottom:14px}
-.start-hero h1{font-size:26px;font-weight:900;letter-spacing:3px;margin-bottom:6px}
-.start-hero > p{font-size:12px;color:#555;margin-bottom:32px;letter-spacing:.5px}
-.start-progress-wrap{margin-bottom:32px}
-.start-prog-bar{height:6px;background:rgba(255,255,255,.08);border-radius:99px;
-  overflow:hidden;margin-bottom:8px}
-.start-prog-fill{height:100%;background:#fff;border-radius:99px;transition:width .5s}
-.start-prog-label{font-size:11px;color:#444}
-.start-btns{display:flex;flex-direction:column;gap:10px;align-items:center}
+/* ── STAGE SELECT ── */
+.stage-hero{padding:32px 16px 20px;text-align:center;max-width:640px;margin:0 auto}
+.stage-hero h1{font-size:20px;font-weight:800;letter-spacing:1.5px;margin-bottom:4px}
+.stage-hero p{font-size:11px;color:#444;margin-top:4px}
+.stage-hero-meta{font-size:11px;color:#555;margin-top:8px}
+
+.stages-grid{display:grid;grid-template-columns:repeat(1,1fr);gap:12px;
+  max-width:560px;margin:0 auto;padding:0 16px 60px}
+@media(min-width:480px){.stages-grid{grid-template-columns:repeat(3,1fr)}}
+
+.stage-card{background:#0a0a0a;border:1.5px solid rgba(255,255,255,.1);
+  border-radius:12px;padding:20px 14px;cursor:pointer;
+  transition:border-color .15s,background .15s;
+  display:flex;flex-direction:column;gap:6px;user-select:none}
+.stage-card:hover{border-color:rgba(255,255,255,.3);background:#111}
+.stage-card.started{border-color:rgba(110,231,183,.25)}
+.stage-icon{font-size:22px;line-height:1}
+.stage-name{font-size:12px;font-weight:800;color:#fff;line-height:1.35}
+.stage-meta{font-size:10px;color:#444}
+.stage-prog-bar{height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:2px}
+.stage-prog-fill{height:100%;background:#fff;border-radius:99px;transition:width .5s}
+.stage-prog-label{font-size:9px;color:#555;margin-top:3px;font-weight:600}
 
 /* ── GAME VIEW ── */
 .game-wrap{max-width:600px;margin:0 auto;padding:0 12px 40px}
-
 .game-topbar{display:flex;align-items:center;gap:8px;padding:12px 0 8px;flex-wrap:wrap}
 .game-back{background:none;border:1px solid rgba(255,255,255,.15);color:#666;
   font-size:10px;font-weight:700;padding:5px 10px;border-radius:6px;cursor:pointer;
@@ -106,67 +110,44 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
   margin-bottom:5px;text-transform:uppercase}
 .match-col{display:flex;flex-direction:column;gap:6px}
 
-.match-item{
-  background:#0f0f0f;border:1.5px solid rgba(255,255,255,.1);
+.match-item{background:#0f0f0f;border:1.5px solid rgba(255,255,255,.1);
   border-radius:10px;padding:10px 9px;font-size:10.5px;font-weight:600;
   line-height:1.4;cursor:pointer;
   transition:background .12s,border-color .12s,transform .1s,opacity .3s;
   user-select:none;min-height:50px;display:flex;align-items:center;
-  word-break:break-word;hyphens:auto;
-}
+  word-break:break-word;hyphens:auto}
 .match-item:hover:not(.is-correct):not(.is-wrong){
-  background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22);
-}
-.match-item.selected{
-  background:rgba(255,255,255,.1);border-color:#fff;
-  transform:scale(1.02);box-shadow:0 0 0 1px rgba(255,255,255,.15);
-}
-.match-item.is-correct{
-  background:rgba(110,231,183,.1);border-color:rgba(110,231,183,.5);
-  color:#6ee7b7;pointer-events:none;
-}
-.match-item.is-wrong{
-  background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.5);
-  color:#f87171;animation:shake .35s ease;
-}
-.match-item.vanish{
-  opacity:0;transform:scale(0.85);pointer-events:none;
-  transition:opacity .3s,transform .3s;
-}
+  background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.22)}
+.match-item.selected{background:rgba(255,255,255,.1);border-color:#fff;
+  transform:scale(1.02);box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+.match-item.is-correct{background:rgba(110,231,183,.1);border-color:rgba(110,231,183,.5);
+  color:#6ee7b7;pointer-events:none}
+.match-item.is-wrong{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.5);
+  color:#f87171;animation:shake .35s ease}
+.match-item.vanish{opacity:0;transform:scale(0.85);pointer-events:none;
+  transition:opacity .3s,transform .3s}
 .match-item.gone{display:none}
-
-@keyframes shake{
-  0%,100%{transform:translateX(0)}
-  25%{transform:translateX(-5px)}
-  75%{transform:translateX(5px)}
-}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 
 /* ── RESULT ── */
 .result-wrap{max-width:420px;margin:0 auto;padding:40px 16px 60px;text-align:center}
 .result-emoji{font-size:52px;margin-bottom:10px}
 .result-title{font-size:16px;font-weight:800;letter-spacing:.5px;margin-bottom:4px}
 .result-sub{font-size:11px;color:#444;margin-bottom:16px}
-.result-stars{font-size:36px;letter-spacing:4px;color:#fbbf24;margin-bottom:24px}
-
+.result-stars{font-size:36px;letter-spacing:4px;margin-bottom:24px}
 .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:28px;text-align:left}
-.result-stat{background:#0a0a0a;border:1px solid rgba(255,255,255,.1);
-  border-radius:10px;padding:14px 12px}
-.result-stat-label{font-size:9px;font-weight:700;letter-spacing:1px;color:#444;
-  text-transform:uppercase;margin-bottom:5px}
+.result-stat{background:#0a0a0a;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 12px}
+.result-stat-label{font-size:9px;font-weight:700;letter-spacing:1px;color:#444;text-transform:uppercase;margin-bottom:5px}
 .result-stat-val{font-size:20px;font-weight:800}
-.green{color:#6ee7b7}
-.red{color:#f87171}
-.yellow{color:#fbbf24}
-
+.green{color:#6ee7b7}.red{color:#f87171}.yellow{color:#fbbf24}
 .result-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.btn-r{border:none;border-radius:10px;padding:12px 22px;font-size:12px;
-  font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;letter-spacing:.3px}
+.btn-r{border:none;border-radius:10px;padding:12px 22px;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:.15s;letter-spacing:.3px}
 .btn-primary{background:#fff;color:#000}
 .btn-primary:hover{background:#e0e0e0}
 .btn-secondary{background:#111;border:1px solid rgba(255,255,255,.15);color:#fff}
 .btn-secondary:hover{background:#1a1a1a;border-color:rgba(255,255,255,.35)}
 
-/* ── ALL DONE ── */
 .all-done{max-width:440px;margin:40px auto;padding:32px 16px;text-align:center}
 .all-done h2{font-size:18px;font-weight:800;margin-bottom:8px}
 .all-done p{font-size:12px;color:#555}
@@ -181,8 +162,7 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
   <a href="../../flashcards.html">🃏 Flashcards</a>
   <a href="../../matching.html">🔤 Palavras</a>
   <a href="../index.html">🎮 Games</a>
-  <a href="index.html" class="active">⚖️ DIP</a>
-  <a href="../../linha-do-tempo.html">⏳ Linha do Tempo</a>
+  <a href="index.html" class="active">💹 Economia</a>
   <a href="../../leaderboard.html">🏆 Ranking</a>
   <div class="nav-spacer"></div>
   <div class="nav-cd" id="navCountdown"></div>
@@ -192,53 +172,40 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
 <!-- LOADING -->
 <div id="viewLoading" class="view active">
   <div class="loading-screen">
-    <div style="font-size:28px">⚖️</div>
+    <div style="font-size:28px">💹</div>
     <div class="loading-dot"></div>
-    <div>Carregando DIP...</div>
+    <div>Carregando Economia...</div>
   </div>
 </div>
 
-<!-- START -->
-<div id="viewStart" class="view">
-  <div class="start-hero">
-    <div class="start-icon">⚖️</div>
-    <h1>DIP</h1>
-    <p>Direito Internacional Público</p>
-    <div class="start-progress-wrap">
-      <div class="start-prog-bar">
-        <div class="start-prog-fill" id="startProgFill" style="width:0%"></div>
-      </div>
-      <div class="start-prog-label" id="startProgLabel">0 / 0 pares concluídos</div>
-    </div>
-    <div class="start-btns">
-      <button class="btn-r btn-primary" id="btnStart" onclick="startGame()">Começar</button>
-      <button class="btn-r btn-secondary" id="btnReset" onclick="resetProgress()" style="display:none">↺ Recomeçar do início</button>
-    </div>
+<!-- STAGE SELECT -->
+<div id="viewStages" class="view">
+  <div class="stage-hero">
+    <h1>💹 ECONOMIA</h1>
+    <p>Selecione uma seção para estudar</p>
+    <div class="stage-hero-meta" id="stageHeroMeta"></div>
   </div>
+  <div class="stages-grid" id="stagesGrid"></div>
 </div>
 
 <!-- GAME -->
 <div id="viewGame" class="view">
   <div class="game-wrap">
     <div class="game-topbar">
-      <button class="game-back" onclick="goBackToStart()">← Início</button>
-      <span class="game-section-name">DIP — Matching Pairs</span>
+      <button class="game-back" onclick="goBackToStages()">← Seções</button>
+      <span class="game-section-name" id="gameSectionName"></span>
       <span class="game-round" id="gameRoundLabel"></span>
       <span class="timer-badge" id="timerBadge">00:00</span>
       <span class="combo-badge hidden" id="comboBadge">COMBO ×2</span>
     </div>
-
-    <div class="game-prog">
-      <div class="game-prog-fill" id="gameProg" style="width:0%"></div>
-    </div>
-
+    <div class="game-prog"><div class="game-prog-fill" id="gameProg" style="width:0%"></div></div>
     <div class="columns-wrap">
       <div>
-        <div class="col-label">Termo</div>
+        <div class="col-label">Conceito</div>
         <div class="match-col" id="colLeft"></div>
       </div>
       <div>
-        <div class="col-label">Correspondente</div>
+        <div class="col-label">Definição</div>
         <div class="match-col" id="colRight"></div>
       </div>
     </div>
@@ -253,22 +220,10 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
     <div class="result-sub" id="resSub"></div>
     <div class="result-stars" id="resStars">★★★</div>
     <div class="result-grid">
-      <div class="result-stat">
-        <div class="result-stat-label">Pares certos</div>
-        <div class="result-stat-val green" id="resPairs">0</div>
-      </div>
-      <div class="result-stat">
-        <div class="result-stat-label">Erros</div>
-        <div class="result-stat-val red" id="resErrors">0</div>
-      </div>
-      <div class="result-stat">
-        <div class="result-stat-label">Tempo</div>
-        <div class="result-stat-val" id="resTime">0:00</div>
-      </div>
-      <div class="result-stat">
-        <div class="result-stat-label">Combo máx.</div>
-        <div class="result-stat-val yellow" id="resCombo">0</div>
-      </div>
+      <div class="result-stat"><div class="result-stat-label">Pares certos</div><div class="result-stat-val green" id="resPairs">0</div></div>
+      <div class="result-stat"><div class="result-stat-label">Erros</div><div class="result-stat-val red" id="resErrors">0</div></div>
+      <div class="result-stat"><div class="result-stat-label">Tempo</div><div class="result-stat-val" id="resTime">0:00</div></div>
+      <div class="result-stat"><div class="result-stat-label">Combo máx.</div><div class="result-stat-val yellow" id="resCombo">0</div></div>
     </div>
     <div class="result-btns">
       <button class="btn-r btn-secondary" onclick="repeatRound()">↺ Repetir</button>
@@ -277,20 +232,19 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
   </div>
 </div>
 
-<!-- ALL DONE -->
+<!-- ALL DONE (seção) -->
 <div id="viewDone" class="view">
   <div class="all-done">
     <div style="font-size:48px;margin-bottom:16px">🏆</div>
-    <h2>Você completou o DIP!</h2>
-    <p style="margin-top:8px">Todos os pares de Direito Internacional Público concluídos.</p>
+    <h2 id="doneTitle">Seção concluída!</h2>
+    <p id="doneSub" style="margin-top:8px"></p>
     <div style="margin-top:28px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <button class="btn-r btn-secondary" onclick="resetAndStart()">↺ Recomeçar</button>
-      <button class="btn-r btn-primary" onclick="goBackToStart()">← Início</button>
+      <button class="btn-r btn-secondary" onclick="resetSection()">↺ Recomeçar seção</button>
+      <button class="btn-r btn-primary" onclick="goBackToStages()">← Seções</button>
     </div>
   </div>
 </div>
 
-<!-- SIDEBAR -->
 <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 <aside id="sidebar">
   <div class="sb-brand">ATLAS <span style="text-decoration:underline">DIPL.</span></div>
@@ -301,11 +255,10 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
   <a class="sb-link" href="../../matching.html">🔤 Matching Palavras</a>
   <a class="sb-link" href="../../gramatica-matching.html">📝 Matching Gramática</a>
   <a class="sb-link" href="../index.html">🎮 Games Hub</a>
-  <a class="sb-link active" href="index.html">⚖️ DIP</a>
-  <a class="sb-link" href="../ECONOMIA/index.html">💹 Economia</a>
+  <a class="sb-link" href="../DIP/index.html">⚖️ DIP</a>
+  <a class="sb-link active" href="index.html">💹 Economia</a>
   <a class="sb-link" href="../POLITICA INTERNACIONAL/index.html">🌍 Política Internacional</a>
   <a class="sb-link" href="../../linha-do-tempo.html">⏳ Linha do Tempo</a>
-  <a class="sb-link" href="../../cronologia.html">📜 Cronologia</a>
   <div class="sb-sec">Comunidade</div>
   <a class="sb-link" href="../../leaderboard.html">🏆 Ranking</a>
   <a class="sb-link" href="../../agenda.html">📅 Agenda</a>
@@ -316,9 +269,19 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
 <script>
 const BATCH_SIZE      = 5;
 const PAIRS_PER_ROUND = 10;
-const LOCAL_KEY       = 'dip_match_progress';
-const REMOTE_KEY      = 'dip_matching';
 
+const SECTIONS = [
+  { id: 'micro',         icon: '📊', name: 'Microeconomia',         csv: 'MICROECONOMIA.csv',           localKey: 'economia_micro_progress',  remoteKey: 'economia_micro' },
+  { id: 'macro',         icon: '🏦', name: 'Macroeconomia',         csv: 'MACROECONOMIA.csv',           localKey: 'economia_macro_progress',  remoteKey: 'economia_macro' },
+  { id: 'internacional', icon: '🌐', name: 'Economia Internacional', csv: 'ECONOMIA INTERNACCIONAL.csv', localKey: 'economia_inter_progress',  remoteKey: 'economia_internacional' },
+];
+
+// Loaded pairs per section (loaded on demand)
+const sectionPairs   = {};
+const sectionLoading = {};
+
+// Current game state
+let currentSection = null;
 let allPairs       = [];
 let batchOffset    = 0;
 let roundPairs     = [];
@@ -340,85 +303,97 @@ let timerInterval  = null;
 function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmt(s){ return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function showView(id){ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active')); document.getElementById(id).classList.add('active'); }
 
-function showView(id){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-async function loadProgress() {
+/* ── PROGRESS ── */
+async function loadProgress(sec) {
   try {
-    const remote = await DB.getGameProgress(REMOTE_KEY);
+    const remote = await DB.getGameProgress(sec.remoteKey);
     if (remote !== null) return remote;
   } catch(e) {}
-  return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+  return JSON.parse(localStorage.getItem(sec.localKey) || '{}');
 }
 
-function saveProgress() {
-  const data = { batchOffset };
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
-  DB.saveGameProgress(REMOTE_KEY, data).catch(()=>{});
+function saveProgress(sec, data) {
+  localStorage.setItem(sec.localKey, JSON.stringify(data));
+  DB.saveGameProgress(sec.remoteKey, data).catch(()=>{});
 }
 
-Papa.parse('DIP.csv', {
-  header: false,
-  delimiter: ';',
-  download: true,
-  skipEmptyLines: true,
-  async complete({ data }) {
-    allPairs = data
-      .filter(r => r[0] && r[0] !== 'Front (Termo)' && r[1])
-      .map(r => ({ left: r[0].trim(), right: r[1].trim() }));
+/* ── LOAD SECTIONS (all 3 CSVs on init) ── */
+let sectionsLoaded = 0;
 
-    const saved = await loadProgress();
-    batchOffset = Math.min(saved.batchOffset || 0, allPairs.length);
+function loadSection(sec) {
+  return new Promise((resolve) => {
+    Papa.parse(sec.csv, {
+      header: false, delimiter: ';', download: true, skipEmptyLines: true,
+      complete({ data }) {
+        sectionPairs[sec.id] = data
+          .filter(r => r[0] && r[1])
+          .map(r => ({ left: r[0].trim(), right: r[1].trim() }));
+        resolve();
+      },
+      error(e) {
+        sectionPairs[sec.id] = [];
+        resolve();
+      }
+    });
+  });
+}
 
-    renderStart();
-    showView('viewStart');
-  },
-  error(e){
-    document.querySelector('#viewLoading .loading-screen div:last-child').textContent = 'Erro ao carregar CSV: ' + e.message;
+async function init() {
+  await Promise.all(SECTIONS.map(s => loadSection(s)));
+  await renderStages();
+  showView('viewStages');
+}
+
+init();
+
+/* ── STAGE SELECT ── */
+async function renderStages() {
+  const grid = document.getElementById('stagesGrid');
+  const meta = document.getElementById('stageHeroMeta');
+  let html = '';
+  let totalDone = 0;
+  let totalPairs = 0;
+
+  for (const sec of SECTIONS) {
+    const pairs   = sectionPairs[sec.id] || [];
+    const prog    = await loadProgress(sec);
+    const done    = Math.min(prog.batchOffset || 0, pairs.length);
+    const pct     = pairs.length ? Math.round((done / pairs.length) * 100) : 0;
+    totalDone  += done;
+    totalPairs += pairs.length;
+    const started = done > 0;
+    html += `<div class="stage-card${started?' started':''}" onclick="startSection('${sec.id}')">
+      <div class="stage-icon">${sec.icon}</div>
+      <div class="stage-name">${sec.name}</div>
+      <div class="stage-meta">${pairs.length} pares</div>
+      <div class="stage-prog-bar"><div class="stage-prog-fill" style="width:${pct}%"></div></div>
+      <div class="stage-prog-label">${done > 0 ? `${done} / ${pairs.length} (${pct}%)` : 'Não iniciado'}</div>
+    </div>`;
   }
-});
-
-function renderStart(){
-  const total = allPairs.length;
-  const done  = batchOffset;
-  const pct   = total ? (done / total) * 100 : 0;
-
-  document.getElementById('startProgFill').style.width = pct + '%';
-  document.getElementById('startProgLabel').textContent = `${done} / ${total} pares concluídos`;
-
-  document.getElementById('btnStart').textContent =
-    done === 0 ? 'Começar' : done >= total ? 'Ver resultado final' : 'Continuar';
-
-  document.getElementById('btnReset').style.display = done > 0 ? '' : 'none';
+  grid.innerHTML = html;
+  const overallPct = totalPairs ? Math.round((totalDone/totalPairs)*100) : 0;
+  meta.textContent = `${totalDone} / ${totalPairs} pares concluídos (${overallPct}%)`;
 }
 
-function resetProgress(){
-  if (!confirm('Recomeçar do início? O progresso será perdido.')) return;
-  batchOffset = 0;
-  saveProgress();
-  renderStart();
-}
+async function startSection(sectionId) {
+  currentSection = SECTIONS.find(s => s.id === sectionId);
+  allPairs       = sectionPairs[sectionId] || [];
+  const prog     = await loadProgress(currentSection);
+  batchOffset    = Math.min(prog.batchOffset || 0, allPairs.length);
 
-function resetAndStart(){
-  batchOffset = 0;
-  saveProgress();
-  startGame();
-}
-
-function goBackToStart(){
-  clearInterval(timerInterval);
-  renderStart();
-  showView('viewStart');
-}
-
-function startGame(){
-  if (batchOffset >= allPairs.length){
+  if (batchOffset >= allPairs.length && allPairs.length > 0) {
+    document.getElementById('doneTitle').textContent = `${currentSection.icon} ${currentSection.name} concluída!`;
+    document.getElementById('doneSub').textContent   = `Todos os ${allPairs.length} pares estudados.`;
     showView('viewDone');
     return;
   }
+
+  startRound();
+}
+
+function startRound() {
   roundPairs   = allPairs.slice(batchOffset, batchOffset + PAIRS_PER_ROUND);
   batchInRound = 0;
   combo        = 0;
@@ -435,14 +410,22 @@ function startGame(){
 
   const roundNum    = Math.floor(batchOffset / PAIRS_PER_ROUND) + 1;
   const totalRounds = Math.ceil(allPairs.length / PAIRS_PER_ROUND);
-  document.getElementById('gameRoundLabel').textContent = `Rodada ${roundNum}/${totalRounds}`;
+  document.getElementById('gameSectionName').textContent = currentSection.icon + ' ' + currentSection.name;
+  document.getElementById('gameRoundLabel').textContent  = `Rodada ${roundNum}/${totalRounds}`;
   document.getElementById('gameProg').style.width = '0%';
 
   showView('viewGame');
   loadBatch();
 }
 
-function loadBatch(){
+function goBackToStages() {
+  clearInterval(timerInterval);
+  renderStages();
+  showView('viewStages');
+}
+
+/* ── BATCH ── */
+function loadBatch() {
   const start    = batchInRound * BATCH_SIZE;
   currentBatch   = roundPairs.slice(start, start + BATCH_SIZE);
   matchMap       = {};
@@ -452,46 +435,28 @@ function loadBatch(){
   matchedInBatch = 0;
   activeItem     = null;
   locked         = false;
-
   updateComboUI();
   updateProgress();
   renderColumns();
 }
 
-function renderColumns(){
-  document.getElementById('colLeft').innerHTML = leftItems.map((text, i) =>
-    `<div class="match-item" data-side="left" data-idx="${i}" onclick="tap(this)">${esc(text)}</div>`
-  ).join('');
-
-  document.getElementById('colRight').innerHTML = rightItems.map((text, i) =>
-    `<div class="match-item" data-side="right" data-idx="${i}" onclick="tap(this)">${esc(text)}</div>`
-  ).join('');
+function renderColumns() {
+  document.getElementById('colLeft').innerHTML  = leftItems.map((t,i)=>`<div class="match-item" data-side="left"  data-idx="${i}" onclick="tap(this)">${esc(t)}</div>`).join('');
+  document.getElementById('colRight').innerHTML = rightItems.map((t,i)=>`<div class="match-item" data-side="right" data-idx="${i}" onclick="tap(this)">${esc(t)}</div>`).join('');
 }
 
-function tap(el){
+/* ── TAP ── */
+function tap(el) {
   if (locked) return;
   if (el.classList.contains('is-correct') || el.classList.contains('gone')) return;
-
   const side = el.dataset.side;
   const idx  = +el.dataset.idx;
 
-  if (!activeItem){
-    activeItem = { side, idx, el };
-    el.classList.add('selected');
-    return;
-  }
-
-  if (activeItem.el === el){
-    el.classList.remove('selected');
-    activeItem = null;
-    return;
-  }
-
-  if (activeItem.side === side){
+  if (!activeItem) { activeItem = { side, idx, el }; el.classList.add('selected'); return; }
+  if (activeItem.el === el) { el.classList.remove('selected'); activeItem = null; return; }
+  if (activeItem.side === side) {
     activeItem.el.classList.remove('selected');
-    activeItem = { side, idx, el };
-    el.classList.add('selected');
-    return;
+    activeItem = { side, idx, el }; el.classList.add('selected'); return;
   }
 
   const leftIdx  = side === 'left'  ? idx : activeItem.idx;
@@ -505,125 +470,94 @@ function tap(el){
   locked = true;
 
   const isMatch = matchMap[leftItems[leftIdx]] === rightItems[rightIdx];
-
-  if (isMatch){
-    combo++;
-    maxCombo = Math.max(maxCombo, combo);
-    totalMatched++;
-    matchedInBatch++;
-    updateComboUI();
-    updateProgress();
-
-    leftEl.classList.add('is-correct');
-    rightEl.classList.add('is-correct');
-
+  if (isMatch) {
+    combo++; maxCombo = Math.max(maxCombo, combo); totalMatched++; matchedInBatch++;
+    updateComboUI(); updateProgress();
+    leftEl.classList.add('is-correct'); rightEl.classList.add('is-correct');
     setTimeout(()=>{
-      leftEl.classList.add('vanish');
-      rightEl.classList.add('vanish');
+      leftEl.classList.add('vanish'); rightEl.classList.add('vanish');
       setTimeout(()=>{
-        leftEl.classList.add('gone');
-        rightEl.classList.add('gone');
+        leftEl.classList.add('gone'); rightEl.classList.add('gone');
         locked = false;
-        if (matchedInBatch >= currentBatch.length){
-          setTimeout(advanceBatch, 300);
-        }
+        if (matchedInBatch >= currentBatch.length) setTimeout(advanceBatch, 300);
       }, 320);
     }, 420);
-
   } else {
-    combo = 0;
-    errors++;
+    combo = 0; errors++;
     updateComboUI();
-    leftEl.classList.add('is-wrong');
-    rightEl.classList.add('is-wrong');
-    setTimeout(()=>{
-      leftEl.classList.remove('is-wrong');
-      rightEl.classList.remove('is-wrong');
-      locked = false;
-    }, 500);
+    leftEl.classList.add('is-wrong'); rightEl.classList.add('is-wrong');
+    setTimeout(()=>{ leftEl.classList.remove('is-wrong'); rightEl.classList.remove('is-wrong'); locked = false; }, 500);
   }
 }
 
-function updateProgress(){
+function updateProgress() {
   const pct = roundPairs.length ? (totalMatched / roundPairs.length) * 100 : 0;
   document.getElementById('gameProg').style.width = pct + '%';
 }
 
-function updateComboUI(){
+function updateComboUI() {
   const badge = document.getElementById('comboBadge');
-  if (combo >= 2){
+  if (combo >= 2) {
     badge.textContent = `COMBO ×${combo}`;
-    badge.classList.remove('hidden');
-    badge.classList.remove('pop');
-    void badge.offsetWidth;
-    badge.classList.add('pop');
-  } else {
-    badge.classList.add('hidden');
-  }
+    badge.classList.remove('hidden','pop'); void badge.offsetWidth; badge.classList.add('pop');
+  } else { badge.classList.add('hidden'); }
 }
 
-function advanceBatch(){
+function advanceBatch() {
   batchInRound++;
-  if (batchInRound * BATCH_SIZE >= roundPairs.length){
+  if (batchInRound * BATCH_SIZE >= roundPairs.length) {
     batchOffset += roundPairs.length;
-    saveProgress();
+    saveProgress(currentSection, { batchOffset });
     showResult();
-  } else {
-    loadBatch();
-  }
+  } else { loadBatch(); }
 }
 
-function showResult(){
+function showResult() {
   clearInterval(timerInterval);
-
   const total = roundPairs.length;
   const acc   = total / (total + errors);
   const stars = acc >= 0.9 ? 3 : acc >= 0.65 ? 2 : 1;
-
-  document.getElementById('resEmoji').textContent  = errors === 0 ? '🏆' : stars === 3 ? '🎉' : stars === 2 ? '👍' : '💪';
-  document.getElementById('resTitle').textContent  = 'Rodada concluída';
-  document.getElementById('resSub').textContent    = errors === 0 ? 'Sem erros! Perfeito!' : `Precisão: ${Math.round(acc*100)}%`;
-  document.getElementById('resStars').innerHTML    =
-    '<span style="color:#fbbf24">' + '★'.repeat(stars) + '</span>' +
-    '<span style="color:#333">'    + '☆'.repeat(3-stars) + '</span>';
+  document.getElementById('resEmoji').textContent = errors === 0 ? '🏆' : stars === 3 ? '🎉' : stars === 2 ? '👍' : '💪';
+  document.getElementById('resTitle').textContent = 'Rodada concluída';
+  document.getElementById('resSub').textContent   = errors === 0 ? 'Sem erros! Perfeito!' : `Precisão: ${Math.round(acc*100)}%`;
+  document.getElementById('resStars').innerHTML   = '<span style="color:#fbbf24">'+'★'.repeat(stars)+'</span><span style="color:#333">'+'☆'.repeat(3-stars)+'</span>';
   document.getElementById('resPairs').textContent  = totalMatched;
   document.getElementById('resErrors').textContent = errors;
   document.getElementById('resTime').textContent   = fmt(timerSecs);
   document.getElementById('resCombo').textContent  = maxCombo;
-
   const isLast = batchOffset >= allPairs.length;
   document.getElementById('btnNext').textContent = isLast ? 'Ver conclusão →' : 'Próxima Rodada →';
-
   showView('viewResult');
 }
 
-function repeatRound(){
+function repeatRound() {
   batchOffset -= roundPairs.length;
   if (batchOffset < 0) batchOffset = 0;
-  saveProgress();
-  startGame();
+  saveProgress(currentSection, { batchOffset });
+  startRound();
 }
 
-function nextRound(){
-  if (batchOffset >= allPairs.length) showView('viewDone');
-  else startGame();
+function nextRound() {
+  if (batchOffset >= allPairs.length) {
+    document.getElementById('doneTitle').textContent = `${currentSection.icon} ${currentSection.name} concluída!`;
+    document.getElementById('doneSub').textContent   = `Todos os ${allPairs.length} pares estudados.`;
+    showView('viewDone');
+  } else { startRound(); }
 }
 
-function openSidebar(){
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('sidebar-overlay').classList.add('open');
+function resetSection() {
+  batchOffset = 0;
+  saveProgress(currentSection, { batchOffset });
+  startRound();
 }
-function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
-}
+
+function openSidebar(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
 
 (async()=>{
   try {
     const user = await DB.requireAuth();
-    const [profile, , examDate] = await Promise.all([
-      DB.getProfile(), DB.isAdmin(), DB.getExamDate()
-    ]);
+    const [profile, , examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
     const nu = document.getElementById('navUser');
     if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
     const nc = document.getElementById('navCountdown');

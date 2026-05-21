@@ -1086,6 +1086,31 @@ const DB = {
     const list = await this.getBlockedIPs();
     await this.setSetting('blocked_ips', JSON.stringify(list.filter(e => e.ip !== ip)));
   },
+
+  // ── Game Progress (matching pairs) ──────────────────────────────────
+  async getGameProgress(gameKey) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const { data } = await _sb
+      .from('game_progress')
+      .select('progress')
+      .eq('user_id', user.id)
+      .eq('game_key', gameKey)
+      .maybeSingle();
+    return data?.progress ?? null;
+  },
+
+  async saveGameProgress(gameKey, progress) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb
+      .from('game_progress')
+      .upsert(
+        { user_id: user.id, game_key: gameKey, progress,
+          updated_at: new Date().toISOString() },
+        { onConflict: 'user_id,game_key' }
+      );
+  },
 };
 
 window.DB = DB;

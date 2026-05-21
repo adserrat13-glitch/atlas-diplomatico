@@ -195,7 +195,8 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
   <a href="flashcards.html">🃏 Flashcards</a>
   <a href="matching.html">🔤 Palavras</a>
   <a href="gramatica-matching.html" class="active">📝 Gramática</a>
-  <a href="linha-do-tempo.html">🎮 Jogo</a>
+  <a href="games/index.html">🎮 Games</a>
+  <a href="linha-do-tempo.html">⏳ Linha do Tempo</a>
   <a href="leaderboard.html">🏆 Ranking</a>
   <div class="nav-spacer"></div>
   <div class="nav-cd" id="navCountdown"></div>
@@ -350,13 +351,29 @@ function showView(id){
   document.getElementById(id).classList.add('active');
 }
 
-/* ── PROGRESS ── */
-function getProgress(){ return JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}'); }
+/* ── PROGRESS (localStorage + Supabase) ── */
+let _progCache = null;
+
+async function ensureProgressLoaded() {
+  if (_progCache !== null) return _progCache;
+  try {
+    const remote = await DB.getGameProgress('gramatica_matching');
+    if (remote !== null) { _progCache = remote; return _progCache; }
+  } catch(e) {}
+  _progCache = JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}');
+  return _progCache;
+}
+
+function getProgress(){ return _progCache || JSON.parse(localStorage.getItem(PROGRESS_KEY)||'{}'); }
+
 function saveStars(cat, stars){
   const p = getProgress();
   p[cat] = Math.max(p[cat]||0, stars);
+  _progCache = p;
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
+  DB.saveGameProgress('gramatica_matching', p).catch(()=>{});
 }
+
 function totalStars(){
   return Object.values(getProgress()).reduce((a,b)=>a+b,0);
 }
@@ -366,7 +383,7 @@ Papa.parse('GRAMATICA/GRAMATICA.csv', {
   header: true,
   download: true,
   skipEmptyLines: true,
-  complete({ data }) {
+  async complete({ data }) {
     data.forEach(row => {
       const cat  = (row.categoria||'').trim();
       const nome = (row.nome||'').trim();
@@ -378,6 +395,7 @@ Papa.parse('GRAMATICA/GRAMATICA.csv', {
     // sort each stage by difficulty
     Object.values(stages).forEach(arr => arr.sort((a,b)=>a.dif - b.dif));
     stageOrder = Object.keys(stages);
+    await ensureProgressLoaded();
     updateHeroMeta();
     renderStages();
     showView('viewStages');
