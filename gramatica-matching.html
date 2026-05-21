@@ -179,6 +179,9 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
 .btn-primary:hover{background:#e0e0e0}
 .btn-secondary{background:#111;border:1px solid rgba(255,255,255,.15);color:#fff}
 .btn-secondary:hover{background:#1a1a1a;border-color:rgba(255,255,255,.35)}
+.btn-review{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.4);color:#f87171}
+.btn-review:hover{background:rgba(248,113,113,.2)}
+.review-row{margin-top:10px;display:flex;justify-content:center}
 
 /* ── COMPLETUDO banner (all stages done) ── */
 .all-done{max-width:440px;margin:40px auto;padding:32px 16px;text-align:center}
@@ -276,8 +279,11 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
       </div>
     </div>
     <div class="result-btns">
-      <button class="btn-r btn-secondary" onclick="repeatStage()">↺ Repetir</button>
+      <button class="btn-r btn-secondary" id="btnRepeat" onclick="repeatStage()">↺ Repetir</button>
       <button class="btn-r btn-primary" id="btnNext" onclick="nextStage()">Próxima →</button>
+    </div>
+    <div class="review-row">
+      <button class="btn-r btn-review" id="btnReview" onclick="startReview()" style="display:none">🔴 Revisar Erros</button>
     </div>
   </div>
 </div>
@@ -322,24 +328,27 @@ const STAGE_ICONS  = {
 };
 
 /* ── STATE ── */
-let stages      = {};   // { categoria: [{nome,dica,dif}] }
-let stageOrder  = [];
+let stages       = {};   // { categoria: [{nome,dica,dif}] }
+let stageOrder   = [];
 let currentStage = '';
 let currentPairs = [];
-let batchStart  = 0;
+let batchStart   = 0;
 let currentBatch = [];
-let matchMap    = {};   // { nome → dica } for current batch
-let leftItems   = [];   // shuffled nomes for current batch
-let rightItems  = [];   // shuffled dicas for current batch
-let activeItem  = null; // { side:'left'|'right', idx:Number, el:Element }
-let matchedInBatch = 0;
-let locked      = false;
-let combo       = 0;
-let maxCombo    = 0;
-let errors      = 0;
+let matchMap     = {};   // { nome → dica } for current batch
+let leftItems    = [];   // shuffled nomes for current batch
+let rightItems   = [];   // shuffled dicas for current batch
+let activeItem   = null; // { side:'left'|'right', idx:Number, el:Element }
+let matchedInBatch  = 0;
+let locked       = false;
+let combo        = 0;
+let maxCombo     = 0;
+let errors       = 0;
 let totalMatched = 0;
-let timerSecs   = 0;
-let timerInterval = null;
+let timerSecs    = 0;
+let timerInterval   = null;
+let roundWrongPairs  = [];
+let storedWrongPairs = [];
+let isReviewMode     = false;
 
 /* ── HELPERS ── */
 function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
@@ -375,7 +384,17 @@ function saveStars(cat, stars){
 }
 
 function totalStars(){
-  return Object.values(getProgress()).reduce((a,b)=>a+b,0);
+  const p = getProgress();
+  return Object.entries(p).filter(([k])=>k!=='_errors').reduce((a,[,b])=>a+(+b||0),0);
+}
+
+function saveErrors(){
+  const p = getProgress();
+  if (!p._errors) p._errors = {};
+  p._errors[currentStage] = storedWrongPairs;
+  _progCache = p;
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
+  DB.saveGameProgress('gramatica_matching', p).catch(()=>{});
 }
 
 /* ── LOAD CSV ── */
@@ -407,7 +426,7 @@ Papa.parse('GRAMATICA/GRAMATICA.csv', {
 
 function updateHeroMeta(){
   const prog = getProgress();
-  const done = Object.keys(prog).filter(k=>prog[k]>0).length;
+  const done = Object.keys(prog).filter(k=>k!=='_errors' && prog[k]>0).length;
   const total = stageOrder.length;
   const stars = totalStars();
   document.getElementById('stageHeroMeta').textContent =
@@ -435,14 +454,18 @@ function renderStages(){
 
 /* ── START STAGE ── */
 function startStage(cat){
-  currentStage  = cat;
-  currentPairs  = [...stages[cat]];
-  batchStart    = 0;
-  combo         = 0;
-  maxCombo      = 0;
-  errors        = 0;
-  totalMatched  = 0;
-  timerSecs     = 0;
+  currentStage     = cat;
+  currentPairs     = [...stages[cat]];
+  batchStart       = 0;
+  combo            = 0;
+  maxCombo         = 0;
+  errors           = 0;
+  totalMatched     = 0;
+  timerSecs        = 0;
+  roundWrongPairs  = [];
+  isReviewMode     = false;
+  const prog = getProgress();
+  storedWrongPairs = (prog._errors || {})[cat] || [];
   clearInterval(timerInterval);
   timerInterval = setInterval(()=>{
     timerSecs++;
@@ -564,6 +587,11 @@ function tap(el){
   } else {
     combo = 0;
     errors++;
+    if (!isReviewMode) {
+      const lv = leftItems[leftIdx];
+      if (!roundWrongPairs.find(p => p.left === lv))
+        roundWrongPairs.push({ left: lv, right: matchMap[lv] });
+    }
     updateComboUI();
     leftEl.classList.add('is-wrong');
     rightEl.classList.add('is-wrong');
@@ -597,8 +625,26 @@ function updateComboUI(){
 
 /* ── ADVANCE / END ── */
 function advanceBatch(){
+  if (isReviewMode) {
+    currentBatch.forEach(p => {
+      const idx = storedWrongPairs.findIndex(e => e.left === p.nome);
+      if (idx !== -1) storedWrongPairs.splice(idx, 1);
+    });
+    batchStart += BATCH_SIZE;
+    if (batchStart >= currentPairs.length) {
+      saveErrors();
+      showReviewResult();
+    } else { loadBatch(); }
+    return;
+  }
+  roundWrongPairs.forEach(p => {
+    if (!storedWrongPairs.find(e => e.left === p.left))
+      storedWrongPairs.push(p);
+  });
+  roundWrongPairs = [];
   batchStart += BATCH_SIZE;
   if (batchStart >= currentPairs.length){
+    saveErrors();
     showResult();
   } else {
     loadBatch();
@@ -627,6 +673,53 @@ function showResult(){
   const isLast = stageOrder.indexOf(currentStage) === stageOrder.length - 1;
   document.getElementById('btnNext').style.display = isLast ? 'none' : '';
 
+  const reviewBtn = document.getElementById('btnReview');
+  if (storedWrongPairs.length > 0) {
+    reviewBtn.textContent = `🔴 Revisar Erros (${storedWrongPairs.length})`;
+    reviewBtn.style.display = '';
+  } else {
+    reviewBtn.style.display = 'none';
+  }
+
+  renderStages();
+  updateHeroMeta();
+  showView('viewResult');
+}
+
+function startReview() {
+  isReviewMode = true;
+  currentPairs = storedWrongPairs.map(p => ({ nome: p.left, dica: p.right, dif: 1 }));
+  batchStart   = 0; combo = 0; maxCombo = 0; errors = 0; totalMatched = 0; timerSecs = 0;
+  document.getElementById('gameSectionName').textContent = '🔴 Revisão de Erros';
+  document.getElementById('gameRoundLabel').textContent  = `${currentPairs.length} pares`;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{ timerSecs++; document.getElementById('timerBadge').textContent = fmt(timerSecs); }, 1000);
+  showView('viewGame');
+  loadBatch();
+}
+
+function showReviewResult() {
+  clearInterval(timerInterval);
+  const resolved = currentPairs.length - storedWrongPairs.filter(p => currentPairs.find(r => r.nome === p.left)).length;
+  const pending  = storedWrongPairs.length;
+  document.getElementById('resEmoji').textContent  = pending === 0 ? '🏆' : '💪';
+  document.getElementById('resTitle').textContent  = '🔴 Revisão: ' + currentStage;
+  document.getElementById('resSub').textContent    = `${resolved} erro(s) resolvido(s) · ${pending} ainda pendente(s)`;
+  document.getElementById('resStars').innerHTML    = '';
+  document.getElementById('resPairs').textContent  = resolved;
+  document.getElementById('resErrors').textContent = errors;
+  document.getElementById('resTime').textContent   = fmt(timerSecs);
+  document.getElementById('resCombo').textContent  = maxCombo;
+  document.getElementById('btnNext').style.display = '';
+  document.getElementById('btnNext').textContent   = 'Continuar →';
+  const reviewBtn = document.getElementById('btnReview');
+  if (storedWrongPairs.length > 0) {
+    reviewBtn.textContent = `🔴 Revisar Erros (${storedWrongPairs.length})`;
+    reviewBtn.style.display = '';
+  } else {
+    reviewBtn.style.display = 'none';
+  }
+  isReviewMode = false;
   renderStages();
   updateHeroMeta();
   showView('viewResult');

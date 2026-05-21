@@ -170,6 +170,10 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
 .all-done{max-width:440px;margin:40px auto;padding:32px 16px;text-align:center}
 .all-done h2{font-size:18px;font-weight:800;margin-bottom:8px}
 .all-done p{font-size:12px;color:#555}
+
+.btn-review{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.35);color:#f87171}
+.btn-review:hover{background:rgba(248,113,113,.2);border-color:rgba(248,113,113,.6)}
+.review-row{margin-top:10px;display:flex;justify-content:center}
 </style>
 </head>
 <body>
@@ -271,8 +275,11 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
       </div>
     </div>
     <div class="result-btns">
-      <button class="btn-r btn-secondary" onclick="repeatRound()">↺ Repetir</button>
+      <button class="btn-r btn-secondary" id="btnRepeat" onclick="repeatRound()">↺ Repetir</button>
       <button class="btn-r btn-primary" id="btnNext" onclick="nextRound()">Próxima Rodada →</button>
+    </div>
+    <div class="review-row">
+      <button class="btn-r btn-review" id="btnReview" onclick="startReview()" style="display:none">🔴 Revisar Erros</button>
     </div>
   </div>
 </div>
@@ -319,23 +326,26 @@ const PAIRS_PER_ROUND = 10;
 const LOCAL_KEY       = 'dip_match_progress';
 const REMOTE_KEY      = 'dip_matching';
 
-let allPairs       = [];
-let batchOffset    = 0;
-let roundPairs     = [];
-let batchInRound   = 0;
-let currentBatch   = [];
-let matchMap       = {};
-let leftItems      = [];
-let rightItems     = [];
-let activeItem     = null;
-let matchedInBatch = 0;
-let locked         = false;
-let combo          = 0;
-let maxCombo       = 0;
-let errors         = 0;
-let totalMatched   = 0;
-let timerSecs      = 0;
-let timerInterval  = null;
+let allPairs         = [];
+let batchOffset      = 0;
+let roundPairs       = [];
+let batchInRound     = 0;
+let currentBatch     = [];
+let matchMap         = {};
+let leftItems        = [];
+let rightItems       = [];
+let activeItem       = null;
+let matchedInBatch   = 0;
+let locked           = false;
+let combo            = 0;
+let maxCombo         = 0;
+let errors           = 0;
+let totalMatched     = 0;
+let timerSecs        = 0;
+let timerInterval    = null;
+let roundWrongPairs  = [];   // erros da rodada atual (temporário)
+let storedWrongPairs = [];   // erros acumulados (salvo no Supabase)
+let isReviewMode     = false;
 
 function shuffle(arr){ return [...arr].sort(()=>Math.random()-.5); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -349,13 +359,18 @@ function showView(id){
 async function loadProgress() {
   try {
     const remote = await DB.getGameProgress(REMOTE_KEY);
-    if (remote !== null) return remote;
+    if (remote !== null) {
+      storedWrongPairs = remote.wrongPairs || [];
+      return remote;
+    }
   } catch(e) {}
-  return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+  const local = JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}');
+  storedWrongPairs = local.wrongPairs || [];
+  return local;
 }
 
 function saveProgress() {
-  const data = { batchOffset };
+  const data = { batchOffset, wrongPairs: storedWrongPairs };
   localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
   DB.saveGameProgress(REMOTE_KEY, data).catch(()=>{});
 }
@@ -419,13 +434,15 @@ function startGame(){
     showView('viewDone');
     return;
   }
-  roundPairs   = allPairs.slice(batchOffset, batchOffset + PAIRS_PER_ROUND);
-  batchInRound = 0;
-  combo        = 0;
-  maxCombo     = 0;
-  errors       = 0;
-  totalMatched = 0;
-  timerSecs    = 0;
+  roundPairs      = allPairs.slice(batchOffset, batchOffset + PAIRS_PER_ROUND);
+  batchInRound    = 0;
+  combo           = 0;
+  maxCombo        = 0;
+  errors          = 0;
+  totalMatched    = 0;
+  timerSecs       = 0;
+  roundWrongPairs = [];
+  isReviewMode    = false;
 
   clearInterval(timerInterval);
   timerInterval = setInterval(()=>{
@@ -533,6 +550,11 @@ function tap(el){
   } else {
     combo = 0;
     errors++;
+    if (!isReviewMode) {
+      const lv = leftItems[leftIdx];
+      if (!roundWrongPairs.find(p => p.left === lv))
+        roundWrongPairs.push({ left: lv, right: matchMap[lv] });
+    }
     updateComboUI();
     leftEl.classList.add('is-wrong');
     rightEl.classList.add('is-wrong');
@@ -563,6 +585,27 @@ function updateComboUI(){
 }
 
 function advanceBatch(){
+  if (isReviewMode) {
+    // Remove pares corretamente revisados do storedWrongPairs
+    currentBatch.forEach(p => {
+      const idx = storedWrongPairs.findIndex(e => e.left === p.left);
+      if (idx !== -1) storedWrongPairs.splice(idx, 1);
+    });
+    batchInRound++;
+    if (batchInRound * BATCH_SIZE >= roundPairs.length) {
+      saveProgress();
+      showReviewResult();
+    } else {
+      loadBatch();
+    }
+    return;
+  }
+  // Merge erros da rodada → storedWrongPairs
+  roundWrongPairs.forEach(p => {
+    if (!storedWrongPairs.find(e => e.left === p.left))
+      storedWrongPairs.push(p);
+  });
+  roundWrongPairs = [];
   batchInRound++;
   if (batchInRound * BATCH_SIZE >= roundPairs.length){
     batchOffset += roundPairs.length;
@@ -592,7 +635,71 @@ function showResult(){
   document.getElementById('resCombo').textContent  = maxCombo;
 
   const isLast = batchOffset >= allPairs.length;
-  document.getElementById('btnNext').textContent = isLast ? 'Ver conclusão →' : 'Próxima Rodada →';
+  document.getElementById('btnNext').textContent  = isLast ? 'Ver conclusão →' : 'Próxima Rodada →';
+  document.getElementById('btnNext').style.display = '';
+  document.getElementById('btnRepeat').style.display = '';
+
+  const reviewBtn = document.getElementById('btnReview');
+  if (storedWrongPairs.length > 0) {
+    reviewBtn.textContent    = `🔴 Revisar Erros (${storedWrongPairs.length})`;
+    reviewBtn.style.display  = '';
+  } else {
+    reviewBtn.style.display  = 'none';
+  }
+
+  showView('viewResult');
+}
+
+function startReview() {
+  isReviewMode    = true;
+  roundPairs      = [...storedWrongPairs];
+  batchInRound    = 0;
+  combo           = 0;
+  maxCombo        = 0;
+  errors          = 0;
+  totalMatched    = 0;
+  timerSecs       = 0;
+
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    timerSecs++;
+    document.getElementById('timerBadge').textContent = fmt(timerSecs);
+  }, 1000);
+
+  document.getElementById('gameSectionName').textContent = '🔴 Revisão de Erros — DIP';
+  document.getElementById('gameRoundLabel').textContent  = `${roundPairs.length} pares`;
+  document.getElementById('gameProg').style.width = '0%';
+  showView('viewGame');
+  loadBatch();
+}
+
+function showReviewResult() {
+  clearInterval(timerInterval);
+  isReviewMode = false;
+  const reviewed    = roundPairs.length;
+  const stillWrong  = storedWrongPairs.length;
+
+  document.getElementById('resEmoji').textContent  = errors === 0 ? '🏆' : stillWrong === 0 ? '🎉' : '💪';
+  document.getElementById('resTitle').textContent  = 'Revisão concluída!';
+  document.getElementById('resSub').textContent    = stillWrong === 0 ? 'Sem erros pendentes!' : `${stillWrong} par${stillWrong !== 1 ? 'es' : ''} ainda pendentes`;
+  document.getElementById('resStars').innerHTML    = stillWrong === 0
+    ? '<span style="color:#6ee7b7;font-size:28px">✓ Zerado!</span>' : '';
+  document.getElementById('resPairs').textContent  = reviewed;
+  document.getElementById('resErrors').textContent = errors;
+  document.getElementById('resTime').textContent   = fmt(timerSecs);
+  document.getElementById('resCombo').textContent  = maxCombo;
+
+  document.getElementById('btnNext').textContent   = 'Continuar →';
+  document.getElementById('btnNext').style.display = '';
+  document.getElementById('btnRepeat').style.display = 'none';
+
+  const reviewBtn = document.getElementById('btnReview');
+  if (storedWrongPairs.length > 0) {
+    reviewBtn.textContent   = `🔴 Revisar Novamente (${storedWrongPairs.length})`;
+    reviewBtn.style.display = '';
+  } else {
+    reviewBtn.style.display = 'none';
+  }
 
   showView('viewResult');
 }

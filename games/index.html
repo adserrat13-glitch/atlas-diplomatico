@@ -75,6 +75,9 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
 .game-card-btn{margin-top:6px;background:#fff;color:#000;border:none;
   border-radius:8px;padding:8px 14px;font-size:11px;font-weight:700;
   font-family:inherit;cursor:pointer;text-align:center;letter-spacing:.3px}
+.game-error-badge{font-size:10px;font-weight:700;color:#f87171;
+  background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);
+  border-radius:6px;padding:3px 8px;display:none;margin-top:2px}
 </style>
 </head>
 <body>
@@ -104,6 +107,7 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
     <div class="game-card-icon">📝</div>
     <div class="game-card-name">Gramática</div>
     <div class="game-card-meta">142 pares · 13 seções</div>
+    <div class="game-error-badge" id="errors-gramatica"></div>
     <div class="game-card-progress">
       <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-gramatica" style="width:0%"></div></div>
       <div class="game-card-prog-label" id="label-gramatica">Carregando...</div>
@@ -115,6 +119,7 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
     <div class="game-card-icon">⚖️</div>
     <div class="game-card-name">DIP</div>
     <div class="game-card-meta">~1558 pares · Direito Internacional</div>
+    <div class="game-error-badge" id="errors-dip"></div>
     <div class="game-card-progress">
       <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-dip" style="width:0%"></div></div>
       <div class="game-card-prog-label" id="label-dip">Carregando...</div>
@@ -126,6 +131,7 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
     <div class="game-card-icon">💹</div>
     <div class="game-card-name">Economia</div>
     <div class="game-card-meta">~2518 pares · 3 seções</div>
+    <div class="game-error-badge" id="errors-economia"></div>
     <div class="game-card-progress">
       <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-economia" style="width:0%"></div></div>
       <div class="game-card-prog-label" id="label-economia">Carregando...</div>
@@ -137,6 +143,7 @@ nav a.active{color:#fff;border-bottom:2px solid #fff;border-radius:0;padding-bot
     <div class="game-card-icon">🌍</div>
     <div class="game-card-name">Política Internacional</div>
     <div class="game-card-meta">~2291 pares · Relações Internacionais</div>
+    <div class="game-error-badge" id="errors-politica"></div>
     <div class="game-card-progress">
       <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-politica" style="width:0%"></div></div>
       <div class="game-card-prog-label" id="label-politica">Carregando...</div>
@@ -185,6 +192,17 @@ function setCard(id, done, total){
   if (label) label.textContent = done > 0 ? `${done} / ${total} pares (${p}%)` : `${total} pares`;
 }
 
+function setErrorBadge(id, wrongPairs){
+  const badge = document.getElementById('errors-' + id);
+  if (!badge) return;
+  if (wrongPairs && wrongPairs.length > 0) {
+    badge.textContent = `🔴 ${wrongPairs.length} para revisar`;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 async function loadProgress(){
   // DIP
   try {
@@ -192,26 +210,30 @@ async function loadProgress(){
     const local  = JSON.parse(localStorage.getItem('dip_match_progress') || '{}');
     const data   = remote ?? local;
     setCard('dip', data.batchOffset || 0, GAME_TOTALS.dip);
+    setErrorBadge('dip', data.wrongPairs);
   } catch(e) {
     const local = JSON.parse(localStorage.getItem('dip_match_progress') || '{}');
     setCard('dip', local.batchOffset || 0, GAME_TOTALS.dip);
+    setErrorBadge('dip', local.wrongPairs);
   }
 
-  // Economia (soma das 3 seções)
+  // Economia (soma das 3 seções + union dos wrongPairs)
   try {
     const keys = [
       { key: 'economia_micro',         local: 'economia_micro_progress',  total: 433 },
       { key: 'economia_macro',         local: 'economia_macro_progress',  total: 1122 },
       { key: 'economia_internacional', local: 'economia_inter_progress',  total: 963 },
     ];
-    let done = 0;
+    let done = 0; let totalWrong = 0;
     for (const k of keys) {
       const remote = await DB.getGameProgress(k.key);
       const local  = JSON.parse(localStorage.getItem(k.local) || '{}');
       const data   = remote ?? local;
       done += Math.min(data.batchOffset || 0, k.total);
+      totalWrong += (data.wrongPairs || []).length;
     }
     setCard('economia', done, GAME_TOTALS.economia);
+    setErrorBadge('economia', totalWrong > 0 ? new Array(totalWrong) : []);
   } catch(e) {
     setCard('economia', 0, GAME_TOTALS.economia);
   }
@@ -222,9 +244,11 @@ async function loadProgress(){
     const local  = JSON.parse(localStorage.getItem('politica_progress') || '{}');
     const data   = remote ?? local;
     setCard('politica', data.batchOffset || 0, GAME_TOTALS.politica);
+    setErrorBadge('politica', data.wrongPairs);
   } catch(e) {
     const local = JSON.parse(localStorage.getItem('politica_progress') || '{}');
     setCard('politica', local.batchOffset || 0, GAME_TOTALS.politica);
+    setErrorBadge('politica', local.wrongPairs);
   }
 
   // Gramática (stars based)
@@ -232,20 +256,24 @@ async function loadProgress(){
     const remote = await DB.getGameProgress('gramatica_matching');
     const local  = JSON.parse(localStorage.getItem('grammar_match_progress_v1') || '{}');
     const data   = remote ?? local;
-    const cats   = Object.keys(data).length;
+    const cats   = Object.keys(data).filter(k=>k!=='_errors' && data[k]>0).length;
     const total  = 13;
     const fill   = document.getElementById('prog-gramatica');
     const label  = document.getElementById('label-gramatica');
     const p      = pct(cats, total);
     if (fill)  fill.style.width = p + '%';
     if (label) label.textContent = cats > 0 ? `${cats} / ${total} seções (${p}%)` : '13 seções · 142 pares';
+    const allErrors = Object.values(data._errors || {}).flat();
+    setErrorBadge('gramatica', allErrors);
   } catch(e) {
     const local = JSON.parse(localStorage.getItem('grammar_match_progress_v1') || '{}');
-    const cats  = Object.keys(local).length;
+    const cats  = Object.keys(local).filter(k=>k!=='_errors' && local[k]>0).length;
     const fill  = document.getElementById('prog-gramatica');
     const label = document.getElementById('label-gramatica');
     if (fill)  fill.style.width = pct(cats, 13) + '%';
     if (label) label.textContent = cats > 0 ? `${cats} / 13 seções` : '13 seções · 142 pares';
+    const allErrors = Object.values(local._errors || {}).flat();
+    setErrorBadge('gramatica', allErrors);
   }
 }
 
