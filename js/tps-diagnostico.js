@@ -7,7 +7,6 @@ const MATERIA_MAPEAMENTO = {
 };
 
 let EDITAL_TEMAS = {};
-const TPS_YEARS = [2026, 2025, 2024, 2023, 2022, 2021, 2019, 2018, 2017, 2016];
 
 async function carregarEdital() {
   try {
@@ -78,33 +77,41 @@ async function coletarDadosTPS() {
   let totalQuestoes = 0;
   const porAno = {};
 
-  for (const year of TPS_YEARS) {
-    const localKey = `tps_${year}_progress`;
-    const data = JSON.parse(localStorage.getItem(localKey) || '{}');
+  try {
+    const reviewDecks = JSON.parse(localStorage.getItem('tps_review_decks') || '[]');
 
-    if (!data.wrongPairs || data.wrongPairs.length === 0) continue;
+    for (const deck of reviewDecks) {
+      if (!deck.wrong_pairs || deck.wrong_pairs.length === 0) continue;
 
-    porAno[year] = { total: 0, acertos: 0 };
+      const anoMatch = deck.file.match(/TPS (\d{4})/);
+      const ano = anoMatch ? anoMatch[1] : 'Outro';
 
-    for (const wrongPair of data.wrongPairs) {
-      totalQuestoes++;
-      porAno[year].total++;
-
-      const materia = detectarMateria(wrongPair.left);
-      const tema = detectarTema(wrongPair.left, materia);
-
-      if (!dadosPorMateria[materia]) {
-        dadosPorMateria[materia] = { total: 0, acertos: 0, erros: [] };
+      if (!porAno[ano]) {
+        porAno[ano] = { total: 0, acertos: 0 };
       }
-      dadosPorMateria[materia].total++;
-      dadosPorMateria[materia].erros.push(wrongPair.left);
 
-      const chaveTeam = `${materia}-${tema}`;
-      if (!dadosPorTema[chaveTeam]) {
-        dadosPorTema[chaveTeam] = { materia, tema, total: 0, acertos: 0 };
+      for (const wrongPair of deck.wrong_pairs) {
+        totalQuestoes++;
+        porAno[ano].total++;
+
+        const materia = detectarMateria(wrongPair.pair[0] || '');
+        const tema = detectarTema(wrongPair.pair[0] || '', materia);
+
+        if (!dadosPorMateria[materia]) {
+          dadosPorMateria[materia] = { total: 0, acertos: 0, erros: [] };
+        }
+        dadosPorMateria[materia].total++;
+        dadosPorMateria[materia].erros.push(wrongPair.pair[0]);
+
+        const chaveTeam = `${materia}-${tema}`;
+        if (!dadosPorTema[chaveTeam]) {
+          dadosPorTema[chaveTeam] = { materia, tema, total: 0, acertos: 0 };
+        }
+        dadosPorTema[chaveTeam].total++;
       }
-      dadosPorTema[chaveTeam].total++;
     }
+  } catch(e) {
+    console.error('Erro ao coletar dados TPS:', e);
   }
 
   if (totalQuestoes === 0) {
@@ -248,15 +255,14 @@ async function inicializarDiagnostico() {
         <div style="text-align:center;padding:60px 20px;color:#9ca3af">
           <div style="font-size:48px;margin-bottom:20px">📋</div>
           <h2 style="color:#d4af37;margin-bottom:12px">Sem dados ainda</h2>
-          <p>Comece a responder os TPS (2016-2026) para gerar análise de evolução.</p>
+          <p>Responda as provas de TPS anteriores (2016-2026) para gerar análise.</p>
           <p style="margin-top:16px;font-size:11px">Os erros serão rastreados automaticamente e aqui você verá:</p>
           <ul style="text-align:left;display:inline-block;margin-top:16px;color:#9ca3af;font-size:11px">
             <li>Matérias com pior desempenho</li>
             <li>Temas mais fracos do edital</li>
-            <li>Evolução histórica (2016-2026)</li>
+            <li>Evolução ao longo das provas (2016-2026)</li>
             <li>Recomendações personalizadas</li>
           </ul>
-          <a href="/GAMES/TPS/index.html" style="display:inline-block;margin-top:28px;background:#d4af37;color:#0f1115;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700">Ir para TPS →</a>
         </div>
       `;
       return;
