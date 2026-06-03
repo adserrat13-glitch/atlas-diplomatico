@@ -12,31 +12,31 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      background: #0d0f14;
+      color: white;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      height: 100vh;
     }
 
     header {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      background: linear-gradient(135deg, #1a1f2e 0%, #0d0f14 100%);
       padding: 1rem 1.5rem;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid #1a1f2e;
       display: flex;
       align-items: center;
       gap: 1rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     .back-btn, .voice-btn {
       background: none;
       border: none;
-      color: #64748b;
+      color: #8892b0;
       cursor: pointer;
       font-size: 1.5rem;
       width: 40px;
@@ -49,101 +49,8 @@
     }
 
     .back-btn:hover, .voice-btn:hover {
-      background: #334155;
-      color: #e2e8f0;
-    }
-
-    .voice-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.8);
-      z-index: 1000;
-      animation: fadeIn 0.2s ease;
-    }
-
-    .voice-modal.active {
-      display: flex;
-      align-items: flex-end;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
-    }
-
-    .voice-modal-content {
-      width: 100%;
-      background: #1e293b;
-      border-radius: 16px 16px 0 0;
-      padding: 1.5rem;
-      max-height: 80vh;
-      overflow-y: auto;
-      animation: slideUp 0.3s ease;
-    }
-
-    @keyframes slideUp {
-      from {
-        transform: translateY(100%);
-      }
-      to {
-        transform: translateY(0);
-      }
-    }
-
-    .voice-modal-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #e2e8f0;
-      margin-bottom: 1rem;
-    }
-
-    .voice-options {
-      display: grid;
-      gap: 0.5rem;
-    }
-
-    .voice-option {
-      background: #0f172a;
-      border: 2px solid #334155;
-      color: #e2e8f0;
-      padding: 1rem;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: left;
-      font-size: 0.95rem;
-    }
-
-    .voice-option:hover {
-      background: #334155;
-      border-color: #06b6d4;
-    }
-
-    .voice-option.active {
-      background: #06b6d4;
-      border-color: #06b6d4;
-      color: #0f172a;
-      font-weight: 700;
-    }
-
-    .voice-option-label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-
-    .voice-option-desc {
-      display: block;
-      font-size: 0.8rem;
-      opacity: 0.7;
+      background: #1a1f2e;
+      color: white;
     }
 
     .header-content {
@@ -153,13 +60,13 @@
     .header-title {
       font-size: 1rem;
       font-weight: 600;
-      color: #e2e8f0;
+      color: white;
       margin-bottom: 0.25rem;
     }
 
     .header-subtitle {
       font-size: 0.75rem;
-      color: #94a3b8;
+      color: #8892b0;
     }
 
     main {
@@ -169,42 +76,37 @@
       overflow: hidden;
     }
 
-    .chat-area {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
+    .chat {
+      width: min(100%, 700px);
+      margin: auto;
+      padding: 40px 18px;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      scroll-behavior: smooth;
+      gap: 14px;
+      flex: 1;
+      overflow-y: auto;
     }
 
-    .chat-area::-webkit-scrollbar {
+    .chat::-webkit-scrollbar {
       width: 6px;
     }
 
-    .chat-area::-webkit-scrollbar-track {
+    .chat::-webkit-scrollbar-track {
       background: transparent;
     }
 
-    .chat-area::-webkit-scrollbar-thumb {
-      background: #475569;
+    .chat::-webkit-scrollbar-thumb {
+      background: #1a1f2e;
       border-radius: 3px;
     }
 
-    .chat-area::-webkit-scrollbar-thumb:hover {
-      background: #64748b;
-    }
-
-    .message-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
+    .chat::-webkit-scrollbar-thumb:hover {
+      background: #2a3142;
     }
 
     .message {
       display: flex;
+      width: 100%;
       animation: slideIn 0.3s ease;
     }
 
@@ -219,46 +121,41 @@
       }
     }
 
-    .message.pessoa-a {
+    .message.left {
       justify-content: flex-start;
     }
 
-    .message.pessoa-b {
+    .message.right {
       justify-content: flex-end;
     }
 
     .bubble {
-      max-width: 70%;
-      padding: 0.875rem 1.125rem;
-      border-radius: 18px;
-      word-wrap: break-word;
-      font-size: 0.95rem;
-      line-height: 1.4;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      background: white;
+      color: #111;
+      padding: 14px 18px;
+      border-radius: 24px;
+      max-width: 80%;
+      line-height: 1.5;
+      font-size: 15px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
       display: flex;
       align-items: center;
       gap: 0.75rem;
       transition: all 0.2s;
     }
 
-    .bubble.pessoa-a {
-      background: #1e293b;
-      color: #e2e8f0;
-      border-left: 3px solid #06b6d4;
+    .left .bubble {
+      border-bottom-left-radius: 8px;
     }
 
-    .bubble.pessoa-a:hover {
-      background: #334155;
-      border-left-color: #0ea5e9;
-    }
-
-    .bubble.pessoa-b {
+    .right .bubble {
+      border-bottom-right-radius: 8px;
       background: #ec4899;
-      color: #ffffff;
+      color: white;
     }
 
-    .bubble.pessoa-b:hover {
-      background: #db2777;
+    .bubble:hover {
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
     }
 
     .bubble-text {
@@ -270,12 +167,12 @@
       border: none;
       color: inherit;
       cursor: pointer;
-      font-size: 1.25rem;
+      font-size: 1rem;
       opacity: 0.7;
       transition: all 0.2s;
       padding: 0;
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -303,25 +200,35 @@
       }
     }
 
+    .time {
+      margin-top: 6px;
+      font-size: 11px;
+      opacity: 0.55;
+      text-align: right;
+    }
+
     .empty-state {
       flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #64748b;
+      color: #8892b0;
       text-align: center;
       padding: 2rem;
     }
 
     .fim-message {
-      padding: 1.5rem;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      border-radius: 12px;
+      background: #10b981;
+      color: white;
+      padding: 14px 18px;
+      border-radius: 24px;
+      border-bottom-left-radius: 8px;
       text-align: center;
       font-weight: 700;
-      font-size: 1.125rem;
-      color: white;
+      font-size: 15px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
       margin: auto;
+      max-width: 80%;
     }
 
     .error-message {
@@ -335,9 +242,9 @@
     }
 
     .bottom-section {
-      background: #0f172a;
-      padding: 1rem;
-      border-top: 1px solid #334155;
+      background: #0d0f14;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #1a1f2e;
     }
 
     .progress-container {
@@ -349,14 +256,14 @@
 
     .progress-label {
       font-size: 0.75rem;
-      color: #94a3b8;
+      color: #8892b0;
       text-align: center;
     }
 
     .progress-bar {
       width: 100%;
       height: 4px;
-      background: #334155;
+      background: #1a1f2e;
       border-radius: 2px;
       overflow: hidden;
     }
@@ -387,12 +294,13 @@
     }
 
     .btn-next {
-      background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+      background: #ec4899;
       color: white;
       box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
     }
 
     .btn-next:hover:not(:disabled) {
+      background: #db2777;
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
     }
@@ -408,36 +316,120 @@
     }
 
     .btn-reset {
-      background: #334155;
-      color: #e2e8f0;
+      background: #1a1f2e;
+      color: white;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .btn-reset:hover {
-      background: #475569;
+      background: #2a3142;
     }
 
-    @media (max-width: 768px) {
-      body {
-        height: 100dvh;
+    .voice-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .voice-modal.active {
+      display: flex;
+      align-items: flex-end;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .voice-modal-content {
+      width: 100%;
+      background: #1a1f2e;
+      border-radius: 16px 16px 0 0;
+      padding: 1.5rem;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    .voice-modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 1rem;
+    }
+
+    .voice-options {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .voice-option {
+      background: #0d0f14;
+      border: 2px solid #2a3142;
+      color: white;
+      padding: 1rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    .voice-option:hover {
+      background: #2a3142;
+      border-color: #06b6d4;
+    }
+
+    .voice-option.active {
+      background: #ec4899;
+      border-color: #ec4899;
+      color: white;
+      font-weight: 700;
+    }
+
+    .voice-option-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .voice-option-desc {
+      display: block;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 600px) {
+      .chat {
+        padding: 24px 14px;
+      }
+
+      .bubble {
+        max-width: 88%;
+        font-size: 14px;
       }
 
       header {
         padding: 0.875rem 1rem;
-      }
-
-      .header-title {
-        font-size: 0.95rem;
-      }
-
-      .bubble {
-        max-width: 85%;
-        padding: 0.75rem 1rem;
-        font-size: 0.9rem;
-      }
-
-      .chat-area {
-        padding: 0.75rem;
       }
 
       button {
@@ -460,8 +452,8 @@
   <main>
     <div id="error-container"></div>
 
-    <div class="chat-area" id="chatArea">
-      <div class="empty-state">Clique em "Próximo Diálogo" para começar...</div>
+    <div class="chat" id="chatArea">
+      <div class="empty-state">Clique em "Próximo" para começar...</div>
     </div>
 
     <div class="bottom-section">
@@ -729,10 +721,10 @@
       }
 
       const message = document.createElement('div');
-      message.className = `message pessoa-${speaker}`;
+      message.className = `message ${speaker === 'a' ? 'left' : 'right'}`;
 
       const bubble = document.createElement('div');
-      bubble.className = `bubble pessoa-${speaker}`;
+      bubble.className = `bubble`;
 
       const textEl = document.createElement('span');
       textEl.className = 'bubble-text';
@@ -749,7 +741,14 @@
 
       bubble.appendChild(textEl);
       bubble.appendChild(soundBtn);
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'time';
+      const now = new Date();
+      timeEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
       message.appendChild(bubble);
+      message.appendChild(timeEl);
       container.appendChild(message);
       container.scrollTop = container.scrollHeight;
     }
@@ -784,7 +783,13 @@
 
     function showFimMessage() {
       const container = document.getElementById('chatArea');
-      container.innerHTML = '<div class="fim-message">✓ Fim do Diálogo</div>';
+      const message = document.createElement('div');
+      message.className = 'message left';
+      const bubble = document.createElement('div');
+      bubble.className = 'fim-message';
+      bubble.textContent = '✓ Fim do Diálogo';
+      message.appendChild(bubble);
+      container.appendChild(message);
       document.getElementById('nextBtn').disabled = true;
     }
 
