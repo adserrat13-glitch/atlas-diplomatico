@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Atlas Diplomático — CACD 2026</title>
   <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <style>
@@ -64,77 +65,20 @@
     .sec-lbl { font-size:9px; font-weight:900; letter-spacing:2.5px;
       color:var(--muted2); text-transform:uppercase; margin-bottom:10px; }
 
-    /* ── ISLANDS GRID ── */
-    .islands-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-
-    /* ── ISLAND WIDGET ── */
-    .island { background:var(--surface);
-      border:1px solid var(--border); border-radius:4px; overflow:hidden; position:relative;
-      border-left:3px solid var(--subject-color,#fff);
-      transition:box-shadow .2s; }
-    .island:hover { box-shadow:0 0 0 1px rgba(255,255,255,0.2); }
-
-    /* Aba da pasta (sempre visível) */
-    .island-tab { display:flex; align-items:center; gap:8px; padding:8px 12px;
-      cursor:pointer; user-select:none; border-bottom:1px solid var(--border);
-      transition:background .15s; }
-    .island-tab:hover { background:rgba(255,255,255,.04); }
-    .island-code { font-size:10px; font-weight:900; letter-spacing:2px;
-      text-transform:uppercase; color:var(--subject-color); flex-shrink:0; }
-    .island-tab-name { flex:1; font-size:10px; color:var(--muted2);
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .island-tab-pct  { font-size:10px; font-weight:700; color:var(--muted); flex-shrink:0; }
-    .island-streak { font-size:10px; font-weight:900; color:#000;
-      padding:2px 7px; border-radius:20px; flex-shrink:0;
-      background:var(--neon-yellow); letter-spacing:.3px; }
-    .island-caret  { font-size:10px; color:var(--muted); flex-shrink:0;
-      transition:transform .25s ease; }
-
-    /* Corpo colapsável — grid trick */
-    .island-body       { display:grid; grid-template-rows:1fr;
-      transition:grid-template-rows .28s ease; }
-    .island-body-inner { overflow:hidden; min-height:0; }
-
-    /* Estado fechado */
-    .island--closed .island-tab  { border-bottom:none; }
-    .island--closed .island-caret{ transform:rotate(-90deg); }
-    .island--closed .island-body { grid-template-rows:0fr; }
-
-    .island-inner { padding:10px 14px 12px; display:block; text-decoration:none; color:inherit; }
-
-    /* Fill bar */
-    .island-fill-wrap { position:relative; height:40px; border-radius:10px;
-      background:rgba(255,255,255,.05); overflow:hidden; margin-bottom:10px; }
-    .island-fill { height:100%; border-radius:10px;
-      background:linear-gradient(90deg,var(--subject-color,var(--accent)) 0%,var(--subject-color,var(--accent)) 100%);
-      opacity:0.85; transition:width 1s cubic-bezier(.4,0,.2,1); width:0%;
-      position:relative; display:flex; align-items:center; justify-content:flex-end;
-      padding-right:10px; min-width:0; }
-    .island-pct-overlay { font-size:17px; font-weight:800; color:#fff;
-      line-height:1; white-space:nowrap; position:absolute; right:10px; top:50%;
-      transform:translateY(-50%); pointer-events:none; text-shadow:0 1px 4px rgba(0,0,0,0.6); }
-    .island-pct-empty { font-size:13px; font-weight:700; color:var(--muted);
-      position:absolute; left:12px; top:50%; transform:translateY(-50%); }
-
-    .island-bottom { display:flex; justify-content:space-between; align-items:center; }
-    .island-name { font-size:11px; font-weight:700; color:#fff; letter-spacing:.2px; }
-    .island-last { font-size:10px; color:var(--muted2); }
-
-    .island-toggle { padding:7px 14px; font-size:10px; color:var(--muted);
-      cursor:pointer; border-top:1px solid var(--border); transition:.15s;
-      user-select:none; letter-spacing:.3px; font-weight:600; }
-    .island-toggle:hover { color:#fff; background:rgba(255,255,255,.03); }
-    .island-files { padding:8px 12px 10px; border-top:1px solid var(--border);
-      display:flex; flex-wrap:wrap; gap:4px; }
-    .fchip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px;
-      border-radius:5px; font-size:10px; font-weight:700; text-decoration:none;
-      transition:.15s; white-space:nowrap; letter-spacing:.3px; }
-    .fchip-fc  { background:rgba(0,207,255,.08); border:1px solid rgba(0,207,255,.2); color:#00cfff; }
-    .fchip-fc:hover  { background:rgba(0,207,255,.18); }
-    .fchip-sim { background:rgba(57,255,20,.08); border:1px solid rgba(57,255,20,.2); color:#39ff14; }
-    .fchip-sim:hover { background:rgba(57,255,20,.18); }
-    .fchip-rep { background:rgba(176,96,255,.08); border:1px solid rgba(176,96,255,.2); color:#b060ff; }
-    .fchip-rep:hover { background:rgba(176,96,255,.18); }
+    /* ── GAMES GRID ── */
+    .games-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:4px; }
+    .game-card { display:flex; align-items:center; gap:12px; padding:13px 14px;
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:8px; text-decoration:none; color:inherit;
+      transition:border-color .15s, background .15s; }
+    .game-card:hover { border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.04); }
+    .game-card-icon { width:20px; height:20px; flex-shrink:0; opacity:.55;
+      display:flex; align-items:center; justify-content:center; }
+    .game-card-icon svg { width:20px; height:20px; }
+    .game-card-body { flex:1; min-width:0; }
+    .game-card-name { font-size:12px; font-weight:700; }
+    .game-card-sub { font-size:10px; color:#444; }
+    .game-card-arr { font-size:11px; color:#2a2a2a; flex-shrink:0; }
 
     /* ── SKELETON ── */
     .skeleton { background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
@@ -167,6 +111,12 @@
     .cycle-btn{font-size:11px;background:rgba(255,255,255,.06);border:none;color:#aaa;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;text-decoration:none;display:block;transition:.15s}
     .cycle-btn:hover{background:rgba(255,255,255,.12);color:#fff}
     .cycle-complete{background:#0a1a0f;border:1px solid rgba(34,197,94,.27);border-radius:10px;padding:12px 16px;color:#22c55e;font-size:13px;font-weight:600;text-align:center;margin-top:8px;display:none}
+    .cycle-tasks{display:flex;flex-direction:column;gap:4px;margin-top:4px}
+    .cycle-task{font-size:11px;color:#888;text-decoration:none;padding:4px 8px;border-radius:5px;background:rgba(255,255,255,.04);transition:.15s}
+    .cycle-task:hover{background:rgba(255,255,255,.09);color:#fff}
+    .cycle-task.done{color:#22c55e;background:rgba(34,197,94,.08)}
+    .cycle-prog{height:3px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:6px}
+    .cycle-prog-fill{height:100%;border-radius:99px;background:#22c55e;transition:width .6s}
     .wgt-next-name { font-size:13px; font-weight:900; margin-bottom:4px; }
     .wgt-next-meta { font-size:10px; color:var(--muted2); margin-bottom:10px; }
     .wgt-next-btn { display:block; text-align:center; padding:8px;
@@ -274,19 +224,15 @@
   <nav>
     <button class="nav-ham" onclick="openSidebar()">☰</button>
     <div class="nav-logo">ATLAS <span>DIPL.</span></div>
-    <a href="index.html" class="active">🏠 Início</a>
-    <a href="flashcards.html">🃏 Flashcards</a>
-    <a href="espiral.html">🌀 Espiral</a>
-    <a href="analise.html">📊 Análise</a>
-    <a href="leaderboard.html">🏆 Ranking</a>
-    <a href="agenda.html">📅 Agenda</a>
-    <a href="segunda-fase.html">✍️ 2ª Fase</a>
-    <a href="gramatica-matching.html">📝 Gramática</a>
-    <a href="GAMES/index.html">🎮 Games</a>
-    <a href="mapas.html">🗺️ Mapas</a>
-  <a href="noticias.html">📰 Notícias</a>
-    
-    <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+    <a href="index.html" class="active">Início</a>
+    <a href="flashcards.html">Flashcards</a>
+    <a href="analise.html">Análise</a>
+    <a href="agenda.html">Agenda</a>
+    <a href="segunda-fase.html">2ª Fase</a>
+    <a href="gramatica-matching.html">Gramática</a>
+    <a href="GAMES/index.html">Games</a>
+    <a href="analise-tps-tematica.html">Análise TPS</a>
+    <a href="admin.html" id="navAdmin" style="display:none">Admin</a>
     <div class="nav-spacer"></div>
     <div class="nav-cd" id="navCountdown"></div>
     <div class="nav-user" id="navUser">?</div>
@@ -335,10 +281,17 @@
       </div>
     </div>
 
-    <!-- ISLANDS -->
+    <!-- PLANO DO DIA -->
+    <div class="daily-cycle" id="dailyCycleSection">
+      <div class="cycle-header">📅 PLANO_DO_DIA — <span id="cycleDate"></span></div>
+      <div class="cycle-grid" id="dailyCycleGrid"></div>
+      <div class="cycle-complete" id="cycleComplete">🎯 Plano do dia completo! Zerado!</div>
+    </div>
+
+    <!-- GAMES -->
     <div>
-      <div class="sec-lbl">Ilhas de Estudo</div>
-      <div class="islands-grid" id="islandsGrid"></div>
+      <div class="sec-lbl">Games</div>
+      <div class="games-grid" id="gamesGrid"></div>
     </div>
 
     <!-- WIDGET ROW -->
@@ -346,13 +299,18 @@
       <div class="widget">
         <div class="wgt-lbl">Sequência</div>
         <div class="wgt-val" id="streakVal" style="color:var(--neon-yellow)">—</div>
-        <div class="wgt-sub">dias seguidos 🔥</div>
+        <div class="wgt-sub">dias seguidos</div>
       </div>
       <div class="widget">
         <div class="wgt-lbl">Esta Semana</div>
         <div class="wgt-val" id="weekHours" style="color:var(--neon-blue)">—</div>
         <div class="wgt-sub" id="weekSub">de 25h meta</div>
         <div class="wgt-bar-wrap"><div class="wgt-bar" id="weekFill"></div></div>
+        <div style="border-top:1px solid rgba(255,255,255,.06);margin:10px 0 6px"></div>
+        <div class="wgt-lbl">Hoje</div>
+        <div class="wgt-val" id="todayHours" style="font-size:20px;color:var(--neon-yellow)">—</div>
+        <div class="wgt-sub" id="todaySub">de 2h meta diária</div>
+        <div class="wgt-bar-wrap"><div class="wgt-bar" id="todayFill" style="background:var(--neon-yellow)"></div></div>
       </div>
       <div class="widget">
         <div class="wgt-lbl">Próxima Tarefa</div>
@@ -362,9 +320,8 @@
       </div>
       <div class="widget">
         <div class="wgt-lbl">Ações Rápidas</div>
-        <a href="flashcards.html" class="btn-action" style="margin-bottom:4px">🃏 Flashcards <span class="arr">›</span></a>
-        <a href="simulados.html"  class="btn-action" style="margin-bottom:4px">📝 Simulado <span class="arr">›</span></a>
-        <a href="leaderboard.html"class="btn-action">🏆 Ranking <span class="arr">›</span></a>
+        <a href="flashcards.html" class="btn-action" style="margin-bottom:4px">Flashcards <span class="arr">›</span></a>
+        <a href="simulados.html"  class="btn-action" style="margin-bottom:4px">Simulado <span class="arr">›</span></a>
       </div>
     </div>
 
@@ -482,6 +439,12 @@
         .reduce((a, s) => a + (s.time_seconds || 0), 0) / 3600;
     }
 
+    function computeTodayHours(sessions) {
+      const today = new Date().toISOString().split('T')[0];
+      return sessions.filter(s => s.date === today)
+        .reduce((a, s) => a + (s.time_seconds || 0), 0) / 3600;
+    }
+
     function relativeDate(dateStr) {
       if (!dateStr) return '';
       const diff = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
@@ -511,91 +474,28 @@
     }
 
     // ── RENDER ────────────────────────────────────────────────────────────
-    function renderIslands(filesMap) {
-      const saved = JSON.parse(localStorage.getItem('island_collapse') || '{}');
-      document.getElementById('islandsGrid').innerHTML = SUBJECTS.map(s => {
-        const files = filesMap ? (filesMap.get(s.id) || []) : [];
-        const st = getSubjectStats(s.id);
-        const sStreak = subjectStreak(s.id);
-        const streakHtml = sStreak >= 2 ? `<span class="island-streak">🔥${sStreak}</span>` : '';
-        const chips = files.map(f => {
-          const cls  = {fc:'fchip-fc',sim:'fchip-sim',rep:'fchip-rep'}[f.type];
-          const icon = {fc:'🃏',sim:'📝',rep:'📚'}[f.type];
-          return `<a href="${PAGE_FOR[f.type]}?file=${encodeURIComponent(f.path)}&subject=${s.id}" class="fchip ${cls}">${icon} ${f.name}</a>`;
-        }).join('');
-        const mainLink = `flashcards.html?subject=${s.id}`;
-        const pctOverlay = st.pct > 0
-          ? `<div class="island-pct-overlay">${st.pct}%</div>`
-          : `<div class="island-pct-empty">0%</div>`;
-        const closed = saved[s.id] ? 'island--closed' : '';
-
-        return `<div class="island ${closed}" style="--subject-color:${s.color}" data-id="${s.id}">
-          <div class="island-tab" onclick="toggleIsland('${s.id}')">
-            <span class="island-code">${s.id}</span>
-            <span class="island-tab-name">${s.name}</span>
-            <span class="island-tab-pct" id="tabpct-${s.id}">—</span>
-            ${streakHtml}
-            <span class="island-caret">▾</span>
+    function renderGamesGrid() {
+      const GAMES_LIST = [
+        { href:'GAMES/DIP/index.html',                       icon:'dip',      name:'DIP',            sub:'Direito Internacional' },
+        { href:'GAMES/ECONOMIA/index.html',                  icon:'economy',  name:'Economia',       sub:'Matching de termos' },
+        { href:'GAMES/POLITICA INTERNACIONAL/index.html',    icon:'globe',    name:'Política Int.',  sub:'Termos de RI' },
+        { href:'GAMES/BRASIL/BANDEIRAS/index.html',          icon:'flag',     name:'Bandeiras',      sub:'Países do mundo' },
+        { href:'GAMES/BRASIL/COMERCIO/index.html',           icon:'exchange', name:'Comércio',       sub:'Exportações brasileiras' },
+        { href:'matching.html',                              icon:'words',    name:'Vocabulário EN', sub:'Inglês diplomático' },
+      ];
+      const grid = document.getElementById('gamesGrid');
+      if (!grid) return;
+      grid.innerHTML = GAMES_LIST.map(g => {
+        const svgIcon = (typeof ICONS !== 'undefined' && ICONS[g.icon]) ? ICONS[g.icon] : '';
+        return `<a class="game-card" href="${g.href}">
+          <div class="game-card-icon">${svgIcon}</div>
+          <div class="game-card-body">
+            <div class="game-card-name">${g.name}</div>
+            <div class="game-card-sub">${g.sub}</div>
           </div>
-          <div class="island-body">
-            <div class="island-body-inner">
-              <a class="island-inner" href="${mainLink}">
-                <div class="island-fill-wrap">
-                  <div class="island-fill skeleton" id="fill-${s.id}" style="width:0%"></div>
-                  ${pctOverlay}
-                </div>
-                <div class="island-bottom">
-                  <span class="island-last skeleton" id="last-${s.id}" style="width:48px;height:10px">&nbsp;</span>
-                </div>
-              </a>
-              <div class="island-toggle" onclick="toggleFiles('${s.id}')">Ver arquivos (${files.length}) ⌄</div>
-              <div class="island-files" id="ifiles-${s.id}" style="display:none">${chips}</div>
-            </div>
-          </div>
-        </div>`;
+          <div class="game-card-arr">→</div>
+        </a>`;
       }).join('');
-    }
-
-    function updateIslandStats() {
-      SUBJECTS.forEach(s => {
-        const st = getSubjectStats(s.id);
-        const fillEl = document.getElementById('fill-'+s.id);
-        const lastEl = document.getElementById('last-'+s.id);
-        // Update fill bar
-        if (fillEl) {
-          fillEl.classList.remove('skeleton');
-          fillEl.style.width = st.pct + '%';
-          // Update overlay pct
-          const overlay = fillEl.parentElement.querySelector('.island-pct-overlay,.island-pct-empty');
-          if (overlay) {
-            overlay.className = st.pct > 0 ? 'island-pct-overlay' : 'island-pct-empty';
-            overlay.textContent = st.pct + '%';
-          }
-        }
-        if (lastEl) {
-          lastEl.classList.remove('skeleton');
-          lastEl.style.width = ''; lastEl.style.height = '';
-          lastEl.textContent = st.lastDate ? relativeDate(st.lastDate) : 'sem sessões';
-        }
-        const tabPct = document.getElementById('tabpct-' + s.id);
-        if (tabPct) tabPct.textContent = st.pct > 0 ? st.pct + '%' : '—';
-      });
-    }
-
-    function toggleIsland(id) {
-      const island = document.querySelector(`.island[data-id="${id}"]`);
-      const closed = island.classList.toggle('island--closed');
-      const saved  = JSON.parse(localStorage.getItem('island_collapse') || '{}');
-      saved[id]    = closed;
-      localStorage.setItem('island_collapse', JSON.stringify(saved));
-    }
-
-    function toggleFiles(id) {
-      const el = document.getElementById('ifiles-'+id);
-      const tog = el.previousElementSibling;
-      const open = el.style.display === 'none';
-      el.style.display = open ? 'flex' : 'none';
-      tog.textContent = open ? `Ocultar arquivos ⌃` : `Ver arquivos (${el.children.length}) ⌄`;
     }
 
     function renderTPS() {
@@ -606,7 +506,10 @@
 
     function renderHero(examDate) {
       const last = _sessions[0];
-      const days = Math.ceil((examDate - Date.now()) / 86400000);
+      const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      nowBSB.setHours(0, 0, 0, 0); examBSB.setHours(0, 0, 0, 0);
+      const days = Math.ceil((examBSB - nowBSB) / 86400000);
       document.getElementById('heroDays').textContent = days;
       const mcDays = document.getElementById('mcDays');
       if (mcDays) mcDays.textContent = days > 0 ? days : '—';
@@ -644,7 +547,22 @@
       document.getElementById('weekHours').textContent = weekH.toFixed(1) + 'h';
       document.getElementById('weekSub').textContent   = `de ${target}h meta`;
       document.getElementById('weekFill').style.width  = fillPct + '%';
-      const days = Math.ceil((examDate - Date.now()) / 86400000);
+
+      const todayH    = computeTodayHours(_sessions);
+      const dailyGoal = 2;
+      const todayPct  = Math.min(100, (todayH / dailyGoal) * 100);
+      document.getElementById('todayHours').textContent = todayH < 0.017
+        ? '0min'
+        : todayH < 0.1
+          ? Math.round(todayH * 60) + 'min'
+          : todayH.toFixed(1) + 'h';
+      document.getElementById('todaySub').textContent  = `de ${dailyGoal}h meta diária`;
+      document.getElementById('todayFill').style.width = todayPct + '%';
+
+      const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      nowBSB.setHours(0, 0, 0, 0); examBSB.setHours(0, 0, 0, 0);
+      const days = Math.ceil((examBSB - nowBSB) / 86400000);
       const el = document.getElementById('navCountdown');
       if (el) el.textContent = `${days}d CACD`;
       const mcStreak = document.getElementById('mcStreak');
@@ -697,35 +615,88 @@
     }
 
     function renderDailyCycle() {
-      const CYCLE_SUBJECTS = [
-        {id:'HB',  name:'História do Brasil',      icon:'🇧🇷'},
-        {id:'PI',  name:'Política Internacional',  icon:'🌐'},
-        {id:'ECO', name:'Economia',                icon:'📊'},
-        {id:'DIP', name:'Direito Internacional',   icon:'⚖️'},
-        {id:'GEO', name:'Geografia',               icon:'🗺️'},
-        {id:'HM',  name:'História Mundial',        icon:'🌍'},
-        {id:'LP',  name:'Português',               icon:'📝'},
-        {id:'ING', name:'Inglês',                  icon:'🇬🇧'},
+      const DAILY_ALWAYS = [
+        { id:'HB',  name:'História do Brasil',     icon:'🇧🇷', gameUrl:'GAMES/HISTORIA DO BRASIL/index.html', bolsoId:'hb' },
+        { id:'PI',  name:'Política Internacional', icon:'🌐',  gameUrl:'GAMES/POLITICA INTERNACIONAL/index.html', bolsoId:'pi' },
+        { id:'GEO', name:'Geografia',              icon:'🗺️', gameUrl:'GAMES/BRASIL/BANDEIRAS/index.html', bolsoId:'geo' },
+        { id:'LP',  name:'Português',              icon:'📝',  gameUrl:'gramatica-matching.html', bolsoId:null },
+        { id:'ING', name:'Inglês',                 icon:'🇬🇧', gameUrl:'matching.html', bolsoId:null },
       ];
-      const today = new Date().toISOString().split('T')[0];
+      const DAILY_ROTATE = [
+        { id:'DIP', name:'Dir. Internacional',   icon:'⚖️', gameUrl:'GAMES/DIP/index.html', bolsoId:'dip' },
+        { id:'ECO', name:'Economia',             icon:'📊', gameUrl:'GAMES/ECONOMIA/index.html', bolsoId:'eco' },
+        { id:'DIR', name:'Dir. Constitucional',  icon:'📋', gameUrl:'GAMES/CACD BOLSO/index.html', bolsoId:'direito' },
+      ];
+      const nowBSBForRot = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const todayMs = Math.floor(nowBSBForRot.getTime() / 86400000);
+      const rotIdx = todayMs % 3;
+      const todayRotate = [DAILY_ROTATE[rotIdx % 3], DAILY_ROTATE[(rotIdx + 1) % 3]];
+      const todaySubjects = [...DAILY_ALWAYS, ...todayRotate];
+
+      const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const today = nowBSB.toISOString().split('T')[0];
+      document.getElementById('cycleDate').textContent = nowBSB.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+
       const todaySessions = _sessions.filter(s => (s.date||s.created_at||'').startsWith(today));
+
       let doneCount = 0;
-      const cards = CYCLE_SUBJECTS.map(sub => {
-        const subSessions = todaySessions.filter(s => s.subject === sub.id);
-        const totalCards = subSessions.reduce((a,s) => a + (s.total||0), 0);
-        const done = subSessions.length > 0;
+      const cards = todaySubjects.map(sub => {
+        const gameDone = todaySessions.some(s => s.subject === sub.id && (!s.deck || !s.deck.startsWith('cacd-bolso-')));
+        const bolsoDone = sub.bolsoId ? todaySessions.some(s => s.deck && s.deck.startsWith('cacd-bolso-' + sub.bolsoId)) : true;
+        const done = gameDone && bolsoDone;
         if (done) doneCount++;
         return `<div class="cycle-card${done?' done':''}">
           <div class="cycle-card-top">
             <span class="cycle-name">${sub.icon} ${sub.name}</span>
             <span class="${done?'cycle-badge-done':'cycle-badge-pend'}">${done?'✅':'⏳'}</span>
           </div>
-          <div class="cycle-count">${done ? totalCards+' cards hoje' : 'Não estudado'}</div>
-          <a class="cycle-btn" href="flashcards.html?subject=${sub.id}">Estudar →</a>
+          <div class="cycle-tasks">
+            <a class="cycle-task${gameDone?' done':''}" href="${sub.gameUrl}">🎮 Game${gameDone?' ✓':''}</a>
+            ${sub.bolsoId ? `<a class="cycle-task${bolsoDone?' done':''}" href="GAMES/CACD BOLSO/index.html">📱 Bolso${bolsoDone?' ✓':''}</a>` : ''}
+          </div>
         </div>`;
       }).join('');
-      document.getElementById('dailyCycleGrid').innerHTML = cards;
-      document.getElementById('cycleComplete').style.display = doneCount === CYCLE_SUBJECTS.length ? 'block' : 'none';
+
+      const redCount = parseInt(localStorage.getItem('sf2_daily_' + today) || '0');
+      const redDone = redCount >= 3;
+      if (redDone) doneCount++;
+      const redCard = `<div class="cycle-card${redDone?' done':''}">
+        <div class="cycle-card-top">
+          <span class="cycle-name">✍️ Redações</span>
+          <span class="${redDone?'cycle-badge-done':'cycle-badge-pend'}">${redDone?'✅':'⏳'}</span>
+        </div>
+        <div class="cycle-count" style="color:${redDone?'#22c55e':'#666'}">${redCount}/3 hoje</div>
+        <div class="cycle-prog"><div class="cycle-prog-fill" style="width:${Math.min(100, redCount/3*100)}%"></div></div>
+        <div class="cycle-tasks"><a class="cycle-task${redDone?' done':''}" href="segunda-fase.html">✍️ Praticar por Tema${redDone?' ✓':''}</a></div>
+      </div>`;
+
+      // Revisão SRS card
+      const SRS_LS_KEYS = [
+        'economia_micro_progress','economia_macro_progress','economia_inter_progress',
+        'hb_provas_progress','hb_hpeb_progress',
+        'cacd_bolso_pi','cacd_bolso_dip','cacd_bolso_direito','cacd_bolso_eco',
+        'cacd_bolso_geo','cacd_bolso_hb','cacd_bolso_hm','cacd_bolso_atual',
+      ];
+      const _srsToday = today;
+      const _srsDone  = !!localStorage.getItem('srs_reviewed_'+_srsToday);
+      let _srsDue = 0;
+      if(!_srsDone){
+        const _isDue = p => { if(!p.firstSeen) return true; const d=Math.floor((Date.now()-new Date(p.lastReview||p.firstSeen).getTime())/86400000); return d>=(p.interval||1); };
+        SRS_LS_KEYS.forEach(k=>{ try{ const prog=JSON.parse(localStorage.getItem(k)||'{}'); (prog.wrongPairs||[]).forEach(p=>{ if(_isDue(p)) _srsDue++; }); }catch(e){} });
+        try{ const gp=JSON.parse(localStorage.getItem('grammar_match_progress_v1')||'{}'); Object.values(gp._errors||{}).forEach(arr=>{ if(Array.isArray(arr)) arr.forEach(p=>{ if(_isDue(p)) _srsDue++; }); }); }catch(e){}
+      }
+      if(_srsDone) doneCount++;
+      const srsCard = `<div class="cycle-card${_srsDone?' done':''}">
+        <div class="cycle-card-top">
+          <span class="cycle-name">📚 Revisão SRS</span>
+          <span class="${_srsDone?'cycle-badge-done':'cycle-badge-pend'}">${_srsDone?'✅':'⏳'}</span>
+        </div>
+        <div class="cycle-count" style="color:${_srsDone?'#22c55e':_srsDue>0?'#f87171':'#666'}">${_srsDone?'Concluída':_srsDue>0?_srsDue+' pares devidos':'0 pares devidos'}</div>
+        <div class="cycle-tasks"><a class="cycle-task${_srsDone?' done':''}" href="revisao.html">📚 Revisar${_srsDone?' ✓':''}</a></div>
+      </div>`;
+
+      document.getElementById('dailyCycleGrid').innerHTML = cards + redCard + srsCard;
+      document.getElementById('cycleComplete').style.display = doneCount === todaySubjects.length + 2 ? 'block' : 'none';
     }
 
     function renderActivityChart() {
@@ -769,7 +740,7 @@
     }
 
     // ── INIT ─────────────────────────────────────────────────────────────
-    renderIslands(null);
+    renderGamesGrid();
     renderTPS();
 
     (async () => {
@@ -796,11 +767,8 @@
         if (!filesMap.has(f.subject_id)) filesMap.set(f.subject_id, []);
         filesMap.get(f.subject_id).push(f);
       });
-      renderIslands(filesMap);
-
       renderHero(examDate);
       renderMotivation(examDate);
-      updateIslandStats();
       renderNextTask();
       renderRecentSessions();
       renderDailyCycle();
@@ -808,54 +776,7 @@
       renderAnnouncements(announcements);
     })();
   </script>
-<style>
-.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
-.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
-#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
-#sidebar.open{transform:translateX(0)}
-#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
-#sidebar-overlay.open{display:block}
-.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
-.sb-brand span{color:#39ff14}
-.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
-.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
-.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
-.sb-link.active{color:#39ff14}
-</style>
-<div id="sidebar-overlay" onclick="closeSidebar()"></div>
-<aside id="sidebar">
-  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
-  <div class="sb-section">Estudo</div>
-  <a class="sb-link" href="index.html">🏠 Início</a>
-  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
-  <a class="sb-link" href="simulados.html">📋 Simulados</a>
-  <a class="sb-link" href="analise.html">📊 Análise</a>
-  <a class="sb-link" href="matching.html">🔤 Palavras</a>
-  <a class="sb-link" href="gramatica-matching.html">📝 Gramática</a>
-  <a class="sb-link" href="GAMES/index.html">🎮 Games Hub</a>
-  <a class="sb-link" href="GAMES/DIP/index.html">⚖️ DIP</a>
-  <a class="sb-link" href="GAMES/ECONOMIA/index.html">💹 Economia</a>
-  <a class="sb-link" href="GAMES/POLITICA INTERNACIONAL/index.html">🌍 Política Internacional</a>
-  <a class="sb-link" href="linha-do-tempo.html">⏳ Linha do Tempo</a>
-  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
-  <div class="sb-section">Mapas</div>
-  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
-  <a class="sb-link" href="noticias.html">📰 Notícias</a>
-  
-  <div class="sb-section">Comunidade</div>
-  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
-  <a class="sb-link" href="agenda.html">📅 Agenda</a>
-  <div class="sb-section">2ª Fase</div>
-  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
-  <div class="sb-section">Admin</div>
-  <a class="sb-link" href="admin.html">⚙️ Admin</a>
-</aside>
-<script>
-function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
-document.querySelectorAll('.sb-link').forEach(function(a){
-  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
-});
-</script>
+<aside id="sidebar"></aside>
+<script src="_sidebar.js"></script>
 </body>
 </html>
