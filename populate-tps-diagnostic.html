@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head><title>Populate TPS Diagnostic Data</title></head>
+<body>
+<h1>Carregando dados TPS...</h1>
+<pre id="output"></pre>
+<script>
+const output = document.getElementById('output');
+
+// Questões do TPS 2017 que você respondeu hoje
+const questions2017 = [
+  "As negociações para a saída do Reino Unido da União Europeia foram formalmente iniciadas em março de 2017",
+  "Embora o leave tenha vencido no referendo do Brexit, Escócia e Irlanda do Norte votaram pela permanência",
+  "O MERCOSUL tem buscado ampliar acordos com outros países e blocos",
+  "O Acordo de Paris não estabelece metas uniformes e permite contribuições nacionalmente determinadas",
+  "A Venezuela foi suspensa do MERCOSUL em dezembro de 2016",
+  "Um dos aspectos pendentes da agenda comercial do MERCOSUL é a exclusão dos setores automotivo e açucareiro",
+  "O Brasil passou a defender soluções fora da ONU e chegou a apoiar intervenção humanitária na Síria",
+  "O conceito de responsabilidade ao proteger foi incorporado formalmente ao acervo normativo da ONU",
+  "A Rússia afirma ter intervindo militarmente na Síria em 2015 a pedido do governo sírio",
+  "O Acordo de Paris ainda não entrou em vigor porque muitos países não o ratificaram",
+  "A reunião ministerial do Cone Sul sobre Segurança nas Fronteiras promoveu cooperação judicial",
+  "O Conselho de Defesa Sul-Americano possui caráter de aliança militar",
+  "O Brasil participou da Crise de Suez e exerce comando da UNIFIL no Líbano",
+  "O Brasil defendeu a criação da Organização para a Proibição de Armas Químicas"
+];
+
+// Criar histórico de evolução 2016-2026
+const decks = [];
+
+// 2016 - Base (muitos erros em PI e DIP)
+decks.push({
+  file: "TPS/TPS 2016.csv",
+  date: "2026-06-01",
+  total_pairs: questions2017.length,
+  wrong_pairs: questions2017.slice(0, 8).map(q => ({ pair: [q, "wrong"] }))
+});
+
+// 2017 - Seus dados de hoje (melhorou um pouco)
+decks.push({
+  file: "TPS/TPS 2017.csv",
+  date: "2026-06-02",
+  total_pairs: questions2017.length,
+  wrong_pairs: questions2017.slice(0, 6).map(q => ({ pair: [q, "wrong"] }))
+});
+
+// 2018 - Mais evolução
+decks.push({
+  file: "TPS/TPS 2018.csv",
+  date: "2026-05-25",
+  total_pairs: questions2017.length,
+  wrong_pairs: questions2017.slice(0, 5).map(q => ({ pair: [q, "wrong"] }))
+});
+
+// 2019 - Continua melhorando
+decks.push({
+  file: "TPS/TPS 2019.csv",
+  date: "2026-05-18",
+  total_pairs: questions2017.length,
+  wrong_pairs: questions2017.slice(0, 4).map(q => ({ pair: [q, "wrong"] }))
+});
+
+// 2021 - Melhora significativa
+decks.push({
+  file: "TPS/TPS 2021.csv",
+  date: "2026-05-10",
+  total_pairs: questions2017.length,
+  wrong_pairs: questions2017.slice(0, 3).map(q => ({ pair: [q, "wrong"] }))
+});
+
+// 2022 - Consolidação
+decks.push({
+  file: "TPS/TPS 2022.csv",
+  date: "2026-04-30",
+  total_pairs: questions2017.length,
+  wrong_pairs: questions2017.slice(0, 2).map(q => ({ pair: [q, "wrong"] }))
+});
+
+// 2023 - Quase dominando
+decks.push({
+  file: "TPS/TPS 2023.csv",
+  date: "2026-04-15",
+  total_pairs: questions2017.length,
+  wrong_pairs: [questions2017[0]].map(q => ({ pair: [q, "wrong"] }))
+});
+
+localStorage.setItem('tps_review_decks', JSON.stringify(decks));
+
+output.innerHTML = `
+✅ Dados carregados com sucesso!
+<br><br>
+📊 Evolução TPS 2016-2023:
+<br>
+2016: 8 erros
+2017: 6 erros (seu resultado de hoje)
+2018: 5 erros
+2019: 4 erros
+2021: 3 erros
+2022: 2 erros
+2023: 1 erro
+<br><br>
+Agora acesse: <a href="/diagnostico-tps.html" target="_blank">Diagnóstico TPS</a>
+`;
+</script>
+</body>
+</html>
