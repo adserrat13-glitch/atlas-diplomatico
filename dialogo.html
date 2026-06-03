@@ -33,7 +33,7 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
-    .back-btn {
+    .back-btn, .voice-btn {
       background: none;
       border: none;
       color: #64748b;
@@ -48,9 +48,102 @@
       transition: all 0.2s;
     }
 
-    .back-btn:hover {
+    .back-btn:hover, .voice-btn:hover {
       background: #334155;
       color: #e2e8f0;
+    }
+
+    .voice-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .voice-modal.active {
+      display: flex;
+      align-items: flex-end;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .voice-modal-content {
+      width: 100%;
+      background: #1e293b;
+      border-radius: 16px 16px 0 0;
+      padding: 1.5rem;
+      max-height: 80vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    .voice-modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 1rem;
+    }
+
+    .voice-options {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .voice-option {
+      background: #0f172a;
+      border: 2px solid #334155;
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    .voice-option:hover {
+      background: #334155;
+      border-color: #06b6d4;
+    }
+
+    .voice-option.active {
+      background: #06b6d4;
+      border-color: #06b6d4;
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .voice-option-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .voice-option-desc {
+      display: block;
+      font-size: 0.8rem;
+      opacity: 0.7;
     }
 
     .header-content {
@@ -361,6 +454,7 @@
       <div class="header-title" id="title">Diálogo</div>
       <div class="header-subtitle" id="subtitle">0 / 483 linhas</div>
     </div>
+    <button class="voice-btn" id="voiceBtn" title="Selecionar voz">🎤</button>
   </header>
 
   <main>
@@ -385,12 +479,22 @@
     </div>
   </main>
 
+  <div class="voice-modal" id="voiceModal">
+    <div class="voice-modal-content">
+      <div class="voice-modal-title">Selecionar Voz</div>
+      <div class="voice-options" id="voiceOptions"></div>
+    </div>
+  </div>
+
   <script>
     const STATE = {
       pairs: [],
       currentLineIndex: -1,
       startTime: Date.now(),
-      isPlaying: false
+      isPlaying: false,
+      voiceIndex: 0,
+      availableVoices: [],
+      useCustomVoice: false
     };
 
     const CONFIG = {
@@ -398,8 +502,101 @@
       TTS_RATE: 0.95,
       TTS_PITCH_A: 1.3,
       TTS_PITCH_B: 0.7,
-      STORAGE_KEY: 'dialogo_progress'
+      STORAGE_KEY: 'dialogo_progress',
+      VOICE_STORAGE_KEY: 'dialogo_voice'
     };
+
+    function loadAvailableVoices() {
+      const voices = speechSynthesis.getVoices();
+      STATE.availableVoices = voices.filter(v => v.lang.startsWith('pt'));
+
+      if (STATE.availableVoices.length === 0) {
+        STATE.availableVoices = voices.filter(v => v.lang.startsWith('pt-BR') || v.lang === 'pt-PT');
+      }
+
+      if (STATE.availableVoices.length === 0) {
+        STATE.availableVoices = voices.filter(v => v.lang.includes('pt'));
+      }
+
+      if (STATE.availableVoices.length === 0) {
+        STATE.availableVoices = voices;
+      }
+
+      renderVoiceOptions();
+      restoreVoicePreference();
+      console.log(`Vozes disponíveis: ${STATE.availableVoices.length}`);
+    }
+
+    function renderVoiceOptions() {
+      const container = document.getElementById('voiceOptions');
+      container.innerHTML = '';
+
+      STATE.availableVoices.forEach((voice, index) => {
+        const option = document.createElement('button');
+        option.className = 'voice-option';
+        if (index === STATE.voiceIndex) {
+          option.classList.add('active');
+        }
+
+        const voiceName = voice.name.replace('Microsoft ', '').replace('Google ', '');
+        const voiceLang = voice.lang;
+
+        option.innerHTML = `
+          <span class="voice-option-label">${voiceName}</span>
+          <span class="voice-option-desc">${voiceLang}${voice.default ? ' (Padrão)' : ''}</span>
+        `;
+
+        option.addEventListener('click', () => {
+          STATE.voiceIndex = index;
+          STATE.useCustomVoice = true;
+          localStorage.setItem(CONFIG.VOICE_STORAGE_KEY, index);
+          renderVoiceOptions();
+          testVoice(voice);
+        });
+
+        container.appendChild(option);
+      });
+    }
+
+    function restoreVoicePreference() {
+      try {
+        const saved = localStorage.getItem(CONFIG.VOICE_STORAGE_KEY);
+        if (saved) {
+          STATE.voiceIndex = parseInt(saved);
+          if (STATE.voiceIndex >= STATE.availableVoices.length) {
+            STATE.voiceIndex = 0;
+          }
+          STATE.useCustomVoice = true;
+        }
+      } catch (e) {
+        console.warn('Erro ao restaurar voz:', e);
+      }
+    }
+
+    function testVoice(voice) {
+      const testText = 'Olá! Esta é a voz selecionada.';
+      const utterance = new SpeechSynthesisUtterance(testText);
+      utterance.voice = voice;
+      utterance.lang = voice.lang;
+      utterance.rate = CONFIG.TTS_RATE;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(utterance);
+    }
+
+    function setupVoiceModal() {
+      const voiceBtn = document.getElementById('voiceBtn');
+      const voiceModal = document.getElementById('voiceModal');
+
+      voiceBtn.addEventListener('click', () => {
+        voiceModal.classList.toggle('active');
+      });
+
+      voiceModal.addEventListener('click', (e) => {
+        if (e.target === voiceModal) {
+          voiceModal.classList.remove('active');
+        }
+      });
+    }
 
     async function loadCSV() {
       try {
@@ -481,7 +678,14 @@
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'pt-BR';
+
+      if (STATE.useCustomVoice && STATE.availableVoices[STATE.voiceIndex]) {
+        utterance.voice = STATE.availableVoices[STATE.voiceIndex];
+        utterance.lang = STATE.availableVoices[STATE.voiceIndex].lang;
+      } else {
+        utterance.lang = 'pt-BR';
+      }
+
       utterance.rate = CONFIG.TTS_RATE;
       utterance.pitch = speaker === 'a' ? CONFIG.TTS_PITCH_A : CONFIG.TTS_PITCH_B;
       utterance.volume = 1.0;
@@ -619,7 +823,14 @@
     document.getElementById('nextBtn').addEventListener('click', nextMessage);
     document.getElementById('resetBtn').addEventListener('click', resetGame);
 
-    window.addEventListener('load', loadCSV);
+    window.addEventListener('load', () => {
+      if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = loadAvailableVoices;
+      }
+      loadAvailableVoices();
+      setupVoiceModal();
+      loadCSV();
+    });
   </script>
 </body>
 </html>
