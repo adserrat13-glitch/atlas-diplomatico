@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Análise Temática TPS — Atlas Diplomático</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="theme.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f1115;color:#e5e7eb;font-family:'JetBrains Mono',monospace;min-height:100vh}
+nav{position:sticky;top:0;z-index:200;height:52px;background:#0f1115;border-bottom:1px solid rgba(212,175,55,.15);display:flex;align-items:center;padding:0 16px;gap:2px;overflow-x:auto}
+.nav-ham{background:none;border:none;color:#9ca3af;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0}
+.nav-ham:hover{color:#e5e7eb;background:rgba(255,255,255,.07)}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;white-space:nowrap;flex-shrink:0;color:#d4af37}
+.nav-logo span{text-decoration:underline}
+nav a{color:#9ca3af;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0}
+nav a:hover{color:#e5e7eb;background:rgba(255,255,255,.06)}
+nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;padding-bottom:3px}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:#d4af37;background:rgba(212,175,55,.1);border:1px solid rgba(212,175,55,.25);padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#171a21;border-right:1px solid rgba(212,175,55,.12);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
+#sidebar.open{transform:translateX(0)}
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+
+.container{max-width:1200px;margin:0 auto;padding:20px}
+.hero{text-align:center;padding:40px 20px;margin-bottom:40px}
+.hero h1{font-size:28px;font-weight:800;margin-bottom:10px}
+.hero p{font-size:13px;color:#888}
+
+.controls{display:flex;gap:15px;margin-bottom:30px;flex-wrap:wrap}
+.control-group{display:flex;flex-direction:column;gap:5px}
+.control-group label{font-size:10px;font-weight:700;letter-spacing:1px;color:#666;text-transform:uppercase}
+.control-group select{background:#1a1e28;border:1px solid rgba(212,175,55,.2);color:#e5e7eb;padding:8px 10px;border-radius:6px;font-family:inherit;font-size:12px;cursor:pointer}
+
+.tabs{display:flex;gap:10px;margin-bottom:30px;border-bottom:1px solid rgba(212,175,55,.1);padding-bottom:15px;overflow-x:auto}
+.tab-btn{background:none;border:none;color:#9ca3af;font-size:12px;font-weight:700;padding:8px 12px;cursor:pointer;border-bottom:2px solid transparent;transition:.15s;font-family:inherit}
+.tab-btn:hover{color:#e5e7eb}
+.tab-btn.active{color:#d4af37;border-bottom-color:#d4af37}
+
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+.loading{text-align:center;padding:40px 20px;color:#666}
+.loading-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#666;animation:pulse 1.5s ease-in-out infinite;margin:0 4px}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+
+.weakness-card{background:#171a21;border:1px solid rgba(212,175,55,.15);border-radius:10px;padding:16px;margin-bottom:12px;transition:border-color .15s}
+.weakness-card:hover{border-color:rgba(212,175,55,.4)}
+.weakness-rank{font-size:10px;font-weight:700;color:#d4af37;margin-bottom:4px}
+.weakness-name{font-size:14px;font-weight:700;margin-bottom:8px}
+.weakness-detail{font-size:11px;color:#888;margin-bottom:8px;line-height:1.4}
+.weakness-meta{display:flex;gap:15px;font-size:10px;color:#555}
+.weakness-bar{height:3px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-top:8px}
+.weakness-fill{height:100%;background:#d4af37;transition:width .5s}
+
+.heatmap{overflow-x:auto;margin-bottom:30px}
+.heatmap-table{border-collapse:collapse;min-width:100%;font-size:11px}
+.heatmap-cell{padding:8px;border:1px solid rgba(255,255,255,.05);text-align:center;min-width:60px}
+.heatmap-header{background:#1a1e28;font-weight:700;color:#d4af37}
+.heatmap-year{background:#1a1e28;font-weight:700;color:#d4af37;text-align:left}
+.heatmap-hot{background:rgba(248,113,113,.3);color:#f87171}
+.heatmap-warm{background:rgba(251,191,36,.2);color:#fbbf24}
+.heatmap-cool{background:rgba(52,211,153,.2);color:#34d399}
+
+.chart{margin:30px 0;min-height:300px;background:#1a1e28;border:1px solid rgba(212,175,55,.1);border-radius:10px;padding:20px}
+.chart-title{font-size:13px;font-weight:700;margin-bottom:20px}
+
+.recommendation{background:#171a21;border-left:3px solid #d4af37;border-radius:6px;padding:16px;margin-bottom:12px}
+.rec-title{font-size:12px;font-weight:700;color:#d4af37;margin-bottom:8px}
+.rec-text{font-size:11px;color:#9ca3af;line-height:1.5;margin-bottom:8px}
+.rec-source{font-size:10px;color:#555;font-style:italic}
+
+.empty-msg{text-align:center;padding:40px 20px;color:#666;font-size:12px}
+
+@media(max-width:768px){
+  .controls{flex-direction:column}
+  .tabs{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="nav-ham" onclick="openSidebar()">☰</button>
+  <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+  <a href="index.html">Início</a>
+  <a href="flashcards.html">Flashcards</a>
+  <a href="simulados.html">Simulados</a>
+  <a href="analise-tps-tematica.html" class="active">Análise TPS</a>
+  <div class="nav-spacer"></div>
+  <div class="nav-cd" id="navCountdown"></div>
+</nav>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar"></aside>
+
+<div class="container">
+  <div class="hero">
+    <h1>📊 ANÁLISE TEMÁTICA TPS</h1>
+    <p>Compreenda seus erros por tema do edital e evolua sistematicamente (2016-2026)</p>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Matéria</label>
+      <select id="materiaSel" onchange="atualizarDashboard()">
+        <option value="">Todas</option>
+        <option value="PI">Política Internacional</option>
+        <option value="DIP">Direito Internacional Público</option>
+        <option value="ECONOMIA">Economia</option>
+        <option value="GEO">Geografia</option>
+        <option value="HB">História do Brasil</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>Tipo de Análise</label>
+      <select id="tipoSel" onchange="atualizarDashboard()">
+        <option value="erros">Mais Erros</option>
+        <option value="acertos">Mais Acertos</option>
+        <option value="evolucao">Evolução (Melhora/Piora)</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="loading" style="display:none" class="loading">
+    <div>Carregando dados TPS...</div>
+    <div class="loading-dot"></div>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="mostrarTab('fraquezas')">Fraquezas por Tema</button>
+      <button class="tab-btn" onclick="mostrarTab('evolucao')">Evolução Histórica</button>
+      <button class="tab-btn" onclick="mostrarTab('heatmap')">Mapa Temático</button>
+      <button class="tab-btn" onclick="mostrarTab('recomendacoes')">Recomendações</button>
+    </div>
+
+    <div id="fraquezas" class="tab-content active">
+      <div id="fraquezasContainer"></div>
+    </div>
+
+    <div id="evolucao" class="tab-content">
+      <div class="chart">
+        <div class="chart-title">Taxa de Acerto por Tema (2016-2026)</div>
+        <div id="evolucaoChart"></div>
+      </div>
+    </div>
+
+    <div id="heatmap" class="tab-content">
+      <div class="heatmap">
+        <div id="heatmapContainer"></div>
+      </div>
+    </div>
+
+    <div id="recomendacoes" class="tab-content">
+      <div id="recomendacoesContainer"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ANOS = [2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025, 2026];
+const MATERIAS = { PI: 'Política Internacional', DIP: 'Direito Int. Público', ECONOMIA: 'Economia', GEO: 'Geografia', HB: 'História do Brasil' };
+const EDITAL_MAP = { PI: 'PI', DIP: 'DIP', ECONOMIA: 'ECONOMIA', GEO: 'GEOGRAFIA', HB: 'HISTORIA-DO-BRASIL' };
+
+let tpsData = {}; // { ano: [questoes] }
+let editalData = {}; // { materia: { eixo: [...temas] } }
+let analiseData = {}; // { tema: { materia, eixo, topico, anos: {2016: {acertos, total}} } }
+
+async function init() {
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('content').style.display = 'none';
+
+  try {
+    await Promise.all([loadTpsData(), loadEditalData()]);
+    analisarDados();
+    atualizarDashboard();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('loading').innerHTML = `<div style="color:#f87171">Erro: ${e.message}</div>`;
+  }
+}
+
+async function loadTpsData() {
+  for (const ano of ANOS) {
+    const response = await fetch(`/TPS/TPS ${ano}.csv`);
+    if (!response.ok) continue;
+    const text = await response.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    tpsData[ano] = lines.map(line => {
+      const [questao, resposta] = line.split(';');
+      return { questao: questao?.trim() || '', resposta: resposta?.trim() || '' };
+    }).filter(q => q.questao && q.resposta);
+  }
+}
+
+async function loadEditalData() {
+  for (const [materia, arquivo] of Object.entries(EDITAL_MAP)) {
+    const response = await fetch(`/TPS/edital/${arquivo}.csv`);
+    if (!response.ok) continue;
+    const text = await response.text();
+    const lines = text.split('\n').slice(1).filter(l => l.trim());
+    const temas = [];
+    for (const line of lines) {
+      const partes = line.split(';');
+      if (partes.length >= 3) {
+        temas.push({
+          eixo: partes[0]?.trim() || '',
+          topico: partes[1]?.trim() || '',
+          descricao: partes[2]?.trim() || ''
+        });
+      }
+    }
+    editalData[materia] = temas;
+  }
+}
+
+function mapearTema(questao, materia) {
+  if (!editalData[materia]) return null;
+  const questaoNorm = questao.toLowerCase().split(/\s+/);
+  let melhorTema = null;
+  let melhorScore = 0;
+
+  for (const tema of editalData[materia]) {
+    const descNorm = (tema.descricao + ' ' + tema.topico).toLowerCase().split(/\s+/);
+    let score = 0;
+    for (const palavra of questaoNorm) {
+      if (palavra.length > 3 && descNorm.some(p => p.includes(palavra))) score++;
+    }
+    if (score > melhorScore) {
+      melhorScore = score;
+      melhorTema = tema;
+    }
+  }
+
+  return melhorTema || editalData[materia][0];
+}
+
+function analisarDados() {
+  analiseData = {};
+
+  for (const ano of ANOS) {
+    if (!tpsData[ano]) continue;
+
+    for (const materia of Object.keys(EDITAL_MAP)) {
+      const temas = {};
+      for (const { questao, resposta } of tpsData[ano]) {
+        const tema = mapearTema(questao, materia);
+        if (!tema) continue;
+
+        const key = tema.topico || 'Geral';
+        if (!temas[key]) temas[key] = { tema, acertos: 0, total: 0 };
+        temas[key].total++;
+        if (resposta === 'CERTO') temas[key].acertos++;
+      }
+
+      for (const [key, dados] of Object.entries(temas)) {
+        const temaNorm = `${materia}::${key}`;
+        if (!analiseData[temaNorm]) {
+          analiseData[temaNorm] = { materia, ...dados.tema, anos: {} };
+        }
+        analiseData[temaNorm].anos[ano] = { acertos: dados.acertos, total: dados.total };
+      }
+    }
+  }
+}
+
+function atualizarDashboard() {
+  const materia = document.getElementById('materiaSel').value;
+  const tipo = document.getElementById('tipoSel').value;
+
+  let filtered = Object.entries(analiseData);
+  if (materia) {
+    filtered = filtered.filter(([k]) => k.startsWith(materia + '::'));
+  }
+
+  filtered = filtered.map(([k, v]) => {
+    const taxa = Object.values(v.anos).reduce((sum, {acertos, total}) => sum + (acertos/total || 0), 0) / ANOS.length;
+    return { key: k, ...v, taxaMedia: taxa };
+  });
+
+  if (tipo === 'erros') {
+    filtered.sort((a, b) => (1 - a.taxaMedia) - (1 - b.taxaMedia));
+  } else if (tipo === 'acertos') {
+    filtered.sort((a, b) => b.taxaMedia - a.taxaMedia);
+  } else {
+    filtered.sort((a, b) => {
+      const anoFirst = ANOS[ANOS.length - 1];
+      const anoLast = ANOS[0];
+      const evolvA = (a.anos[anoFirst]?.acertos || 0) / (a.anos[anoFirst]?.total || 1) - (a.anos[anoLast]?.acertos || 0) / (a.anos[anoLast]?.total || 1);
+      const evolvB = (b.anos[anoFirst]?.acertos || 0) / (b.anos[anoFirst]?.total || 1) - (b.anos[anoLast]?.acertos || 0) / (b.anos[anoLast]?.total || 1);
+      return evolvA - evolvB;
+    });
+  }
+
+  renderizarFraquezas(filtered.slice(0, 20));
+  renderizarEvolucao(filtered.slice(0, 10));
+  renderizarHeatmap(filtered.slice(0, 15));
+  renderizarRecomendacoes(filtered.slice(0, 10));
+}
+
+function renderizarFraquezas(dados) {
+  let html = '';
+  for (let i = 0; i < dados.length; i++) {
+    const { topico, descricao, taxaMedia, anos } = dados[i];
+    const erros = 1 - taxaMedia;
+    html += `
+      <div class="weakness-card">
+        <div class="weakness-rank">${i + 1}º lugar</div>
+        <div class="weakness-name">${topico || 'Geral'}</div>
+        <div class="weakness-detail">${descricao}</div>
+        <div class="weakness-meta">
+          <span>Taxa erro: ${Math.round(erros * 100)}%</span>
+          <span>Questões: ${Object.values(anos).reduce((s, {total}) => s + total, 0)}</span>
+        </div>
+        <div class="weakness-bar"><div class="weakness-fill" style="width:${erros * 100}%"></div></div>
+      </div>
+    `;
+  }
+  document.getElementById('fraquezasContainer').innerHTML = html || '<div class="empty-msg">Sem dados</div>';
+}
+
+function renderizarEvolucao(dados) {
+  let svg = '<svg width="100%" height="250" style="margin-top:20px"><g>';
+  const maxVal = 100;
+  const width = 800;
+  const height = 200;
+  const spacing = width / (ANOS.length - 1);
+
+  for (let i = 0; i < dados.length; i++) {
+    const { topico, anos } = dados[i];
+    const points = ANOS.map((ano, idx) => {
+      const taxa = (anos[ano]?.acertos || 0) / (anos[ano]?.total || 1) * 100;
+      return `${idx * spacing},${height - (taxa / maxVal) * height}`;
+    }).join(' ');
+
+    const cor = ['#d4af37', '#f87171', '#34d399', '#fbbf24', '#60a5fa', '#a78bfa', '#fb923c', '#ec4899', '#14b8a6', '#8b5cf6'][i % 10];
+    svg += `<polyline points="${points}" stroke="${cor}" stroke-width="2" fill="none" opacity="0.7"/>`;
+  }
+
+  svg += '<line x1="0" y1="' + height + '" x2="' + width + '" y2="' + height + '" stroke="#333" stroke-width="1"/>';
+  svg += '</g></svg>';
+
+  document.getElementById('evolucaoChart').innerHTML = svg;
+}
+
+function renderizarHeatmap(dados) {
+  let html = '<table class="heatmap-table"><tr class="heatmap-header"><td style="width:200px">Tema</td>';
+
+  for (const ano of ANOS) {
+    html += `<td class="heatmap-header">${ano}</td>`;
+  }
+  html += '</tr>';
+
+  for (const { topico, anos } of dados) {
+    html += `<tr><td class="heatmap-year">${topico || 'Geral'}</td>`;
+
+    for (const ano of ANOS) {
+      const taxa = anos[ano] ? (anos[ano].acertos / anos[ano].total * 100) : null;
+      let classe = 'heatmap-cell';
+      if (taxa !== null) {
+        if (taxa >= 70) classe = 'heatmap-cell heatmap-cool';
+        else if (taxa >= 40) classe = 'heatmap-cell heatmap-warm';
+        else classe = 'heatmap-cell heatmap-hot';
+      }
+      html += `<td class="${classe}">${taxa !== null ? Math.round(taxa) : '-'}%</td>`;
+    }
+
+    html += '</tr>';
+  }
+
+  html += '</table>';
+  document.getElementById('heatmapContainer').innerHTML = html;
+}
+
+function renderizarRecomendacoes(dados) {
+  let html = '';
+  const fracas = dados.filter(d => (1 - d.taxaMedia) > 0.3).slice(0, 5);
+
+  if (fracas.length === 0) {
+    html = '<div class="empty-msg">Você está indo bem! Poucos temas fracos.</div>';
+  } else {
+    for (const { topico, descricao, materia, taxaMedia } of fracas) {
+      html += `
+        <div class="recommendation">
+          <div class="rec-title">📌 ${topico || 'Geral'}</div>
+          <div class="rec-text">${descricao}</div>
+          <div class="rec-source">Matéria: ${MATERIAS[materia]} • Taxa erro: ${Math.round((1 - taxaMedia) * 100)}%</div>
+        </div>
+      `;
+    }
+  }
+
+  document.getElementById('recomendacoesContainer').innerHTML = html;
+}
+
+function mostrarTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+
+init();
+
+(async () => {
+  try {
+    const user = await DB.requireAuth();
+    const [profile, , examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
+    const nc = document.getElementById('navCountdown');
+    if (nc && examDate) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+  } catch(e) {}
+})();
+</script>
+</body>
+</html>
