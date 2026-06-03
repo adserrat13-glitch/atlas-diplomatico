@@ -142,6 +142,10 @@
       font-size: 0.95rem;
       line-height: 1.4;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      transition: all 0.2s;
     }
 
     .bubble.pessoa-a {
@@ -150,9 +154,60 @@
       border-left: 3px solid #06b6d4;
     }
 
+    .bubble.pessoa-a:hover {
+      background: #334155;
+      border-left-color: #0ea5e9;
+    }
+
     .bubble.pessoa-b {
       background: #ec4899;
       color: #ffffff;
+    }
+
+    .bubble.pessoa-b:hover {
+      background: #db2777;
+    }
+
+    .bubble-text {
+      flex: 1;
+    }
+
+    .sound-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 1.25rem;
+      opacity: 0.7;
+      transition: all 0.2s;
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border-radius: 50%;
+    }
+
+    .sound-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    .sound-btn.playing {
+      animation: pulse 0.6s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0.7;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.15);
+      }
     }
 
     .empty-state {
@@ -409,10 +464,21 @@
     }
 
     function playTTS(text, speaker) {
-      if (!window.speechSynthesis) return;
+      if (!window.speechSynthesis) {
+        console.warn('TTS não suportado');
+        return;
+      }
 
       speechSynthesis.cancel();
       STATE.isPlaying = true;
+
+      const soundBtns = document.querySelectorAll('.sound-btn');
+      soundBtns.forEach(btn => btn.classList.remove('playing'));
+
+      const currentBtn = event?.target?.closest('.sound-btn');
+      if (currentBtn) {
+        currentBtn.classList.add('playing');
+      }
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
@@ -420,15 +486,34 @@
       utterance.pitch = speaker === 'a' ? CONFIG.TTS_PITCH_A : CONFIG.TTS_PITCH_B;
       utterance.volume = 1.0;
 
+      utterance.onstart = () => {
+        console.log('TTS iniciado:', speaker);
+      };
+
       utterance.onend = () => {
         STATE.isPlaying = false;
+        if (currentBtn) {
+          currentBtn.classList.remove('playing');
+        }
+        console.log('TTS finalizado');
+      };
+
+      utterance.onerror = (e) => {
+        console.error('Erro TTS:', e.error);
+        STATE.isPlaying = false;
+        if (currentBtn) {
+          currentBtn.classList.remove('playing');
+        }
       };
 
       try {
         speechSynthesis.speak(utterance);
       } catch (e) {
-        console.error('Erro TTS:', e);
+        console.error('Erro ao iniciar TTS:', e);
         STATE.isPlaying = false;
+        if (currentBtn) {
+          currentBtn.classList.remove('playing');
+        }
       }
     }
 
@@ -444,8 +529,22 @@
 
       const bubble = document.createElement('div');
       bubble.className = `bubble pessoa-${speaker}`;
-      bubble.textContent = text;
 
+      const textEl = document.createElement('span');
+      textEl.className = 'bubble-text';
+      textEl.textContent = text;
+
+      const soundBtn = document.createElement('button');
+      soundBtn.className = 'sound-btn';
+      soundBtn.innerHTML = '🔊';
+      soundBtn.title = 'Reproduzir áudio';
+      soundBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        playTTS(text, speaker);
+      });
+
+      bubble.appendChild(textEl);
+      bubble.appendChild(soundBtn);
       message.appendChild(bubble);
       container.appendChild(message);
       container.scrollTop = container.scrollHeight;
