@@ -32,11 +32,11 @@
   --beige:    #DCC9A9;
 
   /* Backward-compat aliases */
-  --neon-green:  #d4af37;
+  --neon-green:  #34d399;
   --neon-yellow: #d4af37;
   --neon-orange: #f59e0b;
-  --neon-pink:   #d4af37;
-  --neon-blue:   #d4af37;
+  --neon-pink:   #B83A2D;
+  --neon-blue:   #60a5fa;
   --neon-purple: #c084fc;
 
   /* Status */
@@ -174,6 +174,17 @@ nav a.active {
 .sb-link:hover .sb-icon { opacity: .8; }
 .sb-link.active .sb-icon { opacity: 1; }
 .sb-icon svg { width: 16px; height: 16px; display: block; }
+
+.sb-link-indent {
+  padding-left: 32px !important;
+  font-size: 11px !important;
+  color: var(--muted2) !important;
+}
+.sb-link-indent:hover { color: var(--text) !important; }
+.sb-link-indent.active {
+  color: var(--gold) !important;
+  padding-left: 29px !important;
+}
 
 /* ── Cards / Surfaces ──────────────────────────────────────── */
 .bottom-card,

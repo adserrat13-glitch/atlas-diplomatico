@@ -26,7 +26,9 @@
         { href: '/GAMES/DIP/index.html',                        icon: 'dip',      name: 'DIP' },
         { href: '/GAMES/ECONOMIA/index.html',                   icon: 'economy',  name: 'Economia' },
         { href: '/GAMES/TPS/index.html',                        icon: 'doc',      name: 'TPS' },
-        { href: '/GAMES/HISTORIA DO BRASIL/HISTORIA DO BRASIL IMPERIO/index.html', icon: 'history', name: 'HB Império' },
+        { href: '/GAMES/HISTORIA DO BRASIL/index.html',         icon: 'history',  name: 'História do Brasil', submenu: [
+          { href: '/GAMES/HISTORIA DO BRASIL/HISTORIA DO BRASIL IMPERIO/index.html', icon: 'history', name: 'HB Império', indent: true }
+        ]},
         { href: '/GAMES/POLITICA INTERNACIONAL/index.html',     icon: 'globe',    name: 'Política Int.' },
         { href: '/GAMES/BRASIL/BANDEIRAS/index.html',           icon: 'flag',     name: 'Bandeiras' },
         { href: '/GAMES/BRASIL/COMERCIO/index.html',            icon: 'exchange', name: 'Comércio' },
@@ -78,7 +80,17 @@
     html += `<div class="sb-group"><div class="sb-label">${group.label}</div>`;
     group.links.forEach(function (link) {
       const active = isActive(link.href) ? ' active' : '';
-      html += `<a class="sb-link${active}" href="${link.href}">${icon(link.icon)}${link.name}</a>`;
+      const indent = (link.indent ? ' sb-link-indent' : '');
+      html += `<a class="sb-link${active}${indent}" href="${link.href}">${icon(link.icon)}${link.name}</a>`;
+
+      // Render submenu items if present
+      if (link.submenu) {
+        link.submenu.forEach(function (sublink) {
+          const subactive = isActive(sublink.href) ? ' active' : '';
+          const subindent = (sublink.indent ? ' sb-link-indent' : '');
+          html += `<a class="sb-link${subactive}${subindent}" href="${sublink.href}">${icon(sublink.icon)}${sublink.name}</a>`;
+        });
+      }
     });
     html += `</div>`;
   });

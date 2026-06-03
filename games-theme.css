@@ -183,6 +183,20 @@ html.is-games-page .sb-link.active {
   padding-left: 13px !important;
 }
 
+html.is-games-page .sb-link-indent {
+  padding-left: 32px !important;
+  font-size: 11px !important;
+  color: #808080 !important;
+}
+html.is-games-page .sb-link-indent:hover {
+  color: #fff !important;
+}
+html.is-games-page .sb-link-indent.active {
+  color: #fff !important;
+  background: #8ca37d !important;
+  padding-left: 29px !important;
+}
+
 /* Cards */
 html.is-games-page .bottom-card,
 html.is-games-page .tps-section,
