@@ -5,9 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Atlas Diplomático — CACD 2026</title>
   <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="games-theme.css" />
   <script src="icons.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
+
+  <script>
+    // Detectar se está em página de GAMES e adicionar class ao html
+    function detectGamesPage() {
+      const isGamesPage = window.location.pathname.includes('/GAMES/');
+      if (isGamesPage) {
+        document.documentElement.classList.add('is-games-page');
+      } else {
+        document.documentElement.classList.remove('is-games-page');
+      }
+    }
+
+    // Executar no load
+    document.addEventListener('DOMContentLoaded', detectGamesPage);
+    window.addEventListener('load', detectGamesPage);
+
+    // Detectar mudanças de navegação (SPA)
+    window.addEventListener('popstate', detectGamesPage);
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+      originalPushState.apply(history, arguments);
+      detectGamesPage();
+    };
+  </script>
   <style>
     body { font-family:'Inter',system-ui,sans-serif; min-height:100vh; }
 
