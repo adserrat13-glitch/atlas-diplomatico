@@ -13,10 +13,10 @@
         { href: '/revisao.html',            icon: 'review',   name: 'Revisão SRS' },
         { href: '/flashcards.html',         icon: 'cards',    name: 'Flashcards' },
         { href: '/simulados.html',          icon: 'sim',      name: 'Simulados' },
+        { href: '/analise-tps-tematica.html', icon: 'chart',  name: 'Análise TPS' },
         { href: '/analise.html',            icon: 'chart',    name: 'Análise' },
         { href: '/GAMES/INGLES/MATCHING%20WORDS/index.html', icon: 'words', name: 'Vocab. ING' },
         { href: '/gramatica-matching.html', icon: 'grammar',  name: 'Gramática' },
-        { href: '/diagnostico-tps.html',   icon: 'chart',    name: 'Diagnóstico TPS' },
       ]
     },
     {
