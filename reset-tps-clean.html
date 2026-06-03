@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Reset TPS Data</title>
+<style>
+body{background:#000;color:#fff;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.box{background:#111;border:1px solid #d4af37;padding:40px;border-radius:10px;text-align:center;max-width:400px}
+h1{font-size:20px;margin-bottom:20px;color:#d4af37}
+p{font-size:14px;margin:10px 0;color:#888}
+.btn{display:inline-block;padding:10px 20px;background:#d4af37;color:#000;border:none;border-radius:6px;cursor:pointer;font-weight:700;margin-top:20px;font-family:monospace;font-size:12px}
+.btn:hover{background:#c49b2a}
+.success{color:#34d399;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="box">
+<h1>🔄 RESET TPS</h1>
+<p>Limpar todos os dados de análise TPS</p>
+<p id="status" style="color:#888">Aguardando...</p>
+<button class="btn" onclick="resetarDados()">RESETAR AGORA</button>
+<div id="result"></div>
+</body>
+
+<script>
+function resetarDados() {
+  // Remove todos os dados TPS
+  localStorage.removeItem('tps_review_decks');
+
+  // Remove dados de análise anteriores
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && (key.startsWith('tps_') || key.startsWith('analise_') || key.includes('diagnostic'))) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach(key => localStorage.removeItem(key));
+
+  document.getElementById('result').innerHTML = `
+    <div class="success">
+      ✅ Dados resetados com sucesso!<br>
+      <br>
+      Você pode agora:
+      <br>
+      1. Ir para <a href="/simulados.html" style="color:#d4af37">Simulados</a> e responder um TPS
+      <br>
+      2. Voltar para <a href="/analise-tps-tematica.html" style="color:#d4af37">Análise TPS</a> para ver os dados
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
