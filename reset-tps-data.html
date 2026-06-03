@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head><title>Reset TPS Data</title></head>
+<body>
+<h1>Resetando dados TPS...</h1>
+<pre id="output"></pre>
+<script>
+localStorage.removeItem('tps_review_decks');
+document.getElementById('output').innerHTML = '✅ Dados TPS resetados!\n\nAgora você pode fazer um novo TPS e o diagnóstico rastreará corretamente.';
+</script>
+</body>
+</html>
