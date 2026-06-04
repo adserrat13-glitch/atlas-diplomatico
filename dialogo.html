@@ -480,13 +480,15 @@
 
   <script>
     const STATE = {
-      pairs: [],
-      currentLineIndex: -1,
+      messages: [],
+      currentMessageIndex: -1,
       startTime: Date.now(),
       isPlaying: false,
-      voiceIndex: 0,
+      voiceIndexA: 0,
+      voiceIndexB: 0,
       availableVoices: [],
-      useCustomVoice: false
+      useCustomVoiceA: false,
+      useCustomVoiceB: false
     };
 
     const CONFIG = {
@@ -514,51 +516,118 @@
         STATE.availableVoices = voices;
       }
 
+      autoSelectVoices();
       renderVoiceOptions();
       restoreVoicePreference();
       console.log(`Vozes disponíveis: ${STATE.availableVoices.length}`);
+    }
+
+    function autoSelectVoices() {
+      if (STATE.availableVoices.length === 0) return;
+
+      let femaleIdx = 0;
+      let maleIdx = STATE.availableVoices.length > 1 ? 1 : 0;
+
+      for (let i = 0; i < STATE.availableVoices.length; i++) {
+        const name = STATE.availableVoices[i].name.toLowerCase();
+        if ((name.includes('female') || name.includes('francisca') || name.includes('maria')) && i !== maleIdx) {
+          femaleIdx = i;
+          break;
+        }
+      }
+
+      for (let i = 0; i < STATE.availableVoices.length; i++) {
+        const name = STATE.availableVoices[i].name.toLowerCase();
+        if ((name.includes('male') || name.includes('daniel') || name.includes('ricardo')) && i !== femaleIdx) {
+          maleIdx = i;
+          break;
+        }
+      }
+
+      STATE.voiceIndexA = femaleIdx;
+      STATE.voiceIndexB = maleIdx !== femaleIdx ? maleIdx : (femaleIdx === 0 ? 1 : 0);
     }
 
     function renderVoiceOptions() {
       const container = document.getElementById('voiceOptions');
       container.innerHTML = '';
 
-      STATE.availableVoices.forEach((voice, index) => {
-        const option = document.createElement('button');
-        option.className = 'voice-option';
-        if (index === STATE.voiceIndex) {
-          option.classList.add('active');
-        }
+      const createSection = (title, voiceIndex, speaker) => {
+        const section = document.createElement('div');
+        section.style.marginBottom = '1.5rem';
 
-        const voiceName = voice.name.replace('Microsoft ', '').replace('Google ', '');
-        const voiceLang = voice.lang;
+        const label = document.createElement('div');
+        label.style.fontSize = '0.9rem';
+        label.style.fontWeight = '700';
+        label.style.color = '#ec4899';
+        label.style.marginBottom = '0.75rem';
+        label.textContent = title;
+        section.appendChild(label);
 
-        option.innerHTML = `
-          <span class="voice-option-label">${voiceName}</span>
-          <span class="voice-option-desc">${voiceLang}${voice.default ? ' (Padrão)' : ''}</span>
-        `;
+        const grid = document.createElement('div');
+        grid.className = 'voice-options';
+        grid.style.gap = '0.75rem';
 
-        option.addEventListener('click', () => {
-          STATE.voiceIndex = index;
-          STATE.useCustomVoice = true;
-          localStorage.setItem(CONFIG.VOICE_STORAGE_KEY, index);
-          renderVoiceOptions();
-          testVoice(voice);
+        STATE.availableVoices.forEach((voice, index) => {
+          const option = document.createElement('button');
+          option.className = 'voice-option';
+          if (speaker === 'a' && index === STATE.voiceIndexA) {
+            option.classList.add('active');
+          } else if (speaker === 'b' && index === STATE.voiceIndexB) {
+            option.classList.add('active');
+          }
+
+          const voiceName = voice.name.replace('Microsoft ', '').replace('Google ', '');
+          const voiceLang = voice.lang;
+
+          option.innerHTML = `
+            <span class="voice-option-label">${voiceName}</span>
+            <span class="voice-option-desc">${voiceLang}${voice.default ? ' (Padrão)' : ''}</span>
+          `;
+
+          option.addEventListener('click', () => {
+            if (speaker === 'a') {
+              STATE.voiceIndexA = index;
+              STATE.useCustomVoiceA = true;
+              localStorage.setItem(CONFIG.VOICE_STORAGE_KEY + '_a', index);
+            } else {
+              STATE.voiceIndexB = index;
+              STATE.useCustomVoiceB = true;
+              localStorage.setItem(CONFIG.VOICE_STORAGE_KEY + '_b', index);
+            }
+            renderVoiceOptions();
+            testVoice(voice);
+          });
+
+          grid.appendChild(option);
         });
 
-        container.appendChild(option);
-      });
+        section.appendChild(grid);
+        return section;
+      };
+
+      container.appendChild(createSection('🎤 Voz — Pessoa1 (Pergunta)', STATE.voiceIndexA, 'a'));
+      container.appendChild(createSection('🎤 Voz — Pessoa2 (Resposta)', STATE.voiceIndexB, 'b'));
     }
 
     function restoreVoicePreference() {
       try {
-        const saved = localStorage.getItem(CONFIG.VOICE_STORAGE_KEY);
-        if (saved) {
-          STATE.voiceIndex = parseInt(saved);
-          if (STATE.voiceIndex >= STATE.availableVoices.length) {
-            STATE.voiceIndex = 0;
+        const savedA = localStorage.getItem(CONFIG.VOICE_STORAGE_KEY + '_a');
+        if (savedA) {
+          STATE.voiceIndexA = parseInt(savedA);
+          if (STATE.voiceIndexA >= STATE.availableVoices.length) {
+            STATE.voiceIndexA = 0;
           }
-          STATE.useCustomVoice = true;
+          STATE.useCustomVoiceA = true;
+        }
+
+        const savedB = localStorage.getItem(CONFIG.VOICE_STORAGE_KEY + '_b');
+        if (savedB) {
+          STATE.voiceIndexB = parseInt(savedB);
+          if (STATE.voiceIndexB >= STATE.availableVoices.length) {
+            STATE.voiceIndexB = 0;
+          }
+          STATE.useCustomVoiceB = true;
         }
       } catch (e) {
         console.warn('Erro ao restaurar voz:', e);
@@ -601,22 +670,64 @@
         let csvText = await response.text();
         csvText = csvText.replace(/^﻿/, '');
 
-        const results = Papa.parse(csvText, {
-          header: false,
+        let delimiter = ';';
+        let parseResult = Papa.parse(csvText, {
+          header: true,
           skipEmptyLines: true,
           delimiter: ';'
         });
 
-        STATE.pairs = results.data
-          .filter(row => row[0] && row[1])
-          .map(row => ({
-            q: row[0].trim(),
-            a: row[1].trim()
-          }));
+        if (!parseResult.data || parseResult.data.length === 0 || !parseResult.data[0]['person']) {
+          delimiter = ',';
+          parseResult = Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true,
+            delimiter: ','
+          });
+        }
 
-        console.log(`✓ Carregados ${STATE.pairs.length} pares`);
+        const hasHeader = parseResult.data && parseResult.data.length > 0 &&
+                          (parseResult.data[0]['person'] !== undefined || parseResult.data[0]['message'] !== undefined);
 
-        if (STATE.pairs.length === 0) {
+        STATE.messages = [];
+
+        if (hasHeader && parseResult.data[0]['person'] !== undefined) {
+          parseResult.data.forEach(row => {
+            if (row.person && row.message) {
+              const speaker = row.person.trim().toLowerCase() === 'pessoa1' ? 'a' : 'b';
+              STATE.messages.push({
+                speaker: speaker,
+                text: row.message.trim(),
+                personName: row.person.trim()
+              });
+            }
+          });
+          console.log(`✓ Carregados ${STATE.messages.length} mensagens (formato novo)`);
+        } else {
+          const legacyResults = Papa.parse(csvText, {
+            header: false,
+            skipEmptyLines: true,
+            delimiter: ';'
+          });
+
+          legacyResults.data.forEach(row => {
+            if (row[0] && row[1]) {
+              STATE.messages.push({
+                speaker: 'a',
+                text: row[0].trim(),
+                personName: 'Pergunta'
+              });
+              STATE.messages.push({
+                speaker: 'b',
+                text: row[1].trim(),
+                personName: 'Resposta'
+              });
+            }
+          });
+          console.log(`✓ Carregados ${STATE.messages.length} mensagens (formato legado)`);
+        }
+
+        if (STATE.messages.length === 0) {
           showError('Nenhum diálogo foi carregado');
           return;
         }
@@ -634,7 +745,7 @@
         const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
         if (saved) {
           const data = JSON.parse(saved);
-          STATE.currentLineIndex = data.lastLineIndex || -1;
+          STATE.currentMessageIndex = data.lastLineIndex || -1;
         }
       } catch (e) {
         console.warn('Erro ao restaurar progresso:', e);
@@ -644,7 +755,7 @@
     function saveProgress() {
       try {
         localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify({
-          lastLineIndex: STATE.currentLineIndex,
+          lastLineIndex: STATE.currentMessageIndex,
           timestamp: Date.now()
         }));
       } catch (e) {
@@ -671,9 +782,12 @@
 
       const utterance = new SpeechSynthesisUtterance(text);
 
-      if (STATE.useCustomVoice && STATE.availableVoices[STATE.voiceIndex]) {
-        utterance.voice = STATE.availableVoices[STATE.voiceIndex];
-        utterance.lang = STATE.availableVoices[STATE.voiceIndex].lang;
+      const voiceIndex = speaker === 'a' ? STATE.voiceIndexA : STATE.voiceIndexB;
+      const useCustom = speaker === 'a' ? STATE.useCustomVoiceA : STATE.useCustomVoiceB;
+
+      if (useCustom && STATE.availableVoices[voiceIndex]) {
+        utterance.voice = STATE.availableVoices[voiceIndex];
+        utterance.lang = STATE.availableVoices[voiceIndex].lang;
       } else {
         utterance.lang = 'pt-BR';
       }
@@ -713,7 +827,7 @@
       }
     }
 
-    function displayMessage(text, speaker) {
+    function displayMessage(text, speaker, personName) {
       const container = document.getElementById('chatArea');
 
       if (container.querySelector('.empty-state')) {
@@ -722,6 +836,14 @@
 
       const message = document.createElement('div');
       message.className = `message ${speaker === 'a' ? 'left' : 'right'}`;
+
+      const speakerLabel = document.createElement('div');
+      speakerLabel.style.fontSize = '10px';
+      speakerLabel.style.fontWeight = '700';
+      speakerLabel.style.opacity = '0.5';
+      speakerLabel.style.marginBottom = '3px';
+      speakerLabel.style.textAlign = speaker === 'a' ? 'left' : 'right';
+      speakerLabel.textContent = personName || (speaker === 'a' ? 'Pergunta' : 'Resposta');
 
       const bubble = document.createElement('div');
       bubble.className = `bubble`;
@@ -747,6 +869,7 @@
       const now = new Date();
       timeEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
+      message.appendChild(speakerLabel);
       message.appendChild(bubble);
       message.appendChild(timeEl);
       container.appendChild(message);
@@ -754,28 +877,22 @@
     }
 
     function nextMessage() {
-      if (!STATE.pairs || STATE.pairs.length === 0) return;
+      if (!STATE.messages || STATE.messages.length === 0) return;
 
       speechSynthesis.cancel();
-      STATE.currentLineIndex++;
+      STATE.currentMessageIndex++;
 
-      const totalLines = STATE.pairs.length * 2;
+      const totalMessages = STATE.messages.length;
 
-      if (STATE.currentLineIndex >= totalLines) {
+      if (STATE.currentMessageIndex >= totalMessages) {
         showFimMessage();
         saveProgress();
         return;
       }
 
-      const pairIndex = Math.floor(STATE.currentLineIndex / 2);
-      const isQuestion = STATE.currentLineIndex % 2 === 0;
-
-      const pair = STATE.pairs[pairIndex];
-      const text = isQuestion ? pair.q : pair.a;
-      const speaker = isQuestion ? 'a' : 'b';
-
-      displayMessage(text, speaker);
-      playTTS(text, speaker);
+      const msg = STATE.messages[STATE.currentMessageIndex];
+      displayMessage(msg.text, msg.speaker, msg.personName);
+      playTTS(msg.text, msg.speaker);
 
       saveProgress();
       updateUI();
@@ -795,7 +912,7 @@
 
     function resetGame() {
       speechSynthesis.cancel();
-      STATE.currentLineIndex = -1;
+      STATE.currentMessageIndex = -1;
       STATE.startTime = Date.now();
 
       const container = document.getElementById('chatArea');
@@ -808,14 +925,12 @@
     }
 
     function updateUI() {
-      const totalLines = STATE.pairs.length * 2;
-      const currentPair = Math.floor(STATE.currentLineIndex / 2) + 1;
-      const totalPairs = STATE.pairs.length;
-      const lineCount = STATE.currentLineIndex + 1;
+      const totalMessages = STATE.messages.length;
+      const messageCount = STATE.currentMessageIndex + 1;
 
-      document.getElementById('subtitle').textContent = `${lineCount} / ${totalLines} linhas`;
+      document.getElementById('subtitle').textContent = `${messageCount} / ${totalMessages} mensagens`;
 
-      const progress = totalLines > 0 ? (lineCount / totalLines) * 100 : 0;
+      const progress = totalMessages > 0 ? (messageCount / totalMessages) * 100 : 0;
       document.getElementById('progressFill').style.width = `${progress}%`;
       document.getElementById('progressLabel').textContent = `${Math.round(progress)}%`;
     }

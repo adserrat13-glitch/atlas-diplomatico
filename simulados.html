@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulados — Atlas Diplomático</title>
   <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,9 +13,10 @@
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --bg:#0f1117; --card:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.09);
-      --text:#e8e8e8; --muted:#8f8f8f; --accent:#8ea7ff;
-      --green:#6ee7b7; --red:#f87171; --yellow:#facc15;
+      --bg:#0f1115; --card:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#9ca3af; --accent:#d4af37;
+      --gold:#d4af37; --gold-dim:rgba(212,175,55,0.12);
+      --green:#34d399; --red:#f87171; --yellow:#d4af37;
     }
     body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
     .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
@@ -28,12 +30,12 @@
     nav::-webkit-scrollbar { display:none; }
     .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
       white-space:nowrap; flex-shrink:0; color:#fff; }
-    .nav-logo span { color:#39ff14; }
+    .nav-logo span { color:#d4af37; }
     nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
       padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
       display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
     nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
-    nav a.active { color:#39ff14; border-bottom:2px solid #39ff14; border-radius:0; padding-bottom:3px; }
+    nav a.active { color:#d4af37; border-bottom:2px solid #d4af37; border-radius:0; padding-bottom:3px; }
     .nav-spacer { flex:1; min-width:8px; }
     .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
       border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
@@ -175,8 +177,6 @@
       color:var(--red); padding:4px 12px; border-radius:20px; font-size:13px; font-weight:700; }
     .wd-correct { font-size:14px; color:var(--green); margin-bottom:12px; }
     .wd-subject-row { margin-bottom:14px; }
-    .wd-flash-title { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
-    .wd-cards { display:flex; flex-direction:column; gap:8px; flex:1; }
     .fc-mini { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); border-radius:12px; padding:12px 14px; }
     .fc-mini-q { font-size:13px; font-weight:600; color:var(--text); margin-bottom:5px; line-height:1.5; }
     .fc-mini-a { font-size:12px; color:var(--muted); line-height:1.5; }
@@ -194,6 +194,27 @@
       cursor:pointer; font-family:inherit; transition:.2s; flex-shrink:0; }
     .wd-continue:hover { opacity:.85; }
     .wd-no-flash { font-size:13px; color:var(--muted); padding:6px 0; }
+
+    /* AI FLASHCARD no drawer */
+    .wd-fc-gen-title{font-size:10px;font-weight:700;letter-spacing:1.5px;
+      color:#888;text-transform:uppercase;margin:14px 0 6px}
+    .fc-gen-card{background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.25);
+      border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px}
+    .fc-gen-front{font-size:12px;font-weight:700;color:#d4af37}
+    .fc-gen-sep{font-size:10px;color:#444;text-align:center}
+    .fc-gen-back{font-size:11px;color:#bbb;line-height:1.5}
+    .wdfc-loading{font-size:11px;color:#555;padding:8px 0;font-style:italic}
+    /* AI DECK na summary */
+    .ai-deck-title{font-size:12px;font-weight:700;letter-spacing:1px;color:#d4af37;
+      text-transform:uppercase;margin-bottom:10px}
+    .ai-card-preview{background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.2);
+      border-radius:8px;padding:8px 12px;text-align:left;margin:4px 0;max-width:480px;margin-inline:auto}
+    .ai-card-preview-front{font-size:11px;font-weight:700;color:#d4af37}
+    .ai-card-preview-back{font-size:10px;color:#888;margin-top:2px;line-height:1.4}
+    .btn-ai-deck{background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.4);
+      color:#d4af37;border-radius:10px;padding:10px 20px;font-size:12px;font-weight:700;
+      font-family:inherit;cursor:pointer;margin-top:10px}
+    .btn-ai-deck:disabled{opacity:.5;cursor:default}
 
     /* WRONG PILL — push notification recolhida */
     .wrong-pill {
@@ -241,15 +262,14 @@
   <nav>
     <button class="nav-ham" onclick="openSidebar()">☰</button>
     <div class="nav-logo">ATLAS <span>DIPL.</span></div>
-    <a href="index.html">🏠 Início</a>
-    <a href="flashcards.html">🃏 Flashcards</a>
-    <a href="analise.html">📊 Análise</a>
-    <a href="leaderboard.html">🏆 Ranking</a>
-    <a href="agenda.html">📅 Agenda</a>
-    <a href="segunda-fase.html">✍️ 2ª Fase</a>
-    <a href="mapas.html">🗺️ Mapas</a>
-    <a href="noticias.html">📰 Notícias</a>
-    <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+    <a href="index.html">Início</a>
+    <a href="flashcards.html">Flashcards</a>
+    <a href="analise.html">Análise</a>
+    <a href="agenda.html">Agenda</a>
+    <a href="segunda-fase.html">2ª Fase</a>
+    <a href="mapas.html">Mapas</a>
+    <a href="noticias.html">Notícias</a>
+    <a href="admin.html" id="navAdmin" style="display:none"></a>
     <div class="nav-spacer"></div>
     <div class="nav-cd" id="navCountdown"></div>
     <div class="nav-user" id="navUser">?</div>
@@ -325,12 +345,12 @@
         <button class="btn btn-secondary" onclick="showView('viewLoader')">Outro arquivo</button>
         <a href="analise.html" class="btn btn-secondary">Ver Análise</a>
       </div>
-      <div id="deckCreateSection" style="display:none;width:100%;text-align:center">
-        <button class="btn btn-review-deck" id="btnCreateDeck" onclick="handleCreateDeck()">
-          💾 Criar deck de revisão
+      <div id="aiDeckSection" style="display:none;width:100%;text-align:center;margin-top:16px">
+        <div class="ai-deck-title">🤖 Baralho IA — Flashcards dos seus erros</div>
+        <div id="aiDeckPreview"></div>
+        <button class="btn-ai-deck" id="btnSaveAIDeck" onclick="handleSaveAIDeck()">
+          💾 Salvar baralho IA para revisão
         </button>
-        <div id="deckActionRow" style="display:flex;gap:12px;justify-content:center;margin-top:10px"></div>
-        <div id="conexoesSection" style="display:none"></div>
       </div>
       <div class="review-section" id="reviewSection" style="display:none">
         <div class="review-tabs">
@@ -339,10 +359,6 @@
           <button class="rtab" onclick="showReview('all')">Todas</button>
         </div>
         <div id="reviewList"></div>
-      </div>
-      <div class="review-section" id="flashSuggestions" style="display:none">
-        <div class="section-header">📚 Flashcards para Revisão</div>
-        <div id="flashSuggList"></div>
       </div>
     </div>
   </main>
@@ -354,9 +370,8 @@
     </div>
     <div class="wd-correct" id="wdCorrect"></div>
     <div class="wd-subject-row" id="wdSubject"></div>
-    <div class="wd-flash-title">📚 Flashcards relacionados</div>
-    <div class="wd-cards" id="wdCards"></div>
-    <div id="wdDeckLink"></div>
+    <div class="wd-fc-gen-title">🤖 Flashcard IA</div>
+    <div id="wdGeneratedFC"></div>
     <button class="wd-continue" onclick="closeWrongDrawer()">Fechar ✕</button>
   </div>
   <div class="wrong-pill" id="wrongPill">
@@ -373,7 +388,8 @@
     let timerInterval = null, timerSecs = 0;
     let drawerOpen = false;
     let currentWrongQ = null;
-    let pendingCards  = null;
+    let pendingFlashcard = null;
+    let sessionAIFlashcards = [];
     const flashcardCache = {};
 
     // ─── Subject classification ──────────────────────────────────────
@@ -565,8 +581,8 @@
     function startSim(mode) {
       if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
       else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
-      else queue = shuffle(allQuestions);
-      currentIdx = 0; answers = [];
+      else queue = [...allQuestions];
+      currentIdx = 0; answers = []; sessionAIFlashcards = [];
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -613,10 +629,16 @@
     // ─── Wrong pill (push notification recolhida) ────────────────────
     function showWrongPill(q) {
       currentWrongQ = q;
-      pendingCards  = null;
+      pendingFlashcard = null;
       document.getElementById('wpLabel').textContent = `✓ ${q.correct}`;
       document.getElementById('wrongPill').style.display = 'flex';
-      findRelatedFlashcards(q.q, q.subjectCode).then(cards => { pendingCards = cards; });
+      generateFlashcardIA(q).then(fc => {
+        if (!fc?.front) return;
+        pendingFlashcard = fc;
+        if (!sessionAIFlashcards.some(c => c.q === fc.front)) {
+          sessionAIFlashcards.push({ q: fc.front, a: fc.back });
+        }
+      });
     }
 
     function dismissPill() {
@@ -628,17 +650,21 @@
       dismissPill();
       document.getElementById('wdCorrect').textContent = `✓ Resposta correta: ${currentWrongQ.correct}`;
       document.getElementById('wdSubject').innerHTML   = renderTags(currentWrongQ);
-      document.getElementById('wdDeckLink').innerHTML  = '';
       document.getElementById('wrongDrawer').classList.add('open');
       document.getElementById('wrongOverlay').style.display = 'block';
       drawerOpen = true;
-      if (pendingCards) {
-        renderDrawerCards(pendingCards, currentWrongQ.subjectCode);
+      const fcEl = document.getElementById('wdGeneratedFC');
+      if (pendingFlashcard) {
+        renderGeneratedFlashcard(pendingFlashcard);
       } else {
-        document.getElementById('wdCards').innerHTML =
-          '<div class="fc-skeleton"></div><div class="fc-skeleton"></div>';
-        findRelatedFlashcards(currentWrongQ.q, currentWrongQ.subjectCode)
-          .then(cards => renderDrawerCards(cards, currentWrongQ.subjectCode));
+        fcEl.innerHTML = '<div class="wdfc-loading">Gerando flashcard IA...</div>';
+        generateFlashcardIA(currentWrongQ).then(fc => {
+          pendingFlashcard = fc;
+          if (fc?.front && !sessionAIFlashcards.some(c => c.q === fc.front)) {
+            sessionAIFlashcards.push({ q: fc.front, a: fc.back });
+          }
+          renderGeneratedFlashcard(fc);
+        });
       }
     }
 
@@ -648,24 +674,57 @@
       drawerOpen = false;
     }
 
-    function renderDrawerCards(cards, subjectCode) {
-      const container = document.getElementById('wdCards');
-      const linkEl = document.getElementById('wdDeckLink');
-      if (!cards.length) {
-        container.innerHTML = '<div class="wd-no-flash">Nenhum flashcard relacionado encontrado.</div>';
-        return;
-      }
-      container.innerHTML = cards.slice(0, 3).map(c => `
-        <div class="fc-mini">
-          <div class="fc-mini-q">${escHtml(c.front)}</div>
-          <div class="fc-mini-a">${escHtml(c.back.length > 140 ? c.back.slice(0, 140) + '…' : c.back)}</div>
-          <div class="fc-mini-deck">🃏 ${escHtml(c.deck)}</div>
-        </div>`).join('');
-      const folder = SUBJECT_TO_FOLDER[subjectCode] || '';
-      if (cards[0] && folder) {
-        const path = encodeURIComponent('FLASHCARDS/' + folder + '/' + cards[0].file);
-        linkEl.innerHTML = `<a class="wd-deck-btn" href="flashcards.html?file=${path}" target="_blank">▶ Estudar deck: ${escHtml(cards[0].deck)}</a>`;
-      }
+    // ─── AI Flashcard generation ─────────────────────────────────────
+    async function generateFlashcardIA(q) {
+      try {
+        const r = await fetch('/api/generate-flashcard', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            question: q.q,
+            correct_answer: q.correct,
+            subject_label: q.subjectLabel || '',
+            section: q.section || ''
+          })
+        });
+        if (!r.ok) return null;
+        return await r.json();
+      } catch { return null; }
+    }
+
+    function renderGeneratedFlashcard(fc) {
+      const el = document.getElementById('wdGeneratedFC');
+      if (!el) return;
+      if (!fc?.front) { el.innerHTML = ''; return; }
+      el.innerHTML = `
+        <div class="fc-gen-card">
+          <div class="fc-gen-front">${escHtml(fc.front)}</div>
+          <div class="fc-gen-sep">▼</div>
+          <div class="fc-gen-back">${escHtml(fc.back)}</div>
+        </div>`;
+    }
+
+    function handleSaveAIDeck() {
+      if (!sessionAIFlashcards.length) return;
+      const now = Date.now();
+      const label = `IA — ${deckName} — ${new Date().toLocaleDateString('pt-BR')}`;
+      const existing = JSON.parse(localStorage.getItem('tps_review_decks') || '[]');
+      existing.push({
+        id: now,
+        name: label,
+        source: deckName,
+        cards: sessionAIFlashcards,
+        wrongCount: sessionAIFlashcards.length,
+        relatedCount: 0,
+        createdAt: now,
+        expiresAt: now + 365 * 24 * 3600 * 1000
+      });
+      localStorage.setItem('tps_review_decks', JSON.stringify(existing));
+      const btn = document.getElementById('btnSaveAIDeck');
+      if (btn) { btn.textContent = '✅ Salvo!'; btn.disabled = true; }
+      const aiSection = document.getElementById('aiDeckSection');
+      if (aiSection) aiSection.insertAdjacentHTML('beforeend',
+        '<a class="btn btn-primary" href="flashcards.html?tab=review" style="margin-top:8px;display:inline-block">▶ Ver Revisões</a>');
     }
 
     // ─── Flashcard CSV loading + keyword matching ────────────────────
@@ -685,27 +744,6 @@
         flashcardCache[path] = cards;
         return cards;
       } catch { return []; }
-    }
-
-    async function findRelatedFlashcards(questionText, subjectCode) {
-      const folder = SUBJECT_TO_FOLDER[subjectCode];
-      if (!folder) return [];
-      const keywords = extractKeywords(questionText);
-      if (!keywords.length) return [];
-      const files = await scanFolder('FLASHCARDS/' + folder);
-      if (!files.length) return [];
-      const results = [];
-      for (const file of files) {
-        const path = 'FLASHCARDS/' + folder + '/' + file;
-        const cards = await loadFlashcardCSV(path);
-        const deckName = file.replace(/\.csv$/i, '');
-        for (const card of cards) {
-          const content = (card.front + ' ' + card.back).toLowerCase();
-          const score = keywords.filter(kw => content.includes(kw.toLowerCase())).length;
-          if (score > 0) results.push({...card, score, deck: deckName, file, path});
-        }
-      }
-      return results.sort((a, b) => b.score - a.score).slice(0, 5);
     }
 
     // ─── Summary ─────────────────────────────────────────────────────
@@ -734,16 +772,25 @@
         <div class="s-stat"><div class="s-val s-acc">${pct}%</div><div class="s-lbl">Taxa</div></div>
         <div class="s-stat"><div class="s-val">${mins}min</div><div class="s-lbl">Tempo</div></div>`;
       document.getElementById('reviewSection').style.display = 'none';
-      document.getElementById('flashSuggestions').style.display = 'none';
       showView('viewSummary');
-      if (wrong > 0) showFlashSuggestions(answers.filter(a => !a.isCorrect));
 
-      // Review deck button
-      const deckSection = document.getElementById('deckCreateSection');
-      if (deckSection) deckSection.style.display = wrong > 0 ? '' : 'none';
-      document.getElementById('deckActionRow').innerHTML = '';
-      const deckBtn = document.getElementById('btnCreateDeck');
-      if (deckBtn) { deckBtn.textContent = '💾 Criar deck de revisão'; deckBtn.classList.remove('loading'); }
+      // AI deck section
+      const aiSection = document.getElementById('aiDeckSection');
+      const aiBtn = document.getElementById('btnSaveAIDeck');
+      if (aiSection) aiSection.style.display = 'none';
+      if (aiBtn) { aiBtn.textContent = '💾 Salvar baralho IA para revisão'; aiBtn.disabled = false; }
+      if (sessionAIFlashcards.length > 0 && aiSection) {
+        aiSection.style.display = 'block';
+        document.getElementById('aiDeckPreview').innerHTML =
+          sessionAIFlashcards.slice(0, 5).map(c => `
+            <div class="ai-card-preview">
+              <div class="ai-card-preview-front">${escHtml(c.q)}</div>
+              <div class="ai-card-preview-back">${escHtml(c.a.slice(0, 100))}${c.a.length > 100 ? '…' : ''}</div>
+            </div>`).join('') +
+          (sessionAIFlashcards.length > 5
+            ? `<div style="font-size:10px;color:#555;margin-top:4px">+${sessionAIFlashcards.length - 5} cards gerados</div>`
+            : '');
+      }
     }
 
     // ─── Review panel with lazy flashcard loading ────────────────────
@@ -767,18 +814,13 @@
         }
         const cls = a.isCorrect ? 'qresult-right' : 'qresult-wrong';
         const tags = a.subjectCode ? `<div class="q-tags" style="margin-top:8px">${renderTags(a)}</div>` : '';
-        const flashBtn = !a.isCorrect ? `
-          <div class="review-flash">
-            <button class="rf-btn" onclick="loadReviewFlash(this,${ansIdx})">📚 Ver flashcards relacionados</button>
-            <div class="rf-cards" id="rfc-${ansIdx}"></div>
-          </div>` : '';
         return `${secHtml}<div class="qresult ${cls}">
           <div class="qresult-q">${escHtml(a.q)}</div>
           <div class="qresult-ans">
             <span class="ans-correct">✓ Gabarito: ${a.correct}</span>
             <span class="ans-user ${a.isCorrect ? 'correct' : ''}">Sua resp.: ${a.userAns}</span>
           </div>
-          ${tags}${flashBtn}
+          ${tags}
         </div>`;
       }).join('');
 
@@ -787,138 +829,6 @@
       document.getElementById('reviewSection').style.display = 'block';
     }
 
-    async function loadReviewFlash(btn, answerIdx) {
-      const a = answers[answerIdx];
-      if (!a) return;
-      btn.disabled = true; btn.textContent = '⏳ Buscando…';
-      const container = document.getElementById('rfc-' + answerIdx);
-      const cards = await findRelatedFlashcards(a.q, a.subjectCode);
-      btn.style.display = 'none';
-      const folder = SUBJECT_TO_FOLDER[a.subjectCode] || '';
-      if (!cards.length) {
-        container.innerHTML = '<div style="font-size:12px;color:var(--muted)">Nenhum flashcard relacionado encontrado.</div>';
-        return;
-      }
-      container.innerHTML = cards.slice(0, 3).map(c => {
-        const path = encodeURIComponent('FLASHCARDS/' + folder + '/' + c.file);
-        return `<div class="fc-mini">
-          <div class="fc-mini-q">${escHtml(c.front)}</div>
-          <div class="fc-mini-a">${escHtml(c.back.length > 140 ? c.back.slice(0, 140) + '…' : c.back)}</div>
-          <div class="fc-mini-deck"><a href="flashcards.html?file=${path}" style="color:var(--accent);text-decoration:none">🃏 ${escHtml(c.deck)} →</a></div>
-        </div>`;
-      }).join('');
-    }
-
-    // ─── End-of-simulado flash suggestions ───────────────────────────
-    async function showFlashSuggestions(wrongAnswers) {
-      const box = document.getElementById('flashSuggestions');
-      const list = document.getElementById('flashSuggList');
-      if (!wrongAnswers.length) { box.style.display = 'none'; return; }
-
-      list.innerHTML = '<div class="fc-skeleton"></div><div class="fc-skeleton"></div><div class="fc-skeleton"></div>';
-      box.style.display = '';
-
-      const bySubject = {};
-      wrongAnswers.forEach(a => {
-        const code = a.subjectCode || 'PI';
-        if (!bySubject[code]) bySubject[code] = {items: [], label: a.subjectLabel || 'Política Internacional'};
-        bySubject[code].items.push(a);
-      });
-
-      const allRelated = [];
-      for (const [code, data] of Object.entries(bySubject)) {
-        const combined = data.items.map(a => a.q).join(' ');
-        const cards = await findRelatedFlashcards(combined, code);
-        cards.forEach(c => allRelated.push({...c, subjectCode: code, subjectLabel: data.label}));
-      }
-
-      allRelated.sort((a, b) => b.score - a.score);
-      const seen = new Set();
-      const unique = allRelated.filter(c => {
-        const key = c.path + c.front.slice(0, 30);
-        if (seen.has(key)) return false;
-        seen.add(key); return true;
-      }).slice(0, 6);
-
-      if (!unique.length) {
-        list.innerHTML = '<div style="color:var(--muted);font-size:13px">Nenhum flashcard relacionado encontrado.</div>';
-        return;
-      }
-
-      list.innerHTML = unique.map(c => {
-        const folder = SUBJECT_TO_FOLDER[c.subjectCode] || '';
-        const path = encodeURIComponent('FLASHCARDS/' + folder + '/' + c.file);
-        return `<div class="fc-mini" style="margin-bottom:8px">
-          <div class="fc-mini-q">${escHtml(c.front)}</div>
-          <div class="fc-mini-a">${escHtml(c.back.length > 140 ? c.back.slice(0, 140) + '…' : c.back)}</div>
-          <div class="fc-mini-deck">
-            <a href="flashcards.html?file=${path}" style="color:var(--accent);text-decoration:none">
-              🃏 ${escHtml(c.deck)} — ${escHtml(c.subjectLabel)} →
-            </a>
-          </div>
-        </div>`;
-      }).join('');
-    }
-
-    // ─── Review deck generation ──────────────────────────────────────
-    async function buildReviewDeck(wrongAnswers) {
-      const rows = [];
-      const seenFlash = new Set();
-
-      for (const a of wrongAnswers) {
-        const cards = await findRelatedFlashcards(a.q, a.subjectCode);
-        for (const c of cards.slice(0, 3)) {
-          const key = c.front.slice(0, 40);
-          if (seenFlash.has(key)) continue;
-          seenFlash.add(key);
-          rows.push([c.front, c.back]);
-        }
-      }
-
-      return rows.map(r => r.map(cell =>
-        (cell.includes(';') || cell.includes('\n'))
-          ? `"${cell.replace(/"/g, '""')}"` : cell
-      ).join(';')).join('\n');
-    }
-
-    async function handleCreateDeck() {
-      const btn = document.getElementById('btnCreateDeck');
-      const wrong = answers.filter(a => !a.isCorrect);
-      if (!wrong.length) return;
-      btn.textContent = '⏳ Gerando…';
-      btn.classList.add('loading');
-      const csv   = await buildReviewDeck(wrong);
-      const label = `Revisão — ${deckName} — ${new Date().toLocaleDateString('pt-BR')}`;
-      localStorage.setItem('reviewDeckPending', csv);
-      localStorage.setItem('reviewDeckName', label);
-
-      // Salvar também no formato tps_review_decks (lido por flashcards.html?tab=review)
-      try {
-        const rows = Papa.parse(csv, {delimiter:';', skipEmptyLines:true}).data;
-        const cards = rows.filter(r => r[0] && r[1]).map(r => ({q:r[0].trim(), a:r[1].trim()}));
-        const now = Date.now();
-        const existing = JSON.parse(localStorage.getItem('tps_review_decks')||'[]')
-          .filter(d => d.expiresAt > now);
-        existing.push({
-          id: now,
-          name: label,
-          source: deckName,
-          cards,
-          wrongCount: wrong.length,
-          relatedCount: Math.max(0, cards.length - wrong.length),
-          createdAt: now,
-          expiresAt: now + 24*3600*1000
-        });
-        localStorage.setItem('tps_review_decks', JSON.stringify(existing));
-      } catch(e) { console.warn('tps_review_decks save failed:', e); }
-
-      btn.textContent = '✅ Deck criado!';
-      btn.classList.remove('loading');
-      document.getElementById('deckActionRow').innerHTML = `
-        <a class="btn btn-primary" href="flashcards.html?tab=review">▶ Ver Revisões</a>
-        <button class="btn btn-secondary" onclick="downloadReviewDeck()">⬇ Baixar CSV</button>`;
-      loadConexoesSection();
-    }
 
     async function loadConexoesSection() {
       const m = await loadManifest();
@@ -1018,47 +928,7 @@
       } catch(e) { console.warn('Auto-load falhou:', e); }
     })();
   </script>
-  <style>
-.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
-.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
-#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
-#sidebar.open{transform:translateX(0)}
-#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
-#sidebar-overlay.open{display:block}
-.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
-.sb-brand span{color:#39ff14}
-.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
-.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
-.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
-.sb-link.active{color:#39ff14}
-  </style>
-  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
-  <aside id="sidebar">
-    <div class="sb-brand">ATLAS <span>DIPL.</span></div>
-    <div class="sb-section">Estudo</div>
-    <a class="sb-link" href="index.html">🏠 Início</a>
-    <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
-    <a class="sb-link" href="analise.html">📊 Análise</a>
-    <a class="sb-link" href="matching.html">🔤 Palavras</a>
-    <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
-    <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
-    <div class="sb-section">Mapas</div>
-    <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
-    <a class="sb-link" href="noticias.html">📰 Notícias</a>
-    <div class="sb-section">Comunidade</div>
-    <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
-    <a class="sb-link" href="agenda.html">📅 Agenda</a>
-    <div class="sb-section">2ª Fase</div>
-    <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
-    <div class="sb-section">Admin</div>
-    <a class="sb-link" href="admin.html">⚙️ Admin</a>
-  </aside>
-  <script>
-function openSidebar()  { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('open'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
-document.querySelectorAll('.sb-link').forEach(function(a) {
-  if (location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
-});
-  </script>
+  <aside id="sidebar"></aside>
+  <script src="_sidebar.js"></script>
 </body>
 </html>

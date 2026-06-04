@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard CACD - Mini Discursivas</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      background: #0f1115;
+      font-family: Georgia, serif;
+      color: #e5e7eb;
+    }
+
+    .card {
+      background: #171a21;
+      border: 1px solid #2a2f3a;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .editor {
+      min-height: 220px;
+      resize: vertical;
+      background: #11141b;
+      color: #f3f4f6;
+    }
+
+    .soft-border {
+      border: 1px solid #2f3542;
+    }
+
+    .accent {
+      color: #d4af37;
+    }
+
+    .gold-bg {
+      background: #d4af37;
+    }
+
+    .gold-text {
+      color: #d4af37;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="border-b border-[#2a2f3a] bg-[#12151c] shadow-lg">
+    <div class="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+
+      <div>
+        <h1 class="text-3xl font-bold tracking-wide accent">
+          Dashboard CACD
+        </h1>
+
+        <p class="text-sm text-gray-400 mt-1">
+          Treino de Mini Discursivas
+        </p>
+      </div>
+
+      <div class="flex gap-3">
+
+        <button class="bg-[#d4af37] text-black px-4 py-2 rounded-lg hover:opacity-90 font-semibold">
+          Nova Resposta
+        </button>
+
+        <button class="soft-border px-4 py-2 rounded-lg hover:bg-[#1d2230]">
+          Estatísticas
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- KPIs -->
+    <section class="grid md:grid-cols-4 gap-4 mb-8">
+
+      <div class="card rounded-2xl p-5">
+        <p class="text-sm text-gray-400">
+          Mini Discursivas
+        </p>
+
+        <h2 class="text-3xl font-bold mt-2 gold-text">
+          142
+        </h2>
+      </div>
+
+      <div class="card rounded-2xl p-5">
+        <p class="text-sm text-gray-400">
+          Média de Nota
+        </p>
+
+        <h2 class="text-3xl font-bold mt-2 gold-text">
+          7,8
+        </h2>
+      </div>
+
+      <div class="card rounded-2xl p-5">
+        <p class="text-sm text-gray-400">
+          Horas Estudadas
+        </p>
+
+        <h2 class="text-3xl font-bold mt-2 gold-text">
+          231h
+        </h2>
+      </div>
+
+      <div class="card rounded-2xl p-5">
+        <p class="text-sm text-gray-400">
+          Sequência
+        </p>
+
+        <h2 class="text-3xl font-bold mt-2 gold-text">
+          19 dias
+        </h2>
+      </div>
+
+    </section>
+
+    <!-- GRID -->
+    <section class="grid lg:grid-cols-3 gap-6">
+
+      <!-- QUESTÕES -->
+      <div class="lg:col-span-1 space-y-5">
+
+        <!-- BANCO -->
+        <div class="card rounded-2xl p-5">
+
+          <h3 class="text-xl font-bold mb-4 accent">
+            Banco de Temas
+          </h3>
+
+          <div class="space-y-3">
+
+            <div class="soft-border rounded-xl p-4 hover:bg-[#1c2130] cursor-pointer transition">
+              <p class="text-xs text-gray-500 mb-1">
+                Política Internacional
+              </p>
+
+              <h4 class="font-semibold">
+                A multipolaridade no sistema internacional contemporâneo
+              </h4>
+            </div>
+
+            <div class="soft-border rounded-xl p-4 hover:bg-[#1c2130] cursor-pointer transition">
+              <p class="text-xs text-gray-500 mb-1">
+                História do Brasil
+              </p>
+
+              <h4 class="font-semibold">
+                O papel do Barão do Rio Branco na política externa brasileira
+              </h4>
+            </div>
+
+            <div class="soft-border rounded-xl p-4 hover:bg-[#1c2130] cursor-pointer transition">
+              <p class="text-xs text-gray-500 mb-1">
+                Economia
+              </p>
+
+              <h4 class="font-semibold">
+                Industrialização por substituição de importações
+              </h4>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- FILTROS -->
+        <div class="card rounded-2xl p-5">
+
+          <h3 class="text-xl font-bold mb-4 accent">
+            Filtros
+          </h3>
+
+          <div class="space-y-4">
+
+            <select class="w-full bg-[#11141b] border border-[#2f3542] rounded-lg p-3 text-gray-200">
+              <option>Disciplina</option>
+              <option>Política Internacional</option>
+              <option>História Mundial</option>
+              <option>Economia</option>
+              <option>Direito</option>
+            </select>
+
+            <select class="w-full bg-[#11141b] border border-[#2f3542] rounded-lg p-3 text-gray-200">
+              <option>Nível</option>
+              <option>Fácil</option>
+              <option>Médio</option>
+              <option>Difícil</option>
+            </select>
+
+            <select class="w-full bg-[#11141b] border border-[#2f3542] rounded-lg p-3 text-gray-200">
+              <option>Status</option>
+              <option>Não respondida</option>
+              <option>Revisão pendente</option>
+              <option>Dominada</option>
+            </select>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ÁREA PRINCIPAL -->
+      <div class="lg:col-span-2 space-y-6">
+
+        <!-- QUESTÃO -->
+        <div class="card rounded-2xl p-6">
+
+          <div class="flex justify-between items-center mb-4">
+
+            <div>
+              <p class="text-sm text-gray-500">
+                Política Internacional
+              </p>
+
+              <h2 class="text-2xl font-bold mt-1 accent">
+                A ascensão da China e seus impactos geopolíticos
+              </h2>
+            </div>
+
+            <span class="soft-border px-3 py-1 rounded-full text-sm">
+              20 linhas
+            </span>
+
+          </div>
+
+          <div class="bg-[#11141b] border border-[#2f3542] rounded-xl p-5 leading-7 text-gray-300">
+            Analise os efeitos da ascensão chinesa sobre a ordem internacional
+            liberal e sobre a política externa dos Estados Unidos.
+          </div>
+
+        </div>
+
+        <!-- EDITOR -->
+        <div class="card rounded-2xl p-6">
+
+          <div class="flex justify-between items-center mb-4">
+
+            <h3 class="text-xl font-bold accent">
+              Sua Resposta
+            </h3>
+
+            <div class="text-sm text-gray-500">
+              0 / 20 linhas
+            </div>
+
+          </div>
+
+          <textarea
+            class="editor w-full border border-[#2f3542] rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-[#d4af37]"
+            placeholder="Escreva sua mini discursiva aqui..."
+          ></textarea>
+
+          <div class="flex gap-3 mt-5">
+
+            <button class="bg-[#d4af37] text-black px-5 py-3 rounded-xl hover:opacity-90 font-semibold">
+              Salvar
+            </button>
+
+            <button class="soft-border px-5 py-3 rounded-xl hover:bg-[#1c2130]">
+              Corrigir com IA
+            </button>
+
+            <button class="soft-border px-5 py-3 rounded-xl hover:bg-[#1c2130]">
+              Comparar Espelho
+            </button>
+
+          </div>
+
+        </div>
+
+        <!-- EVOLUÇÃO -->
+        <div class="card rounded-2xl p-6">
+
+          <h3 class="text-xl font-bold mb-5 accent">
+            Evolução por Disciplina
+          </h3>
+
+          <div class="space-y-4">
+
+            <div>
+              <div class="flex justify-between text-sm mb-1">
+                <span>Política Internacional</span>
+                <span>82%</span>
+              </div>
+
+              <div class="w-full bg-[#2a2f3a] rounded-full h-3">
+                <div class="gold-bg h-3 rounded-full w-[82%]"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-sm mb-1">
+                <span>História Mundial</span>
+                <span>68%</span>
+              </div>
+
+              <div class="w-full bg-[#2a2f3a] rounded-full h-3">
+                <div class="gold-bg h-3 rounded-full w-[68%]"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-sm mb-1">
+                <span>Economia</span>
+                <span>74%</span>
+              </div>
+
+              <div class="w-full bg-[#2a2f3a] rounded-full h-3">
+                <div class="gold-bg h-3 rounded-full w-[74%]"></div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</body>
+</html>

@@ -1,10 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Mapa Mental — Atlas Diplomático</title>
   <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -12,8 +13,8 @@
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --bg:#0f1117; --surface:rgba(255,255,255,0.04); --border:rgba(255,255,255,0.09);
-      --text:#e8e8e8; --muted:#666; --accent:#8ea7ff;
+      --bg:#0f1115; --surface:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#666; --accent:#d4af37;
       --HB:#f87171; --HM:#fbbf24; --PI:#60a5fa; --GEO:#34d399; --ECO:#a78bfa; --DIP:#fb923c;
     }
     body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; overflow:hidden; }
@@ -24,12 +25,12 @@
     nav::-webkit-scrollbar { display:none; }
     .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
       white-space:nowrap; flex-shrink:0; color:#fff; }
-    .nav-logo span { color:#39ff14; }
+    .nav-logo span { color:#d4af37; }
     nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
       padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
       display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
     nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
-    nav a.active { color:#39ff14; border-bottom:2px solid #39ff14; border-radius:0; padding-bottom:3px; }
+    nav a.active { color:#d4af37; border-bottom:2px solid #d4af37; border-radius:0; padding-bottom:3px; }
     .nav-spacer { flex:1; min-width:8px; }
     .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
       border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
@@ -161,13 +162,12 @@
 
 <nav>
   <div class="nav-logo">ATLAS <span>DIPL.</span></div>
-  <a href="index.html">🏠 Início</a>
-  <a href="flashcards.html">🃏 Flashcards</a>
-  <a href="analise.html">📊 Análise</a>
-  <a href="espiral.html" class="active">🌀 Espiral</a>
+  <a href="index.html">Início</a>
+  <a href="flashcards.html">Flashcards</a>
+  <a href="analise.html">Análise</a>
+  <a href="espiral.html" class="active">Espiral</a>
   <a href="mapa-neural.html">🕸️ Mapa</a>
-  <a href="leaderboard.html">🏆 Ranking</a>
-  <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+  <a href="admin.html" id="navAdmin" style="display:none"></a>
   <div class="nav-spacer"></div>
   <div class="nav-cd" id="navCountdown"></div>
   <div class="nav-user" id="navUser">?</div>
@@ -540,7 +540,7 @@ async function initAuth() {
   document.getElementById('navUser').textContent = initials;
   if (profile?.role === 'admin') document.getElementById('navAdmin').style.display = '';
   const examDate = await DB.getExamDate();
-  const days = Math.ceil((examDate - Date.now()) / 86400000);
+  const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })); const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })); nowBSB.setHours(0,0,0,0); examBSB.setHours(0,0,0,0); const days = Math.ceil((examBSB - nowBSB) / 86400000);
   document.getElementById('navCountdown').textContent = days > 0 ? `D-${days}` : 'CACD';
 }
 
@@ -821,5 +821,6 @@ window.addEventListener('resize', () => {
   buildMindMap();
 })();
 </script>
+<script src="_sidebar.js"></script>
 </body>
 </html>

@@ -313,12 +313,10 @@ const DB = {
   // ── LEADERBOARD ─────────────────────────────────────────────────────
 
   async getLeaderboard(since = null) {
-    if (!since) {
-      const { data } = await _sb.from('leaderboard_tps').select('*');
-      return data || [];
-    }
+    let sessQuery = _sb.from('sessions').select('user_id, correct, total').eq('type','simulado');
+    if (since) sessQuery = sessQuery.gte('date', since);
     const [{ data: sessions }, { data: profiles }] = await Promise.all([
-      _sb.from('sessions').select('user_id, correct, total').eq('type','simulado').gte('date', since),
+      sessQuery,
       _sb.from('profiles').select('id, name')
     ]);
     const map = {};
@@ -478,11 +476,18 @@ const DB = {
   },
 
   async resetUserRanking(userId) {
-    await _sb.from('leaderboard_tps').delete().eq('user_id', userId);
+    const { error } = await _sb.from('sessions').delete().eq('user_id', userId).eq('type', 'simulado');
+    if (error) throw new Error(error.message);
   },
 
   async resetAllRankings() {
-    await _sb.from('leaderboard_tps').delete().neq('user_id', '00000000-0000-0000-0000-000000000000');
+    await _sb.from('sessions').delete().eq('type', 'simulado');
+  },
+
+  async resetUserData(userId) {
+    const { error } = await _sb.from('sessions').delete().eq('user_id', userId).eq('type', 'simulado');
+    if (error) throw new Error(error.message);
+    await this.logAudit('reset_data', 'user', userId);
   },
 
   async searchUsers(query) {
@@ -495,6 +500,14 @@ const DB = {
     const { data } = await _sb.from('agenda_items')
       .select('*').eq('user_id', userId).gte('date', from).lte('date', to)
       .order('date').order('time_start', { nullsFirst: true });
+    return data || [];
+  },
+
+  async getTaggedEvents(userId) {
+    const { data } = await _sb.from('agenda_items')
+      .select('*, profiles:user_id(name)')
+      .contains('tagged_users', [userId])
+      .order('date');
     return data || [];
   },
 

@@ -1,0 +1,21 @@
+﻿Total de Linhas;TL;Quantidade de linhas efetivamente escritas pelo candidato. Estratégia: Utilize o máximo de linhas disponível com conteúdo pertinente.;30
+Número de Erros;NE;Soma dos erros gramaticais (ortografia, morfossintaxe, pontuação, etc.).;5
+Fator de Penalização;2;Constante utilizada pela banca para multiplicar o número de erros.;2
+Desconto Gramatical;(2 x NE) / TL;Cálculo do desconto sobre a Nota de Conteúdo.;(2 x 5) / 30 = 0,33
+Nota Final da Redação;NC - Desconto;Nota obtida após a aplicação da penalidade.;8,00 - 0,33 = 7,67
+;;;
+Tabela 2: Critérios de Correção da Macroestrutura (Conteúdo);;;
+"A macroestrutura corresponde ao ""esqueleto"" lógico e argumentativo do texto e define a Nota de Conteúdo (NC).";;;
+Critério Avaliado;O que o examinador busca?;O que evitar?;
+Adequação ao Tema e Tópicos;Resposta precisa e completa a cada um dos tópicos do comando da questão. Demonstração de conhecimento técnico sobre o tema.;"Fuga total ou parcial do tema. ""Encher linguiça"" ou ignorar algum dos tópicos solicitados pela banca.";
+Organização e Progressão Textual;Texto estruturado com introdução, desenvolvimento e conclusão. Parágrafos coesos e uso adequado de conectivos (conjunções, preposições) para uma leitura fluida.;Texto sem ordenação lógica. Parágrafos desconexos. Ausência de conectivos entre as partes do texto.;
+Capacidade de Análise e Profundidade;"Capacidade de argumentar, desenvolver raciocínio analítico e aprofundar a discussão, conforme o ""espelho de correção"" de cada tópico.";Abordagem superficial, mera citação de fatos sem análise. Descrição em vez de argumentação.;
+;;;
+Tabela 3: Critérios de Correção da Microestrutura (Linguagem);;;
+A microestrutura avalia o domínio da norma culta e gera os pontos descontados na fórmula da Nota Final.;;;
+Quesito Avaliado;Aspectos Verificados;Exemplo de Erro Penalizável;
+Ortografia;Grafia correta das palavras, acentuação gráfica e uso do hífen conforme o Novo Acordo Ortográfico.;"""análisar"" (analisar), ""idéia"" (ideia), ""auto-escola"" (autoescola).";
+Morfossintaxe;Concordância nominal e verbal, regência nominal e verbal, colocação pronominal (próclise, ênclise, mesóclise) e emprego de tempos e modos verbais.;"""Fazem dois anos..."" (Faz dois anos). ""Assisti o filme"" (Assisti ao filme).";
+Propriedade Vocabular;Uso de vocabulário preciso, adequado e variado. Evitar repetições excessivas e palavras com sentido inadequado ao contexto.;"Uso excessivo de ""coisa"", ""algo"", ""tipo"". Emprego de ""eminente"" no lugar de ""iminente"".";
+Pontuação;Uso correto de vírgula, ponto final, ponto e vírgula, travessão e outros sinais para construir um texto claro e sem ambiguidades.;Separar sujeito e verbo por vírgula. Não pontuar orações intercaladas adequadamente.;
+Apresentação;Legibilidade da letra, respeito às margens, translineação correta (separação silábica ao final da linha) e ausência de rasuras que prejudiquem a leitura.;Letra ilegível que impeça a correção. Texto que invade as margens da folha de resposta.;

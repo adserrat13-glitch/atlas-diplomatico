@@ -9,13 +9,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#000; --surface:#0d0d0d; --border:rgba(255,255,255,0.07);
-  --text:#fff; --muted:#555; --muted2:#888;
-  --neon-green:#39ff14; --neon-yellow:#f5e642; --neon-orange:#ff6a00;
-  --neon-pink:#ff1f71; --neon-blue:#00cfff; --neon-purple:#b060ff;
+  --bg:#0f1115; --surface:#171a21; --border:#2a2f3a;
+  --text:#e5e7eb; --muted:#9ca3af; --muted2:#6b7280;
+  --gold:#d4af37; --gold-dim:rgba(212,175,55,0.12);
+  --neon-green:#d4af37; --neon-yellow:#d4af37; --neon-orange:#f59e0b;
+  --neon-pink:#d4af37; --neon-blue:#60a5fa; --neon-purple:#c084fc;
 }
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace}
 
@@ -118,16 +120,15 @@ svg{width:100%;height:100%;background:#000}
 <nav id="mainNav">
   <button class="nav-ham" onclick="openSidebar()">☰</button>
   <div class="nav-logo">ATLAS <span>DIPL.</span></div>
-  <a href="index.html">🏠 Início</a>
-  <a href="flashcards.html">🃏 Flashcards</a>
-  <a href="analise.html">📊 Análise</a>
-  <a href="leaderboard.html">🏆 Ranking</a>
-  <a href="agenda.html">📅 Agenda</a>
-  <a href="segunda-fase.html">✍️ 2ª Fase</a>
-  <a href="mapas.html">🗺️ Mapas</a>
-  <a href="noticias.html">📰 Notícias</a>
+  <a href="index.html">Início</a>
+  <a href="flashcards.html">Flashcards</a>
+  <a href="analise.html">Análise</a>
+  <a href="agenda.html">Agenda</a>
+  <a href="segunda-fase.html">2ª Fase</a>
+  <a href="mapas.html">Mapas</a>
+  <a href="noticias.html">Notícias</a>
   <a href="mapa-neural.html" class="active">🧠 Neural</a>
-  <a href="admin.html" id="navAdmin" style="display:none">⚙️</a>
+  <a href="admin.html" id="navAdmin" style="display:none"></a>
   <div class="nav-spacer"></div>
   <div class="nav-cd" id="navCd"></div>
   <div class="nav-user" id="navUser">?</div>
@@ -620,7 +621,7 @@ function renderLegend(decks) {
     document.getElementById('navUser').textContent = initials;
     if (await DB.isAdmin()) document.getElementById('navAdmin').style.display = '';
     const examDate = await DB.getExamDate();
-    const days = Math.ceil((examDate - Date.now()) / 86400000);
+    const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })); const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })); nowBSB.setHours(0,0,0,0); examBSB.setHours(0,0,0,0); const days = Math.ceil((examBSB - nowBSB) / 86400000);
     document.getElementById('navCd').textContent = `${days}d CACD`;
   } catch(e) {}
 })();
@@ -630,48 +631,7 @@ window.addEventListener('resize', () => {
   if (allNodes.length > 0) rebuildGraph();
 });
 </script>
-<style>
-.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
-.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
-#sidebar{position:fixed;left:0;top:52px;bottom:0;width:240px;background:#0d0d0d;border-right:1px solid rgba(255,255,255,.07);z-index:199;transform:translateX(-100%);transition:transform .25s;overflow-y:auto;padding:16px 0}
-#sidebar.open{transform:translateX(0)}
-#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
-#sidebar-overlay.open{display:block}
-.sb-brand{font-size:13px;font-weight:900;letter-spacing:2.5px;color:#fff;padding:0 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:8px}
-.sb-brand span{color:#39ff14}
-.sb-section{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#444;padding:12px 16px 4px;text-transform:uppercase}
-.sb-link{display:flex;align-items:center;gap:8px;padding:8px 16px;color:#888;text-decoration:none;font-size:12px;font-weight:600;transition:.15s}
-.sb-link:hover{color:#fff;background:rgba(255,255,255,.04)}
-.sb-link.active{color:#39ff14}
-</style>
-<div id="sidebar-overlay" onclick="closeSidebar()"></div>
-<aside id="sidebar">
-  <div class="sb-brand">ATLAS <span>DIPL.</span></div>
-  <div class="sb-section">Estudo</div>
-  <a class="sb-link" href="index.html">🏠 Início</a>
-  <a class="sb-link" href="flashcards.html">🃏 Flashcards</a>
-  <a class="sb-link" href="analise.html">📊 Análise</a>
-  <a class="sb-link" href="matching.html">🔤 Palavras</a>
-  <a class="sb-link" href="linha-do-tempo.html">🎮 Jogo</a>
-  <a class="sb-link" href="cronologia.html">📜 Cronologia</a>
-  <div class="sb-section">Mapas</div>
-  <a class="sb-link" href="mapas.html">🗺️ Mapas</a>
-  <a class="sb-link" href="noticias.html">📰 Notícias</a>
-  
-  <div class="sb-section">Comunidade</div>
-  <a class="sb-link" href="leaderboard.html">🏆 Ranking</a>
-  <a class="sb-link" href="agenda.html">📅 Agenda</a>
-  <div class="sb-section">2ª Fase</div>
-  <a class="sb-link" href="segunda-fase.html">✍️ 2ª Fase</a>
-  <div class="sb-section">Admin</div>
-  <a class="sb-link" href="admin.html">⚙️ Admin</a>
-</aside>
-<script>
-function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('sidebar-overlay').classList.add('open'); }
-function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
-document.querySelectorAll('.sb-link').forEach(function(a){
-  if(location.pathname.endsWith(a.getAttribute('href'))) a.classList.add('active');
-});
-</script>
+<aside id="sidebar"></aside>
+<script src="_sidebar.js"></script>
 </body>
 </html>
