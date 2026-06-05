@@ -1654,14 +1654,10 @@ async function renderRedacoes() {
     if (!exists) merged.push({ ...r, _source: 'ls' });
   }
 
-  // pré-carregar CSVs das matérias presentes para ordenar por edital
-  const subjects = [...new Set(merged.map(r => r.subject).filter(Boolean))];
-  await Promise.all(subjects.map(s => loadEditalCSV(s)));
-
-  // índice global de posição no edital: subject|tema -> número inteiro
-  function editalPos(subj, topic) {
-    const rows = _editalData[subj] || [];
-    const idx = rows.findIndex(r => r.tema === topic);
+  // posição do tópico no _csvData (mesma ordem da aba "Praticar por Tema")
+  function csvPos(subj, topic) {
+    const rows = _csvData[subj] || [];
+    const idx = rows.findIndex(r => r.topico === topic);
     return idx >= 0 ? idx : 9999;
   }
 
@@ -1669,8 +1665,8 @@ async function renderRedacoes() {
     const sa = _SUBJ_ORDER.indexOf(a.subject || '');
     const sb = _SUBJ_ORDER.indexOf(b.subject || '');
     if (sa !== sb) return (sa < 0 ? 99 : sa) - (sb < 0 ? 99 : sb);
-    const pa = editalPos(a.subject, a.topic);
-    const pb = editalPos(b.subject, b.topic);
+    const pa = csvPos(a.subject, a.topic);
+    const pb = csvPos(b.subject, b.topic);
     if (pa !== pb) return pa - pb;
     return new Date(b.savedAt) - new Date(a.savedAt);
   });
