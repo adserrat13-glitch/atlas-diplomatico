@@ -764,14 +764,17 @@ async function submitDisc() {
   // Escrita livre de tema (sem discursiva vinculada ao Supabase)
   if (!_currentDiscId) {
     clearInterval(_timerInterval);
-    const entry = { text, subject: _writeSubject, topic: _writeTopicContext,
-                    savedAt: new Date().toISOString() };
-    try {
-      const all = JSON.parse(localStorage.getItem('sf2_livres') || '[]');
-      const idx = all.findIndex(e => e.subject === entry.subject && e.topic === entry.topic);
-      if (idx >= 0) all[idx] = entry; else all.push(entry);
-      localStorage.setItem('sf2_livres', JSON.stringify(all));
-    } catch(e) {}
+    const saved = await DB.saveRedacaoLivre(_writeSubject, _writeTopicContext, text);
+    if (!saved) {
+      // fallback localStorage se não autenticado ou erro de rede
+      try {
+        const entry = { text, subject: _writeSubject, topic: _writeTopicContext, savedAt: new Date().toISOString() };
+        const all = JSON.parse(localStorage.getItem('sf2_livres') || '[]');
+        const idx = all.findIndex(e => e.subject === entry.subject && e.topic === entry.topic);
+        if (idx >= 0) all[idx] = entry; else all.push(entry);
+        localStorage.setItem('sf2_livres', JSON.stringify(all));
+      } catch(e) {}
+    }
     document.getElementById('writeInputArea').style.display = 'none';
     document.getElementById('writeSubmittedArea').style.display = '';
     document.getElementById('submittedResponse').textContent = text;
@@ -922,9 +925,10 @@ async function correctWithAI() {
   resultDiv.style.display = 'none';
   const disc = _currentDiscId ? _allDisc.find(d => d.id === _currentDiscId) : null;
   try {
+    const token = await DB.getAccessToken();
     const resp = await fetch('/api/correct-essay', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ subject: disc?.subject || _writeSubject, topic_context: disc?.prompt || _writeTopicContext, essay_text: text }),
     });
     const data = await resp.json();

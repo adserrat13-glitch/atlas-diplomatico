@@ -39,6 +39,11 @@ const DB = {
     return user;
   },
 
+  async getAccessToken() {
+    const { data: { session } } = await _sb.auth.getSession();
+    return session?.access_token || '';
+  },
+
   async getProfile(forceRefresh = false) {
     if (_profile && !forceRefresh) return _profile;
     const user = await this.getUser();
@@ -548,6 +553,29 @@ const DB = {
     const { data } = await _sb.from('discursiva_responses')
       .select('*').eq('discursiva_id', discursivaId).eq('user_id', user.id).maybeSingle();
     return data;
+  },
+
+  async saveRedacaoLivre(subject, topic, text) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const { data } = await _sb.from('redacoes_livres')
+      .upsert(
+        { user_id: user.id, subject, topic, response: text, submitted_at: new Date().toISOString() },
+        { onConflict: 'user_id,subject,topic' }
+      )
+      .select().single();
+    return data;
+  },
+
+  async getRedacoesLivres() {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data } = await _sb.from('redacoes_livres')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('subject', { ascending: true })
+      .order('topic', { ascending: true });
+    return data || [];
   },
 
   async getDiscursivaResponses(discursivaId) {
