@@ -780,6 +780,7 @@ async function submitDisc() {
     document.getElementById('submittedResponse').textContent = text;
     document.getElementById('adminGradeBox').style.display = 'none';
     document.getElementById('selfScoreBox').style.display = 'none';
+    _redacoesCache = null;
     return;
   }
 
@@ -1636,16 +1637,29 @@ function _cmpTopic(a, b) {
   return 0;
 }
 
-function renderRedacoes() {
-  const all = JSON.parse(localStorage.getItem('sf2_livres') || '[]')
-    .sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
+let _redacoesCache = null;
+
+async function renderRedacoes() {
   const el = document.getElementById('redacoesList');
-  if (!all.length) {
+  el.innerHTML = '<div class="empty-state"><p>Carregando...</p></div>';
+  const fromDB = await DB.getRedacoesLivres();
+  // merge com localStorage para não perder rascunhos offline
+  const fromLS = JSON.parse(localStorage.getItem('sf2_livres') || '[]');
+  const merged = [...fromDB.map(r => ({
+    id: r.id, subject: r.subject, topic: r.topic,
+    text: r.response, savedAt: r.submitted_at, _source: 'db'
+  }))];
+  for (const r of fromLS) {
+    const exists = merged.find(m => m.subject === r.subject && m.topic === r.topic);
+    if (!exists) merged.push({ ...r, _source: 'ls' });
+  }
+  _redacoesCache = merged.sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
+  if (!_redacoesCache.length) {
     el.innerHTML = '<div class="empty-state"><p>Nenhuma redação salva ainda.</p></div>';
     return;
   }
   const groups = {};
-  for (const r of all) { const s = r.subject || ''; if (!groups[s]) groups[s] = []; groups[s].push(r); }
+  for (const r of _redacoesCache) { const s = r.subject || ''; if (!groups[s]) groups[s] = []; groups[s].push(r); }
   const keys = _SUBJ_ORDER.filter(s => groups[s]);
   if (keys.length && !Object.keys(_redGroupOpen).length) _redGroupOpen[keys[0]] = true;
   el.innerHTML = keys.map(subj => {
@@ -1660,7 +1674,7 @@ function renderRedacoes() {
         <span class="red-subject-arrow ${isOpen?'open':''}">▶</span>
       </div>
       <div class="red-subject-body ${isOpen?'':'collapsed'}">
-        ${items.map(r => _renderRedFolder(r, all)).join('')}
+        ${items.map(r => _renderRedFolder(r, _redacoesCache)).join('')}
       </div>
     </div>`;
   }).join('');
@@ -1690,9 +1704,7 @@ function toggleRedGroup(subj) { _redGroupOpen[subj] = !_redGroupOpen[subj]; rend
 function toggleRedFolder(key) { _redFolderOpen[key] = !_redFolderOpen[key]; renderRedacoes(); }
 
 function editRedacao(idx) {
-  const all = JSON.parse(localStorage.getItem('sf2_livres') || '[]')
-    .sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
-  const r = all[idx];
+  const r = _redacoesCache && _redacoesCache[idx];
   if (!r) return;
   openWriteFromTema(r.topic || '', r.subject || '');
   setTimeout(() => {
@@ -1702,12 +1714,18 @@ function editRedacao(idx) {
   }, 50);
 }
 
-function deleteRedacao(idx) {
+async function deleteRedacao(idx) {
   if (!confirm('Excluir esta redação?')) return;
-  const all = JSON.parse(localStorage.getItem('sf2_livres') || '[]')
-    .sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
-  all.splice(idx, 1);
-  localStorage.setItem('sf2_livres', JSON.stringify(all));
+  const r = _redacoesCache && _redacoesCache[idx];
+  if (!r) return;
+  if (r._source === 'db' && r.id) {
+    await DB.deleteRedacaoLivre(r.id);
+  } else {
+    const all = JSON.parse(localStorage.getItem('sf2_livres') || '[]');
+    const i = all.findIndex(e => e.subject === r.subject && e.topic === r.topic);
+    if (i >= 0) { all.splice(i, 1); localStorage.setItem('sf2_livres', JSON.stringify(all)); }
+  }
+  _redacoesCache = null;
   renderRedacoes();
 }
 

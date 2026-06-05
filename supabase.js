@@ -578,6 +578,12 @@ const DB = {
     return data || [];
   },
 
+  async deleteRedacaoLivre(id) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('redacoes_livres').delete().eq('id', id).eq('user_id', user.id);
+  },
+
   async getDiscursivaResponses(discursivaId) {
     const { data } = await _sb.from('discursiva_responses')
       .select('*, profiles(name)').eq('discursiva_id', discursivaId).order('submitted_at');
