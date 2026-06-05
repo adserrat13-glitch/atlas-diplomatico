@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Games — Atlas Diplomático</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../theme.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d0d0f;color:#f0ece6;font-family:'JetBrains Mono','Courier New',monospace;min-height:100vh}
+
+nav{position:sticky;top:0;z-index:200;height:52px;background:#0d0d0f;
+ border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;
+ padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;
+ padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;
+ white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{text-decoration:underline}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;
+ border-radius:6px;transition:.15s;white-space:nowrap;display:flex;align-items:center;
+ gap:4px;flex-shrink:0}
+nav a:hover{color:#fff;background:rgba(255,255,255,.06)}
+nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;padding-bottom:3px}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);
+ border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;
+ white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);
+ display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+ flex-shrink:0;margin-left:6px;color:#888}
+
+#sidebar-overlay{display:none;position:fixed;inset:0;top:52px;background:rgba(0,0,0,.5);z-index:198}
+#sidebar-overlay.open{display:block}
+
+/* ── HERO ──────────────────────────────────────────── */
+.hub-hero{padding:48px 24px 32px;max-width:960px;margin:0 auto}
+.hub-hero-label{font-size:10px;font-weight:700;letter-spacing:3px;color:#5a5550;text-transform:uppercase;margin-bottom:12px}
+.hub-hero h1{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1;margin-bottom:8px;color:#f0ece6}
+.hub-hero h1 span{color:#d4af37}
+.hub-hero-sub{font-size:12px;color:#5a5550;letter-spacing:.5px;margin-bottom:28px}
+.hub-stats{display:flex;gap:24px;flex-wrap:wrap}
+.hub-stat{display:flex;flex-direction:column;gap:2px}
+.hub-stat-val{font-size:20px;font-weight:800;color:#f0ece6}
+.hub-stat-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:#5a5550;text-transform:uppercase}
+
+/* ── GRID ──────────────────────────────────────────── */
+.games-section{max-width:960px;margin:0 auto;padding:0 24px 80px}
+.games-section-title{font-size:10px;font-weight:700;letter-spacing:2.5px;color:#5a5550;
+ text-transform:uppercase;margin-bottom:16px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)}
+.games-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:32px}
+@media(min-width:640px){.games-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.games-grid{grid-template-columns:repeat(5,1fr)}}
+
+/* ── CARD ──────────────────────────────────────────── */
+.game-card{
+ --accent: #DCC9A9;
+ background:#141416;
+ border-radius:12px;
+ border:1px solid rgba(255,255,255,.06);
+ border-left:4px solid var(--accent);
+ overflow:hidden;
+ text-decoration:none;
+ color:#f0ece6;
+ display:flex;flex-direction:column;
+ transition:background .15s,border-color .15s,transform .12s;
+ position:relative;
+ padding:16px 16px 14px;
+}
+.game-card:hover{background:#1c1c1f;transform:translateY(-2px)}
+
+/* error dot */
+.game-card-dot{
+ position:absolute;top:12px;right:12px;
+ width:7px;height:7px;border-radius:50%;
+ background:#f87171;
+ display:none;
+ box-shadow:0 0 0 2px #141416;
+}
+
+/* card header row: icon + name */
+.game-card-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.game-card-icon{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--accent)}
+.game-card-icon svg{width:18px;height:18px;display:block}
+.game-card-name{font-size:12px;font-weight:800;letter-spacing:.3px;line-height:1.3;color:#f0ece6}
+
+.game-card-meta{font-size:9px;color:#5a5550;line-height:1.5;font-weight:600;margin-bottom:8px}
+
+.game-card-prog-bar{height:3px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:5px}
+.game-card-prog-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.game-card-prog-label{font-size:9px;color:#5a5550;font-weight:700;letter-spacing:.3px}
+
+.game-card-btn{
+ margin-top:auto;padding-top:10px;
+ font-size:10px;font-weight:800;letter-spacing:.5px;
+ color:var(--accent);
+ display:flex;align-items:center;gap:3px;
+}
+.game-card-btn::after{content:'→';transition:transform .15s}
+.game-card:hover .game-card-btn::after{transform:translateX(3px)}
+
+/* error badge hidden */
+.game-error-badge{display:none}
+
+/* ── COLOR ACCENTS ─────────────────────────────────── */
+#card-gramatica   { --accent:#a78bfa; }
+#card-dip         { --accent:#34d399; }
+#card-economia    { --accent:#fbbf24; }
+#card-politica    { --accent:#60a5fa; }
+#card-brasil      { --accent:#f87171; }
+#card-cacd-bolso  { --accent:#d4af37; }
+#card-hb          { --accent:#fb923c; }
+#card-portugues   { --accent:#c084fc; }
+#card-geografia   { --accent:#4ade80; }
+#card-espanhol    { --accent:#f43f5e; }
+#card-ingles      { --accent:#60a5fa; }
+#card-ing-vocab   { --accent:#38bdf8; }
+#card-tps         { --accent:#8b5cf6; }
+#card-hb-imperio  { --accent:#f59e0b; }
+#card-dir         { --accent:#f87171; }
+</style>
+</head>
+<body>
+
+<nav>
+ <button class="nav-ham" onclick="openSidebar()">☰</button>
+ <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+ <a href="../index.html">Início</a>
+ <a href="../flashcards.html">Flashcards</a>
+ <a href="INGLES/MATCHING%20WORDS/index.html">Vocab. ING</a>
+ <a href="../gramatica-matching.html">Gramática</a>
+ <a href="index.html" class="active">Games</a>
+ <a href="../linha-do-tempo.html">Linha do Tempo</a>
+ <div class="nav-spacer"></div>
+ <div class="nav-cd" id="navCountdown"></div>
+ <div class="nav-user" id="navUser">?</div>
+</nav>
+
+<div class="hub-hero">
+ <div class="hub-hero-label">Atlas Diplomático</div>
+ <h1>GAMES <span>HUB</span></h1>
+ <p class="hub-hero-sub">Matching Pairs — conecte o conceito à sua definição</p>
+ <div class="hub-stats">
+  <div class="hub-stat"><span class="hub-stat-val" id="statTotal">11</span><span class="hub-stat-label">jogos</span></div>
+  <div class="hub-stat"><span class="hub-stat-val" id="statPairs">17 626</span><span class="hub-stat-label">pares disponíveis</span></div>
+  <div class="hub-stat"><span class="hub-stat-val" id="statDone">—</span><span class="hub-stat-label">pares estudados</span></div>
+ </div>
+</div>
+
+<div class="games-section">
+ <div class="games-section-title">Matérias CACD</div>
+ <div class="games-grid">
+
+  <a class="game-card" href="TPS/index.html" id="card-tps">
+   <div class="game-card-dot" id="dot-tps"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="doc"></span><span class="game-card-name">TPS</span></div>
+   <div class="game-card-meta">~1780 pares · Análise de Teses</div>
+   <div class="game-error-badge" id="errors-tps"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-tps" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-tps">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="../gramatica-matching.html" id="card-gramatica">
+   <div class="game-card-dot" id="dot-gramatica"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="grammar"></span><span class="game-card-name">Gramática</span></div>
+   <div class="game-card-meta">142 pares · 13 seções</div>
+   <div class="game-error-badge" id="errors-gramatica"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-gramatica" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-gramatica">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="DIP/index.html" id="card-dip">
+   <div class="game-card-dot" id="dot-dip"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="dip"></span><span class="game-card-name">DIP</span></div>
+   <div class="game-card-meta">~1558 pares · Direito Internacional</div>
+   <div class="game-error-badge" id="errors-dip"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-dip" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-dip">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="DIP/direito/index.html" id="card-dir">
+   <div class="game-card-dot" id="dot-dir"></div>
+   <div class="game-card-header"><span class="game-card-icon">⚖️</span><span class="game-card-name">Direito</span></div>
+   <div class="game-card-meta">~316 pares · Vocabulário Jurídico</div>
+   <div class="game-error-badge" id="errors-dir"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-dir" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-dir">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="ECONOMIA/index.html" id="card-economia">
+   <div class="game-card-dot" id="dot-economia"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="economy"></span><span class="game-card-name">Economia</span></div>
+   <div class="game-card-meta">~2518 pares · 3 seções</div>
+   <div class="game-error-badge" id="errors-economia"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-economia" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-economia">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="POLITICA INTERNACIONAL/index.html" id="card-politica">
+   <div class="game-card-dot" id="dot-politica"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="globe"></span><span class="game-card-name">Política Internacional</span></div>
+   <div class="game-card-meta">~2291 pares · Relações Internacionais</div>
+   <div class="game-error-badge" id="errors-politica"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-politica" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-politica">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="HISTORIA DO BRASIL/index.html" id="card-hb">
+   <div class="game-card-dot" id="dot-hb"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="history"></span><span class="game-card-name">História do Brasil</span></div>
+   <div class="game-card-meta">2863 pares · Provas + HPEB</div>
+   <div class="game-error-badge" id="errors-hb"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-hb" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-hb">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="HISTORIA DO BRASIL/HISTORIA DO BRASIL IMPERIO/index.html" id="card-hb-imperio">
+   <div class="game-card-dot" id="dot-hb-imperio"></div>
+   <div class="game-card-header"><span class="game-card-icon">🏛️</span><span class="game-card-name">HB Império</span></div>
+   <div class="game-card-meta">~3133 pares · 7 seções</div>
+   <div class="game-error-badge" id="errors-hb-imperio"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-hb-imperio" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-hb-imperio">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="GEOGRAFIA/index.html" id="card-geografia">
+   <div class="game-card-dot" id="dot-geografia"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="map"></span><span class="game-card-name">Geografia</span></div>
+   <div class="game-card-meta">3559 pares · Conceitos</div>
+   <div class="game-error-badge" id="errors-geografia"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-geografia" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-geografia">3559 pares</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+ </div>
+
+ <div class="games-section-title">Idiomas</div>
+ <div class="games-grid">
+
+  <a class="game-card" href="PORTUGUES/index.html" id="card-portugues">
+   <div class="game-card-dot" id="dot-portugues"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="lang"></span><span class="game-card-name">Português</span></div>
+   <div class="game-card-meta">489 pares · Boa Escrita</div>
+   <div class="game-error-badge" id="errors-portugues"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-portugues" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-portugues">489 pares</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="ESPANHOL/index.html" id="card-espanhol">
+   <div class="game-card-dot" id="dot-espanhol"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="spain"></span><span class="game-card-name">Espanhol</span></div>
+   <div class="game-card-meta">1569 pares · La Gramática + Vocabulário</div>
+   <div class="game-error-badge" id="errors-espanhol"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-espanhol" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-espanhol">1569 pares</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="INGLES/index.html" id="card-ingles">
+   <div class="game-card-dot" id="dot-ingles"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="grammar"></span><span class="game-card-name">Inglês · Grammar</span></div>
+   <div class="game-card-meta">Grammar Matching</div>
+   <div class="game-error-badge" id="errors-ingles"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-ingles" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-ingles">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+  <a class="game-card" href="INGLES/MATCHING%20WORDS/index.html" id="card-ing-vocab">
+   <div class="game-card-dot" id="dot-ing-vocab"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="words"></span><span class="game-card-name">Inglês · Vocabulário</span></div>
+   <div class="game-card-meta">3321 pares · Inglês–Português</div>
+   <div class="game-error-badge" id="errors-ing-vocab"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-ing-vocab" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-ing-vocab">Carregando...</div>
+   <div class="game-card-btn">Jogar</div>
+  </a>
+
+ </div>
+
+ <div class="games-section-title">Exploração</div>
+ <div class="games-grid">
+
+  <a class="game-card" href="BRASIL/index.html" id="card-brasil">
+   <div class="game-card-dot" id="dot-brasil"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="flag"></span><span class="game-card-name">Brasil — Relações Bilaterais</span></div>
+   <div class="game-card-meta">198 países · Bandeiras + Comércio</div>
+   <div class="game-error-badge" id="errors-brasil"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-brasil" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-brasil">Carregando...</div>
+   <div class="game-card-btn">Explorar</div>
+  </a>
+
+  <a class="game-card" href="CACD BOLSO/index.html" id="card-cacd-bolso">
+   <div class="game-card-dot" id="dot-cacd-bolso"></div>
+   <div class="game-card-header"><span class="game-card-icon" data-icon="pocket"></span><span class="game-card-name">CACD Bolso</span></div>
+   <div class="game-card-meta">2.572 pares · 9 matérias · PI, DIP, ECO, GEO, HB, HM...</div>
+   <div class="game-error-badge" id="errors-cacd-bolso"></div>
+   <div class="game-card-prog-bar"><div class="game-card-prog-fill" id="prog-cacd-bolso" style="width:0%"></div></div>
+   <div class="game-card-prog-label" id="label-cacd-bolso">Carregando...</div>
+   <div class="game-card-btn">Estudar</div>
+  </a>
+
+ </div>
+</div>
+
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside id="sidebar"></aside>
+<script src="../icons.js"></script>
+<script src="../_sidebar.js"></script>
+
+<script>
+const GAME_TOTALS = {
+ dip: 1558,
+ economia: 2518,
+ politica: 2291,
+};
+
+function pct(done, total){ return total ? Math.round((done/total)*100) : 0; }
+
+function setCard(id, done, total){
+ const p = pct(done, total);
+ const fill = document.getElementById('prog-' + id);
+ const label = document.getElementById('label-' + id);
+ if (fill) fill.style.width = p + '%';
+ if (label) label.textContent = done > 0 ? `${done} / ${total} pares (${p}%)` : `${total} pares`;
+ // update global done stat
+ window._totalDone = (window._totalDone || 0) + done;
+ document.getElementById('statDone').textContent = window._totalDone.toLocaleString('pt-BR');
+}
+
+function setErrorBadge(id, wrongPairs){
+ const badge = document.getElementById('errors-' + id);
+ const dot = document.getElementById('dot-' + id);
+ const hasErrors = wrongPairs && wrongPairs.length > 0;
+ if (badge) { badge.textContent = hasErrors ? ` ${wrongPairs.length} para revisar` : ''; badge.style.display = hasErrors ? '' : 'none'; }
+ if (dot) dot.style.display = hasErrors ? 'block' : 'none';
+}
+
+async function loadProgress(){
+ window._totalDone = 0;
+
+ try {
+  const remote = await DB.getGameProgress('dir_matching').catch(()=>null);
+  const local = JSON.parse(localStorage.getItem('dir_match_progress') || '{}');
+  const data = remote ?? local;
+  setCard('dir', data.batchOffset || 0, 316);
+  setErrorBadge('dir', data.wrongPairs);
+ } catch(e) { setCard('dir', 0, 316); }
+
+ try {
+  const remote = await DB.getGameProgress('dip_matching');
+  const local = JSON.parse(localStorage.getItem('dip_match_progress') || '{}');
+  const data = remote ?? local;
+  setCard('dip', data.batchOffset || 0, GAME_TOTALS.dip);
+  setErrorBadge('dip', data.wrongPairs);
+ } catch(e) {
+  const local = JSON.parse(localStorage.getItem('dip_match_progress') || '{}');
+  setCard('dip', local.batchOffset || 0, GAME_TOTALS.dip);
+  setErrorBadge('dip', local.wrongPairs);
+ }
+
+ try {
+  const keys = [
+   { key: 'economia_micro', local: 'economia_micro_progress', total: 433 },
+   { key: 'economia_macro', local: 'economia_macro_progress', total: 1122 },
+   { key: 'economia_internacional', local: 'economia_inter_progress', total: 963 },
+  ];
+  let done = 0; let totalWrong = 0;
+  for (const k of keys) {
+   const remote = await DB.getGameProgress(k.key);
+   const local = JSON.parse(localStorage.getItem(k.local) || '{}');
+   const data = remote ?? local;
+   done += Math.min(data.batchOffset || 0, k.total);
+   totalWrong += (data.wrongPairs || []).length;
+  }
+  setCard('economia', done, GAME_TOTALS.economia);
+  setErrorBadge('economia', totalWrong > 0 ? new Array(totalWrong) : []);
+ } catch(e) { setCard('economia', 0, GAME_TOTALS.economia); }
+
+ try {
+  const keys = [
+   { key: 'tps-2026', local: 'tps_2026_progress', total: 434 },
+   { key: 'tps-2025', local: 'tps_2025_progress', total: 684 },
+   { key: 'tps-2024', local: 'tps_2024_progress', total: 662 },
+  ];
+  let done = 0; let totalWrong = 0;
+  for (const k of keys) {
+   const remote = await DB.getGameProgress(k.key);
+   const local = JSON.parse(localStorage.getItem(k.local) || '{}');
+   const data = remote ?? local;
+   done += Math.min(data.batchOffset || 0, k.total);
+   totalWrong += (data.wrongPairs || []).length;
+  }
+  setCard('tps', done, 1780);
+  setErrorBadge('tps', totalWrong > 0 ? new Array(totalWrong) : []);
+ } catch(e) { setCard('tps', 0, 1780); }
+
+ try {
+  const remote = await DB.getGameProgress('politica_matching');
+  const local = JSON.parse(localStorage.getItem('politica_progress') || '{}');
+  const data = remote ?? local;
+  setCard('politica', data.batchOffset || 0, GAME_TOTALS.politica);
+  setErrorBadge('politica', data.wrongPairs);
+ } catch(e) {
+  const local = JSON.parse(localStorage.getItem('politica_progress') || '{}');
+  setCard('politica', local.batchOffset || 0, GAME_TOTALS.politica);
+  setErrorBadge('politica', local.wrongPairs);
+ }
+
+ try {
+  const bb = await DB.getGameProgress('brasil_bandeiras').catch(()=>null);
+  const bc = await DB.getGameProgress('brasil_comercio').catch(()=>null);
+  const lbb = JSON.parse(localStorage.getItem('brasil_bandeiras') || '{}');
+  const lbc = JSON.parse(localStorage.getItem('brasil_comercio') || '{}');
+  const doneBrasil = ((bb ?? lbb).batchOffset || 0) + ((bc ?? lbc).batchOffset || 0);
+  setCard('brasil', doneBrasil, 396);
+  setErrorBadge('brasil', [...((bb ?? lbb).wrongPairs || []), ...((bc ?? lbc).wrongPairs || [])]);
+ } catch(e) { setCard('brasil', 0, 396); }
+
+ try {
+  const remote = await DB.getGameProgress('gramatica_matching');
+  const local = JSON.parse(localStorage.getItem('grammar_match_progress_v1') || '{}');
+  const data = remote ?? local;
+  const cats = Object.keys(data).filter(k=>k!=='_errors' && data[k]>0).length;
+  const fill = document.getElementById('prog-gramatica');
+  const label = document.getElementById('label-gramatica');
+  const p = pct(cats, 13);
+  if (fill) fill.style.width = p + '%';
+  if (label) label.textContent = cats > 0 ? `${cats} / 13 seções (${p}%)` : '13 seções · 142 pares';
+  setErrorBadge('gramatica', Object.values(data._errors || {}).flat());
+ } catch(e) {
+  const local = JSON.parse(localStorage.getItem('grammar_match_progress_v1') || '{}');
+  const cats = Object.keys(local).filter(k=>k!=='_errors' && local[k]>0).length;
+  const fill = document.getElementById('prog-gramatica');
+  const label = document.getElementById('label-gramatica');
+  if (fill) fill.style.width = pct(cats, 13) + '%';
+  if (label) label.textContent = cats > 0 ? `${cats} / 13 seções` : '13 seções · 142 pares';
+  setErrorBadge('gramatica', Object.values(local._errors || {}).flat());
+ }
+
+ try {
+  const [rProvas, rHpeb] = await Promise.all([DB.getGameProgress('hb_provas_matching'), DB.getGameProgress('hb_hpeb_matching')]);
+  const lProvas = JSON.parse(localStorage.getItem('hb_provas_progress') || '{}');
+  const lHpeb = JSON.parse(localStorage.getItem('hb_hpeb_progress') || '{}');
+  const dProvas = rProvas ?? lProvas, dHpeb = rHpeb ?? lHpeb;
+  setCard('hb', (dProvas.batchOffset || 0) + (dHpeb.batchOffset || 0), 2863);
+  setErrorBadge('hb', [...(dProvas.wrongPairs || []), ...(dHpeb.wrongPairs || [])]);
+ } catch(e) {
+  const lProvas = JSON.parse(localStorage.getItem('hb_provas_progress') || '{}');
+  const lHpeb = JSON.parse(localStorage.getItem('hb_hpeb_progress') || '{}');
+  setCard('hb', (lProvas.batchOffset || 0) + (lHpeb.batchOffset || 0), 2863);
+ }
+
+ try {
+  const keys = [
+   { key: 'hb-imperio-col1', local: 'hb_imperio_col1_progress', total: 385 },
+   { key: 'hb-imperio-col2', local: 'hb_imperio_col2_progress', total: 519 },
+   { key: 'hb-imperio-col3', local: 'hb_imperio_col3_progress', total: 435 },
+   { key: 'hb-imperio-col4', local: 'hb_imperio_col4_progress', total: 398 },
+   { key: 'hb-imperio-col5', local: 'hb_imperio_col5_progress', total: 331 },
+   { key: 'hb-imperio-col6', local: 'hb_imperio_col6_progress', total: 457 },
+   { key: 'hb-imperio-col7', local: 'hb_imperio_col7_progress', total: 608 },
+  ];
+  let done = 0; let totalWrong = 0;
+  for (const k of keys) {
+   const remote = await DB.getGameProgress(k.key);
+   const local = JSON.parse(localStorage.getItem(k.local) || '{}');
+   const data = remote ?? local;
+   done += Math.min(data.batchOffset || 0, k.total);
+   totalWrong += (data.wrongPairs || []).length;
+  }
+  setCard('hb-imperio', done, 3133);
+  setErrorBadge('hb-imperio', totalWrong > 0 ? new Array(totalWrong) : []);
+ } catch(e) { setCard('hb-imperio', 0, 3133); }
+
+ try {
+  const remote = await DB.getGameProgress('port-boa').catch(()=>null);
+  const local = JSON.parse(localStorage.getItem('port_boa') || '{}');
+  const data = remote ?? local;
+  setCard('portugues', data.batchOffset || 0, 489);
+  setErrorBadge('portugues', data.wrongPairs);
+ } catch(e) { setCard('portugues', 0, 489); }
+
+ try {
+  const remote = await DB.getGameProgress('geo-geo').catch(()=>null);
+  const local = JSON.parse(localStorage.getItem('geo_geo') || '{}');
+  const data = remote ?? local;
+  setCard('geografia', data.batchOffset || 0, 3559);
+  setErrorBadge('geografia', data.wrongPairs);
+ } catch(e) { setCard('geografia', 0, 3559); }
+
+ try {
+  const remote = await DB.getGameProgress('esp-esp').catch(()=>null);
+  const local = JSON.parse(localStorage.getItem('esp_esp') || '{}');
+  const data = remote ?? local;
+  setCard('espanhol', data.batchOffset || 0, 1569);
+  setErrorBadge('espanhol', data.wrongPairs);
+ } catch(e) { setCard('espanhol', 0, 1569); }
+
+ try {
+  const remote = await DB.getGameProgress('ing-gram').catch(()=>null);
+  const local = JSON.parse(localStorage.getItem('ing_gram') || '{}');
+  const data = remote ?? local;
+  setCard('ingles', data.batchOffset || 0, null);
+  setErrorBadge('ingles', data.wrongPairs);
+  const lbl=document.getElementById('label-ingles'); if(lbl) lbl.textContent='Grammar Matching';
+ } catch(e) { const lbl=document.getElementById('label-ingles'); if(lbl) lbl.textContent='Grammar Matching'; }
+
+ try {
+  const remote = await DB.getGameProgress('ing-vocab').catch(()=>null);
+  const local = JSON.parse(localStorage.getItem('ing_vocab') || '{}');
+  const data = remote ?? local;
+  setCard('ing-vocab', data.batchOffset || 0, 3321);
+  setErrorBadge('ing-vocab', data.wrongPairs);
+ } catch(e) { setCard('ing-vocab', 0, 3321); }
+
+ try {
+  const secTotals = { pi:362, dip:283, direito:242, eco:269, geo:407, hb:333, hm:262, atual:197, port:188 };
+  let done = 0; let totalAll = 0; let totalWrong = 0;
+  for (const [id, t] of Object.entries(secTotals)) {
+   totalAll += t;
+   const remote = await DB.getGameProgress('cacd-bolso-' + id).catch(()=>null);
+   const local = JSON.parse(localStorage.getItem('cacd_bolso_' + id) || '{}');
+   const data = remote ?? local;
+   done += Math.min(data.batchOffset || 0, t);
+   totalWrong += (data.wrongPairs || []).length;
+  }
+  setCard('cacd-bolso', done, totalAll);
+  setErrorBadge('cacd-bolso', totalWrong > 0 ? new Array(totalWrong) : []);
+ } catch(e) {
+  const fill = document.getElementById('prog-cacd-bolso');
+  const label = document.getElementById('label-cacd-bolso');
+  if (fill) fill.style.width = '0%';
+  if (label) label.textContent = '2.572 pares · 9 matérias';
+ }
+
+ try {
+  const local = JSON.parse(localStorage.getItem('dialogo_progress') || '{}');
+  setCard('dialogo', local.currentPairIndex ? local.currentPairIndex + 1 : 0, 483);
+ } catch(e) { setCard('dialogo', 0, 483); }
+}
+
+function openSidebar(){
+ document.getElementById('sidebar').classList.add('open');
+ document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar(){
+ document.getElementById('sidebar').classList.remove('open');
+ document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+document.querySelectorAll('[data-icon]').forEach(el=>{
+ const k=el.dataset.icon;
+ if(typeof ICONS!=='undefined'&&ICONS[k])el.innerHTML=ICONS[k];
+});
+
+(async()=>{
+ try {
+  const user = await DB.requireAuth();
+  const [profile, , examDate] = await Promise.all([DB.getProfile(), DB.isAdmin(), DB.getExamDate()]);
+  const nu = document.getElementById('navUser');
+  if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+  const nc = document.getElementById('navCountdown');
+  if (nc && examDate) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+  await loadProgress();
+ } catch(e){}
+})();
+</script>
+</body>
+</html>
