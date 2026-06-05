@@ -1653,7 +1653,28 @@ async function renderRedacoes() {
     const exists = merged.find(m => m.subject === r.subject && m.topic === r.topic);
     if (!exists) merged.push({ ...r, _source: 'ls' });
   }
-  _redacoesCache = merged.sort((a,b) => new Date(b.savedAt) - new Date(a.savedAt));
+
+  // pré-carregar CSVs das matérias presentes para ordenar por edital
+  const subjects = [...new Set(merged.map(r => r.subject).filter(Boolean))];
+  await Promise.all(subjects.map(s => loadEditalCSV(s)));
+
+  // índice global de posição no edital: subject|tema -> número inteiro
+  function editalPos(subj, topic) {
+    const rows = _editalData[subj] || [];
+    const idx = rows.findIndex(r => r.tema === topic);
+    return idx >= 0 ? idx : 9999;
+  }
+
+  _redacoesCache = merged.sort((a, b) => {
+    const sa = _SUBJ_ORDER.indexOf(a.subject || '');
+    const sb = _SUBJ_ORDER.indexOf(b.subject || '');
+    if (sa !== sb) return (sa < 0 ? 99 : sa) - (sb < 0 ? 99 : sb);
+    const pa = editalPos(a.subject, a.topic);
+    const pb = editalPos(b.subject, b.topic);
+    if (pa !== pb) return pa - pb;
+    return new Date(b.savedAt) - new Date(a.savedAt);
+  });
+
   if (!_redacoesCache.length) {
     el.innerHTML = '<div class="empty-state"><p>Nenhuma redação salva ainda.</p></div>';
     return;
@@ -1663,7 +1684,8 @@ async function renderRedacoes() {
   const keys = _SUBJ_ORDER.filter(s => groups[s]);
   if (keys.length && !Object.keys(_redGroupOpen).length) _redGroupOpen[keys[0]] = true;
   el.innerHTML = keys.map(subj => {
-    const items = [...groups[subj]].sort(_cmpTopic);
+    // items já estão ordenados pelo edital via sort acima
+    const items = groups[subj];
     const isOpen = !!_redGroupOpen[subj];
     const label = subj || 'Sem matéria';
     const tagCls = subj ? `disc-subject-tag tag-${subj}` : 'disc-subject-tag';
