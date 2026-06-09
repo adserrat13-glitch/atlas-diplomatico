@@ -176,7 +176,10 @@ let BATCH_SIZE = 5;
 const PAIRS_PER_ROUND = 10;
 
 const SECTIONS = [
-  { id: 'geo', icon: 'globe', label: 'Geografia', csv: 'GEOGRAFIA .csv' },
+  { id: 'geo1', emoji: '🌍', label: 'GEO 1 — Fundamentos', csv: 'GEO 1 .csv' },
+  { id: 'geo2', emoji: '🗺️', label: 'GEO 2 — Território e Energia', csv: 'GEO 2 .csv' },
+  { id: 'geo3', emoji: '🌾', label: 'GEO 3 — Agro e Urbano', csv: 'GEO 3 .csv' },
+  { id: 'geo4', emoji: '🌱', label: 'GEO 4 — Ambiente e Política', csv: 'GEO 4 .csv' },
 ];
 const PATCH_FILES={10:'10.png',20:'20.png',30:'30.png',40:'40.png',50:'50.png',60:'60.png',70:'70.png',80:'80.png',100:'100.png'};
 function acertosPatchImg(acc){let b=Math.round(acc*10)*10;if(b<10)b=10;if(b>100)b=100;if(b===90)b=100;return`../PATCH%20DE%20ERROS/${PATCH_FILES[b]}`;}
