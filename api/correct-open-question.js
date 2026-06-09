@@ -6,7 +6,11 @@ Avalie a resposta do candidato a uma questão aberta dissertativa em 3 critério
 2. Profundidade Analítica (0–10): vai além da superfície, identifica relações causais, consequências, nuances e diferentes perspectivas
 3. Clareza e Linguagem (0–10): português formal-diplomático, objetividade, estrutura lógica da resposta
 
-Ao final, forneça também uma resposta de referência concisa (2–3 frases) que seria considerada excelente pelo examinador.
+Regras para o feedback:
+- "erros" deve listar CADA erro factual ou omissão importante da resposta do candidato, de forma específica (ex: "Confundiu o Tratado de Assunção (1991) com o de Ouro Preto (1994)"). Se não houver erros, retorne array vazio.
+- "correcoes" deve indicar, para CADA erro listado, o que está correto (mesma ordem dos erros).
+- "pontos_fortes" deve listar o que o candidato acertou bem, de forma específica.
+- "resposta_modelo" deve ser uma resposta de referência completa (3–5 frases) que cobriria todos os pontos essenciais.
 
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {
@@ -14,10 +18,10 @@ Responda APENAS em JSON válido, sem markdown, sem texto extra:
   "profundidade": <inteiro 0-10>,
   "clareza": <inteiro 0-10>,
   "total": <soma dos três>,
-  "feedback": "<2 parágrafos em português destacando pontos fortes e sugestões de melhoria>",
-  "pontos_fortes": ["<ponto 1>", "<ponto 2>"],
-  "pontos_fracos": ["<ponto 1>", "<ponto 2>"],
-  "resposta_modelo": "<resposta de referência em 2-3 frases que seria considerada excelente>"
+  "erros": ["<erro específico 1>", "<erro específico 2>"],
+  "correcoes": ["<o que está correto 1>", "<o que está correto 2>"],
+  "pontos_fortes": ["<ponto forte 1>", "<ponto forte 2>"],
+  "resposta_modelo": "<resposta de referência completa em 3-5 frases>"
 }`;
 
 module.exports = async function handler(req, res) {
@@ -81,10 +85,12 @@ module.exports = async function handler(req, res) {
       parsed[k] = Math.min(10, Math.max(0, Math.round(Number(parsed[k]) || 0)));
     }
     parsed.total = scores.reduce((s, k) => s + parsed[k], 0);
+    if (!Array.isArray(parsed.erros))         parsed.erros = [];
+    if (!Array.isArray(parsed.correcoes))     parsed.correcoes = [];
     if (!Array.isArray(parsed.pontos_fortes)) parsed.pontos_fortes = [];
-    if (!Array.isArray(parsed.pontos_fracos)) parsed.pontos_fracos = [];
-    parsed.pontos_fortes = parsed.pontos_fortes.slice(0, 3).map(String);
-    parsed.pontos_fracos = parsed.pontos_fracos.slice(0, 3).map(String);
+    parsed.erros         = parsed.erros.slice(0, 5).map(String);
+    parsed.correcoes     = parsed.correcoes.slice(0, 5).map(String);
+    parsed.pontos_fortes = parsed.pontos_fortes.slice(0, 4).map(String);
     parsed.resposta_modelo = String(parsed.resposta_modelo || '');
 
     return res.status(200).json(parsed);

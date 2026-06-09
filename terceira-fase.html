@@ -173,6 +173,17 @@ nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;paddi
 .fc-mini-val{font-size:11px;font-weight:800;width:32px;text-align:right;font-family:'SF Mono',monospace}
 
 .fc-feedback{font-size:14px;line-height:1.75;color:var(--muted);margin-bottom:16px}
+.fc-bullets-section{margin-bottom:14px}
+.fc-bullets-title{font-size:10px;font-weight:800;letter-spacing:1.2px;margin-bottom:8px;
+  font-family:'SF Mono',monospace}
+.fc-bullets-err{color:var(--red)}
+.fc-bullets-ok{color:var(--green)}
+.fc-bullet-pair{margin-bottom:10px}
+.fc-bullet{font-size:13px;line-height:1.6;padding:7px 12px;border-radius:8px;margin-bottom:3px}
+.fc-bullet-err{background:var(--red-dim);color:#fca5a5;border-left:3px solid var(--red)}
+.fc-bullet-fix{background:rgba(52,211,153,0.07);color:var(--green);border-left:3px solid var(--green);
+  margin-left:16px;font-style:italic}
+.fc-bullet-ok{background:var(--green-dim);color:var(--green);border-left:3px solid var(--green)}
 
 /* Collapsible resposta modelo */
 .fc-modelo-toggle{background:none;border:1px solid rgba(212,175,55,.25);color:var(--muted2);
@@ -785,8 +796,33 @@ function renderResultPhase(data, passed) {
       <span class="fc-mini-val" style="color:var(--green)">${data.clareza}</span>
     </div>`;
 
-  // Feedback
-  document.getElementById('fcFeedback').textContent = data.feedback || '';
+  // Erros + correções em bullet points pareados
+  const feedbackEl = document.getElementById('fcFeedback');
+  let html = '';
+
+  if (data.erros && data.erros.length) {
+    html += `<div class="fc-bullets-section">
+      <div class="fc-bullets-title fc-bullets-err">✗ ERROS E CORREÇÕES</div>`;
+    data.erros.forEach((erro, i) => {
+      const correcao = (data.correcoes && data.correcoes[i]) || '';
+      html += `<div class="fc-bullet-pair">
+        <div class="fc-bullet fc-bullet-err">✗ ${escHtml(erro)}</div>
+        ${correcao ? `<div class="fc-bullet fc-bullet-fix">→ ${escHtml(correcao)}</div>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (data.pontos_fortes && data.pontos_fortes.length) {
+    html += `<div class="fc-bullets-section">
+      <div class="fc-bullets-title fc-bullets-ok">✓ PONTOS FORTES</div>`;
+    data.pontos_fortes.forEach(pf => {
+      html += `<div class="fc-bullet fc-bullet-ok">✓ ${escHtml(pf)}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  feedbackEl.innerHTML = html;
 
   // Resposta modelo
   const modeloBody   = document.getElementById('fcModeloBody');
