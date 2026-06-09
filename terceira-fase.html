@@ -15,144 +15,230 @@
   --border:#2a2f3a;--border2:#2f3542;
   --text:#e5e7eb;--muted:#9ca3af;--muted2:#6b7280;
   --gold:#d4af37;--gold-dim:rgba(212,175,55,0.12);
-  --red:#f87171;--green:#34d399;--amber:#f59e0b;
+  --red:#f87171;--red-dim:rgba(248,113,113,0.10);
+  --green:#34d399;--green-dim:rgba(52,211,153,0.10);
+  --amber:#f59e0b;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh}
 
-/* NAV */
-nav{position:sticky;top:0;z-index:200;height:52px;background:#000;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none;font-family:'SF Mono',ui-monospace,monospace}
+/* ── NAV ─────────────────────────────────────────────── */
+nav{position:sticky;top:0;z-index:200;height:52px;background:#000;
+  border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;
+  padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none;
+  font-family:'SF Mono',ui-monospace,monospace}
 nav::-webkit-scrollbar{display:none}
 .nav-ham{background:none;border:none;color:#888;font-size:18px;cursor:pointer;padding:4px 8px;flex-shrink:0}
 .nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;white-space:nowrap;flex-shrink:0;color:#fff}
 .nav-logo span{color:#fff;text-decoration:underline}
-nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0;letter-spacing:.3px}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;
+  transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0;letter-spacing:.3px}
 nav a:hover{color:#fff;background:rgba(255,255,255,0.06)}
 nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;padding-bottom:3px}
 .nav-spacer{flex:1;min-width:8px}
-.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
-.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-left:6px;color:#888}
+.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);
+  border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  flex-shrink:0;margin-left:6px;color:#888}
 
-/* MAIN */
-main{max-width:1100px;margin:0 auto;padding:32px}
-.page-header{margin-bottom:24px}
+/* ── HOME SCREEN ──────────────────────────────────────── */
+#homeScreen{max-width:860px;margin:0 auto;padding:32px 24px}
+.page-header{margin-bottom:28px}
 .page-header h1{font-size:28px;font-weight:bold;letter-spacing:.5px;color:var(--gold)}
 .page-header p{font-size:14px;color:var(--muted);margin-top:4px}
 
-/* KPI */
-#kpiBar{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px;transition:.2s}
-.kpi-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,0.4)}
-.kpi-card p{font-size:12px;color:var(--muted);font-family:'SF Mono',monospace;letter-spacing:.3px}
-.kpi-card h2{font-size:28px;font-weight:bold;margin-top:6px;color:var(--gold)}
+#kpiBar{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;transition:.2s}
+.kpi-card:hover{transform:translateY(-2px)}
+.kpi-card p{font-size:11px;color:var(--muted);font-family:'SF Mono',monospace;letter-spacing:.3px}
+.kpi-card h2{font-size:26px;font-weight:bold;margin-top:6px;color:var(--gold)}
 
-/* CHIPS */
 .subj-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
-.subj-chip{padding:6px 18px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:.15s;font-family:'SF Mono',monospace;letter-spacing:.3px}
+.subj-chip{padding:6px 18px;border-radius:20px;border:1px solid var(--border);background:var(--surface);
+  color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:.15s;
+  font-family:'SF Mono',monospace;letter-spacing:.3px}
 .subj-chip:hover{border-color:var(--gold);color:var(--gold)}
 .subj-chip.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
 
-/* CONTROLS */
-.controls-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.search-input{flex:1;min-width:200px;background:#11141b;border:1px solid var(--border2);border-radius:8px;padding:9px 14px;color:var(--text);font-size:13px;font-family:Georgia,serif}
-.search-input:focus{outline:none;border-color:var(--gold)}
-.search-input::placeholder{color:var(--muted2)}
-.btn-random{background:var(--gold-dim);border:1px solid rgba(212,175,55,.35);color:var(--gold);border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;white-space:nowrap;transition:.15s}
-.btn-random:hover{background:rgba(212,175,55,.2)}
-.progress-chip{font-size:11px;color:var(--muted2);font-family:'SF Mono',monospace;white-space:nowrap}
+.home-stats{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:20px 24px;margin-bottom:20px}
+.home-stats-title{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted2);
+  font-family:'SF Mono',monospace;margin-bottom:12px}
+.home-stats-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.home-stats-row:last-child{margin-bottom:0}
+.stat-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:3px;background:var(--gold);transition:width .4s ease}
+.stat-label{font-size:12px;color:var(--muted);min-width:90px;font-family:'SF Mono',monospace}
+.stat-val{font-size:12px;color:var(--gold);font-weight:700;font-family:'SF Mono',monospace;min-width:60px;text-align:right}
 
-/* QUESTION LIST */
-.q-list{display:flex;flex-direction:column;gap:8px}
-.q-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;cursor:pointer;transition:.2s;display:flex;align-items:flex-start;gap:12px}
-.q-card:hover{border-color:rgba(212,175,55,.4);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,0.35)}
-.q-card.done{opacity:.6}
-.q-check{width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:2px;border:1.5px solid rgba(212,175,55,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:transparent;transition:.15s}
-.q-check.checked{background:var(--green);border-color:var(--green);color:#000}
-.q-body{flex:1;min-width:0}
-.q-text{font-size:14px;font-weight:600;line-height:1.45;color:var(--text)}
-.q-card.done .q-text{text-decoration:line-through;opacity:.6}
-.q-meta{font-size:11px;color:var(--muted2);margin-top:4px;font-family:'SF Mono',monospace}
-.q-score-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;font-family:'SF Mono',monospace;flex-shrink:0}
-.badge-high{background:rgba(52,211,153,.15);color:#34d399}
-.badge-mid{background:rgba(245,158,11,.15);color:#f59e0b}
-.badge-low{background:rgba(248,113,113,.15);color:#f87171}
+.start-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn-start{background:var(--gold);border:none;color:#000;padding:13px 28px;border-radius:10px;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s;letter-spacing:.3px}
+.btn-start:hover{opacity:.85}
+.btn-start:disabled{opacity:.4;cursor:not-allowed}
+.btn-shuffle{background:none;border:1px solid var(--gold);color:var(--gold);padding:13px 22px;
+  border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-shuffle:hover{background:var(--gold-dim)}
+.btn-shuffle:disabled{opacity:.4;cursor:not-allowed}
+.btn-retry-only{background:none;border:1px solid var(--border);color:var(--muted2);padding:13px 18px;
+  border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-retry-only:hover{border-color:var(--red);color:var(--red)}
+.btn-retry-only:disabled{opacity:.3;cursor:not-allowed}
 
-.empty-state{text-align:center;padding:48px;color:var(--muted2)}
+/* ── FLASHCARD SCREEN ─────────────────────────────────── */
+#flashcardScreen{display:none;position:fixed;inset:0;background:var(--bg);z-index:400;
+  flex-direction:column;overflow:hidden}
+#flashcardScreen.open{display:flex}
 
-/* ANSWER OVERLAY */
-#answerMode{display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;flex-direction:column}
-#answerMode.open{display:flex}
-.ans-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10}
-.ans-header h3{flex:1;font-size:15px;font-weight:700;color:var(--gold);font-family:'SF Mono',monospace;letter-spacing:.5px}
-.ans-timer{font-size:15px;font-weight:800;color:var(--amber);font-variant-numeric:tabular-nums;font-family:'SF Mono',monospace}
-.ans-wc{font-size:12px;color:var(--muted2);font-family:'SF Mono',monospace}
-.btn-close{background:none;border:1px solid var(--border);color:var(--muted2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
-.btn-close:hover{border-color:var(--red);color:var(--red)}
+/* Progress bar */
+.fc-progress-track{height:3px;background:var(--border);width:100%;flex-shrink:0}
+.fc-progress-fill{height:100%;background:var(--gold);transition:width .3s ease}
 
-.ans-content{max-width:800px;margin:0 auto;padding:32px 28px;width:100%;flex:1;display:flex;flex-direction:column;gap:20px}
+/* Session header */
+.fc-header{height:52px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0}
+.fc-header-close{background:none;border:none;color:var(--muted2);font-size:20px;cursor:pointer;
+  padding:4px 8px;border-radius:6px;transition:.15s;flex-shrink:0}
+.fc-header-close:hover{color:var(--red)}
+.fc-header-subject{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--gold);
+  font-family:'SF Mono',monospace;flex-shrink:0}
+.fc-header-pos{font-size:12px;color:var(--muted2);font-family:'SF Mono',monospace;flex:1}
+.fc-counters{display:flex;gap:10px;flex-shrink:0}
+.fc-counter{font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px;font-family:'SF Mono',monospace}
+.fc-correct{background:var(--green-dim);color:var(--green)}
+.fc-wrong{background:var(--red-dim);color:var(--red)}
 
-.ans-question{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px}
-.ans-q-label{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.8px;margin-bottom:8px;font-family:'SF Mono',monospace}
-.ans-q-text{font-size:16px;line-height:1.65;color:var(--text);font-weight:600}
+/* Card area */
+.fc-body{flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;
+  padding:32px 20px;gap:20px}
+.fc-card{width:100%;max-width:720px;display:flex;flex-direction:column;gap:16px}
 
-.ans-textarea{width:100%;background:#11141b;border:1px solid var(--border2);border-radius:12px;padding:20px;color:var(--text);font-size:15px;font-family:Georgia,serif;line-height:1.9;min-height:280px;resize:vertical}
-.ans-textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.12)}
-.ans-textarea::placeholder{color:var(--muted2)}
+/* Question box */
+.fc-question{background:var(--surface);border:2px solid var(--border);border-radius:16px;
+  padding:28px 32px;transition:border-color .3s,background .3s}
+.fc-question.state-correct{border-color:var(--green);background:var(--green-dim)}
+.fc-question.state-wrong{border-color:var(--red);background:var(--red-dim)}
+.fc-q-label{font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted2);
+  font-family:'SF Mono',monospace;margin-bottom:10px}
+.fc-q-text{font-size:18px;font-weight:700;line-height:1.55;color:var(--text)}
 
-.ans-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.btn-correct{background:var(--gold);border:none;color:#000;padding:11px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;display:flex;align-items:center;gap:8px;transition:.15s}
-.btn-correct:hover{opacity:.85}
-.btn-correct:disabled{opacity:.5;cursor:not-allowed}
-.ai-spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;display:none}
-.btn-correct.loading .ai-spinner{display:inline-block}
-.btn-next{background:none;border:1px solid var(--border);color:var(--muted2);padding:11px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
-.btn-next:hover{border-color:var(--gold);color:var(--gold)}
-.btn-skip{background:none;border:1px solid var(--border);color:var(--muted2);padding:11px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
-.btn-skip:hover{border-color:var(--text);color:var(--text)}
+/* Retry badge */
+.fc-retry-badge{font-size:10px;font-weight:800;letter-spacing:.8px;padding:3px 10px;
+  border-radius:8px;background:rgba(245,158,11,.15);color:var(--amber);
+  font-family:'SF Mono',monospace;display:inline-block;margin-top:8px}
 
-/* AI RESULT */
-#aiResult{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-top:4px}
-.ai-result-title{font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted2);margin-bottom:24px;font-family:'SF Mono',monospace}
+/* Answer area */
+.fc-answer-area{display:flex;flex-direction:column;gap:12px}
+.fc-textarea{width:100%;background:#11141b;border:1px solid var(--border2);border-radius:12px;
+  padding:18px 20px;color:var(--text);font-size:15px;font-family:Georgia,serif;line-height:1.85;
+  min-height:160px;resize:vertical;transition:border-color .2s}
+.fc-textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.1)}
+.fc-textarea::placeholder{color:var(--muted2)}
+.fc-wc{font-size:11px;color:var(--muted2);font-family:'SF Mono',monospace;text-align:right;margin-top:-6px}
 
-.ai-scores{display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
-.ai-score-row{display:flex;align-items:center;gap:12px}
-.ai-score-label{font-size:12px;font-weight:700;color:var(--muted2);width:160px;flex-shrink:0;font-family:'SF Mono',monospace}
-.ai-score-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
-.ai-score-bar{height:100%;border-radius:3px;transition:width .5s ease}
+/* Input-phase actions */
+.fc-actions-input{display:flex;gap:10px;align-items:center}
+.btn-fc-correct{background:var(--gold);border:none;color:#000;padding:12px 26px;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;
+  display:flex;align-items:center;gap:8px;transition:.15s}
+.btn-fc-correct:hover{opacity:.85}
+.btn-fc-correct:disabled{opacity:.45;cursor:not-allowed}
+.fc-spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,.25);border-top-color:#000;
+  border-radius:50%;animation:spin .7s linear infinite;display:none}
+.btn-fc-correct.loading .fc-spinner{display:inline-block}
+.btn-fc-skip{background:none;border:1px solid var(--border);color:var(--muted2);
+  padding:12px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'SF Mono',monospace;transition:.15s}
+.btn-fc-skip:hover{border-color:var(--text);color:var(--text)}
+.fc-hint{font-size:11px;color:var(--muted2);font-family:'SF Mono',monospace}
+
+/* Result panel */
+.fc-result{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px 28px}
+.fc-result-header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.fc-result-verdict{font-size:22px;font-weight:900}
+.verdict-correct{color:var(--green)}
+.verdict-wrong{color:var(--red)}
+.fc-result-total{font-size:36px;font-weight:900;color:var(--gold);line-height:1}
+.fc-result-total-sub{font-size:13px;color:var(--muted2);font-family:'SF Mono',monospace}
+
+.fc-mini-scores{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.fc-mini-row{display:flex;align-items:center;gap:10px}
+.fc-mini-label{font-size:11px;color:var(--muted2);width:150px;flex-shrink:0;font-family:'SF Mono',monospace}
+.fc-mini-bar-wrap{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.fc-mini-bar{height:100%;border-radius:3px}
 .bar-gold{background:var(--gold)}
 .bar-green{background:var(--green)}
 .bar-blue{background:#60a5fa}
-.ai-score-val{font-size:13px;font-weight:800;width:40px;text-align:right;flex-shrink:0;font-family:'SF Mono',monospace}
+.fc-mini-val{font-size:11px;font-weight:800;width:32px;text-align:right;font-family:'SF Mono',monospace}
 
-.ai-total-row{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--border);padding-top:16px;margin-bottom:24px}
-.ai-total-label{font-size:12px;font-weight:700;color:var(--muted2);letter-spacing:.5px;font-family:'SF Mono',monospace}
-.ai-total-val{font-size:32px;font-weight:900;color:var(--gold)}
-.ai-total-sub{font-size:13px;color:var(--muted2);font-family:'SF Mono',monospace}
+.fc-feedback{font-size:14px;line-height:1.75;color:var(--muted);margin-bottom:16px}
 
-.ai-feedback{font-size:14px;line-height:1.8;color:var(--muted);white-space:pre-wrap;margin-bottom:24px}
+/* Collapsible resposta modelo */
+.fc-modelo-toggle{background:none;border:1px solid rgba(212,175,55,.25);color:var(--muted2);
+  border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;
+  font-family:'SF Mono',monospace;transition:.15s;margin-bottom:10px}
+.fc-modelo-toggle:hover{border-color:var(--gold);color:var(--gold)}
+.fc-modelo-body{background:rgba(212,175,55,.05);border:1px solid rgba(212,175,55,.15);
+  border-radius:10px;padding:14px 18px;font-size:14px;line-height:1.7;
+  color:var(--text);font-style:italic;display:none}
+.fc-modelo-body.open{display:block}
 
-.ai-bullets{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-.ai-bullet-col h5{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted2);margin-bottom:10px;font-family:'SF Mono',monospace}
-.ai-bullet-item{font-size:13px;color:var(--text);padding:6px 10px;border-radius:6px;margin-bottom:6px;line-height:1.4}
-.ai-bullet-item.forte{background:rgba(52,211,153,.08);border-left:2px solid var(--green)}
-.ai-bullet-item.fraco{background:rgba(248,113,113,.08);border-left:2px solid var(--red)}
+/* Result-phase actions */
+.fc-actions-result{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.btn-next{background:var(--green);border:none;color:#000;padding:13px 28px;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-next:hover{opacity:.85}
+.btn-retry{background:none;border:2px solid var(--amber);color:var(--amber);padding:13px 22px;
+  border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-retry:hover{background:rgba(245,158,11,.1)}
+.btn-skip-anyway{background:none;border:1px solid var(--border);color:var(--muted2);
+  padding:13px 16px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;
+  font-family:'SF Mono',monospace;transition:.15s}
+.btn-skip-anyway:hover{border-color:var(--text);color:var(--text)}
 
-.ai-modelo{background:rgba(212,175,55,.06);border:1px solid rgba(212,175,55,.2);border-radius:10px;padding:16px 20px}
-.ai-modelo-label{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--gold);margin-bottom:8px;font-family:'SF Mono',monospace}
-.ai-modelo-text{font-size:14px;line-height:1.7;color:var(--text);font-style:italic}
+/* ── END SCREEN ───────────────────────────────────────── */
+#endScreen{display:none;position:fixed;inset:0;background:var(--bg);z-index:400;
+  overflow-y:auto;flex-direction:column;align-items:center;padding:48px 20px}
+#endScreen.open{display:flex}
+.end-card{width:100%;max-width:640px}
+.end-title{font-size:28px;font-weight:900;color:var(--gold);margin-bottom:6px}
+.end-sub{font-size:14px;color:var(--muted);margin-bottom:32px}
+.end-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.end-stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:18px;text-align:center}
+.end-stat-val{font-size:32px;font-weight:900;color:var(--gold)}
+.end-stat-label{font-size:11px;color:var(--muted2);font-family:'SF Mono',monospace;margin-top:4px}
+
+.end-wrong-list{margin-bottom:28px}
+.end-wrong-title{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted2);
+  font-family:'SF Mono',monospace;margin-bottom:12px}
+.end-wrong-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;margin-bottom:8px;cursor:pointer;transition:.15s}
+.end-wrong-item:hover{border-color:rgba(212,175,55,.3)}
+.end-wrong-q{font-size:13px;font-weight:600;line-height:1.4;margin-bottom:4px}
+.end-wrong-modelo{font-size:12px;color:var(--muted2);line-height:1.5;font-style:italic;display:none;margin-top:8px;
+  border-left:2px solid rgba(212,175,55,.3);padding-left:10px}
+.end-wrong-modelo.open{display:block}
+
+.end-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn-end-retry{background:var(--gold);border:none;color:#000;padding:13px 26px;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace}
+.btn-end-retry:hover{opacity:.85}
+.btn-end-new{background:none;border:1px solid var(--border);color:var(--muted);padding:13px 20px;
+  border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-end-new:hover{border-color:var(--gold);color:var(--gold)}
 
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fc-result{animation:fadeIn .25s ease}
 
-/* SUBJECT TAGS */
-.tag-PI{color:#22d3ee}.tag-DIP{color:#d4af37}.tag-ECO{color:#facc15}
-.tag-GEO{color:#34d399}.tag-HB{color:#fbbf24}.tag-HM{color:#f97316}
-.tag-LP{color:#a78bfa}.tag-ING{color:#60a5fa}
-
-@media(max-width:700px){
-  main{padding:16px}
+@media(max-width:640px){
+  #homeScreen{padding:16px}
   #kpiBar{grid-template-columns:repeat(2,1fr)}
-  .ans-content{padding:16px}
-  .ai-bullets{grid-template-columns:1fr}
+  .fc-q-text{font-size:16px}
+  .fc-result-total{font-size:28px}
+  .end-stats{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 </head>
@@ -178,32 +264,21 @@ main{max-width:1100px;margin:0 auto;padding:32px}
 <aside id="sidebar"></aside>
 <script src="_sidebar.js"></script>
 
-<main>
+<!-- ══ HOME SCREEN ══════════════════════════════════════════ -->
+<div id="homeScreen">
   <div class="page-header">
     <h1>3ª Fase — Questões Abertas</h1>
-    <p>Pratique respostas orais/dissertativas curtas e receba correção imediata da IA.</p>
+    <p>Modo flashcard: responda, corrija com IA, avance ou tente de novo.</p>
   </div>
 
   <section id="kpiBar">
-    <div class="kpi-card">
-      <p>Respondidas Hoje</p>
-      <h2 id="kpiToday">0</h2>
-    </div>
-    <div class="kpi-card">
-      <p>Total Respondidas</p>
-      <h2 id="kpiTotal">0</h2>
-    </div>
-    <div class="kpi-card">
-      <p>Média IA (/ 30)</p>
-      <h2 id="kpiAvg">—</h2>
-    </div>
-    <div class="kpi-card">
-      <p>Dias para o CACD</p>
-      <h2 id="kpiDays">—</h2>
-    </div>
+    <div class="kpi-card"><p>Respondidas Hoje</p><h2 id="kpiToday">0</h2></div>
+    <div class="kpi-card"><p>Total Aprendidas</p><h2 id="kpiTotal">0</h2></div>
+    <div class="kpi-card"><p>Média IA (/ 30)</p><h2 id="kpiAvg">—</h2></div>
+    <div class="kpi-card"><p>Dias para o CACD</p><h2 id="kpiDays">—</h2></div>
   </section>
 
-  <div class="subj-chips" id="subjChips">
+  <div class="subj-chips">
     <button class="subj-chip active" onclick="selectSubject('PI',this)">PI</button>
     <button class="subj-chip" onclick="selectSubject('DIP',this)">DIP</button>
     <button class="subj-chip" onclick="selectSubject('ECO',this)">ECO</button>
@@ -212,54 +287,118 @@ main{max-width:1100px;margin:0 auto;padding:32px}
     <button class="subj-chip" onclick="selectSubject('HM',this)">HM</button>
   </div>
 
-  <div class="controls-row">
-    <input class="search-input" type="text" id="searchInput" placeholder="Buscar questão..." oninput="renderList()"/>
-    <button class="btn-random" onclick="openRandom()">⚡ Questão Aleatória</button>
-    <span class="progress-chip" id="progressChip"></span>
-  </div>
-
-  <div class="q-list" id="qList">
-    <div class="empty-state"><p>Carregando questões...</p></div>
-  </div>
-</main>
-
-<!-- ANSWER OVERLAY -->
-<div id="answerMode">
-  <div class="ans-header">
-    <button class="btn-close" onclick="closeAnswer()">×</button>
-    <h3 id="ansModeTitle">3ª FASE</h3>
-    <span class="ans-wc" id="ansWC">0 palavras</span>
-    <span class="ans-timer" id="ansTimer">00:00</span>
-  </div>
-  <div class="ans-content">
-    <div class="ans-question">
-      <div class="ans-q-label">QUESTÃO</div>
-      <div class="ans-q-text" id="ansQuestionText"></div>
+  <div class="home-stats" id="homeStats">
+    <div class="home-stats-title">PROGRESSO DA MATÉRIA</div>
+    <div class="home-stats-row">
+      <span class="stat-label">Aprendidas</span>
+      <div class="stat-bar-wrap"><div class="stat-bar-fill" id="statBarLearned" style="width:0%"></div></div>
+      <span class="stat-val" id="statValLearned">0 / 0</span>
     </div>
-
-    <textarea class="ans-textarea" id="ansTextarea" placeholder="Escreva sua resposta aqui (tente ser conciso e preciso, como numa resposta oral de 1–2 minutos)..."></textarea>
-
-    <div class="ans-actions">
-      <button class="btn-correct" id="btnCorrect" onclick="correctWithAI()">
-        <div class="ai-spinner"></div>
-        Corrigir com IA
-      </button>
-      <button class="btn-next" id="btnNext" style="display:none" onclick="openRandom()">Próxima Aleatória →</button>
-      <button class="btn-skip" onclick="closeAnswer()">Fechar</button>
+    <div class="home-stats-row">
+      <span class="stat-label">Para revisar</span>
+      <div class="stat-bar-wrap"><div class="stat-bar-fill" id="statBarRetry" style="width:0%;background:var(--amber)"></div></div>
+      <span class="stat-val" id="statValRetry" style="color:var(--amber)">0</span>
     </div>
+  </div>
 
-    <div id="aiResult" style="display:none"></div>
+  <div class="start-actions">
+    <button class="btn-start" id="btnStart" onclick="startSession(false)">Iniciar Sessão →</button>
+    <button class="btn-shuffle" id="btnShuffle" onclick="startSession(true)">⚡ Aleatório</button>
+    <button class="btn-retry-only" id="btnRetryOnly" onclick="startRetryOnly()">↺ Só Erradas</button>
+  </div>
+</div>
+
+<!-- ══ FLASHCARD SCREEN ═════════════════════════════════════ -->
+<div id="flashcardScreen">
+  <div class="fc-progress-track"><div class="fc-progress-fill" id="fcProgressFill" style="width:0%"></div></div>
+  <div class="fc-header">
+    <button class="fc-header-close" onclick="exitSession()" title="Sair da sessão">×</button>
+    <span class="fc-header-subject" id="fcSubjectLabel">PI</span>
+    <span class="fc-header-pos" id="fcPos">questão 1 de 10</span>
+    <div class="fc-counters">
+      <span class="fc-counter fc-correct" id="fcCorrectCount">✓ 0</span>
+      <span class="fc-counter fc-wrong" id="fcWrongCount">✗ 0</span>
+    </div>
+  </div>
+
+  <div class="fc-body">
+    <div class="fc-card" id="fcCard">
+
+      <!-- Question -->
+      <div class="fc-question" id="fcQuestion">
+        <div class="fc-q-label">QUESTÃO</div>
+        <div class="fc-q-text" id="fcQText"></div>
+        <div id="fcRetryBadge" style="display:none">
+          <span class="fc-retry-badge">↺ TENTATIVA <span id="fcAttemptNum">2</span></span>
+        </div>
+      </div>
+
+      <!-- Answer input (input phase) -->
+      <div class="fc-answer-area" id="fcAnswerArea">
+        <textarea class="fc-textarea" id="fcTextarea"
+          placeholder="Escreva sua resposta (como numa resposta oral de 1–2 min)..."></textarea>
+        <div class="fc-wc" id="fcWC">0 palavras</div>
+        <div class="fc-actions-input">
+          <button class="btn-fc-correct" id="btnFcCorrect" onclick="correctWithAI()">
+            <div class="fc-spinner"></div>
+            Corrigir com IA
+          </button>
+          <button class="btn-fc-skip" onclick="skipQuestion()">Pular →</button>
+          <span class="fc-hint" id="fcHint">Ctrl+Enter para corrigir</span>
+        </div>
+      </div>
+
+      <!-- Result (result phase) -->
+      <div class="fc-result" id="fcResult" style="display:none">
+        <div class="fc-result-header">
+          <div>
+            <div class="fc-result-verdict" id="fcVerdict"></div>
+          </div>
+          <div style="margin-left:auto;text-align:right">
+            <div class="fc-result-total" id="fcTotal"></div>
+            <div class="fc-result-total-sub">/ 30 pontos</div>
+          </div>
+        </div>
+
+        <div class="fc-mini-scores" id="fcMiniScores"></div>
+        <div class="fc-feedback" id="fcFeedback"></div>
+
+        <button class="fc-modelo-toggle" onclick="toggleModelo()" id="fcModeloToggle">
+          ▸ Ver resposta de referência
+        </button>
+        <div class="fc-modelo-body" id="fcModeloBody"></div>
+
+        <div class="fc-actions-result" id="fcActionsResult"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ══ END SCREEN ═══════════════════════════════════════════ -->
+<div id="endScreen">
+  <div class="end-card">
+    <div class="end-title">Sessão concluída! 🎓</div>
+    <div class="end-sub" id="endSub"></div>
+    <div class="end-stats">
+      <div class="end-stat"><div class="end-stat-val" id="endCorrect">0</div><div class="end-stat-label">CERTAS</div></div>
+      <div class="end-stat"><div class="end-stat-val" id="endWrong" style="color:var(--red)">0</div><div class="end-stat-label">ERRADAS</div></div>
+      <div class="end-stat"><div class="end-stat-val" id="endAvg">—</div><div class="end-stat-label">MÉDIA /30</div></div>
+    </div>
+    <div class="end-wrong-list" id="endWrongList"></div>
+    <div class="end-actions">
+      <button class="btn-end-retry" id="btnEndRetry" onclick="startRetrySession()">↺ Revisar Erradas</button>
+      <button class="btn-end-new" onclick="goHome()">Nova Sessão</button>
+    </div>
   </div>
 </div>
 
 <script>
-/* ── STATE ──────────────────────────────────────────────────── */
-let _subject = 'PI';
-let _questions = [];          // array of strings
-let _progress = {};           // { subject: { q_index: { score, date } } }
-let _currentIdx = null;
-let _timerInterval = null, _timerSecs = 0;
-const TODAY = new Date().toISOString().split('T')[0];
+/* ═══════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════ */
+const PASS_SCORE  = 20;   // ≥ 20 / 30 = certo
+const MAX_RETRIES = 2;    // máximo de re-tentativas por questão na sessão
 
 const CSV_MAP = {
   PI:  '3FASE/PI.csv',
@@ -270,278 +409,431 @@ const CSV_MAP = {
   HM:  '3FASE/HM.csv',
 };
 
-/* ── PERSISTENCE ────────────────────────────────────────────── */
+let _subject   = 'PI';
+let _questions = [];   // all strings for subject
+
+// Session
+let _queue     = [];   // [{idx, attempts}] — pending
+let _done      = [];   // [{idx, score, passed}] — completed this session
+let _wrongItems= [];   // [{idx, score, modelo}] — wrong in session (for end screen)
+let _current   = null; // {idx, attempts}
+let _phase     = 'input';
+
+// Persistent
+let _progress  = {};   // { subject: { idx: {score, date} } }
+const TODAY    = new Date().toISOString().split('T')[0];
+
+/* ═══════════════════════════════════════════════════════════
+   PERSISTENCE
+══════════════════════════════════════════════════════════════ */
 function loadProgress() {
   try { _progress = JSON.parse(localStorage.getItem('tf_progress') || '{}'); } catch { _progress = {}; }
 }
 function saveProgress() {
   localStorage.setItem('tf_progress', JSON.stringify(_progress));
 }
-function markDone(subject, idx, score) {
-  if (!_progress[subject]) _progress[subject] = {};
-  _progress[subject][idx] = { score, date: TODAY };
+function recordProgress(idx, score) {
+  if (!_progress[_subject]) _progress[_subject] = {};
+  _progress[_subject][idx] = { score, date: TODAY };
   saveProgress();
 }
-function isDone(subject, idx) { return !!(_progress[subject] && _progress[subject][idx]); }
-function getScore(subject, idx) { return _progress[subject]?.[idx]?.score ?? null; }
+function getStored(idx) { return _progress[_subject]?.[idx] ?? null; }
 
-/* ── KPI ────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   KPI & HOME STATS
+══════════════════════════════════════════════════════════════ */
 function updateKPIs() {
-  const allDone = Object.values(_progress).flatMap(s => Object.values(s));
-  const today   = allDone.filter(e => e.date === TODAY);
-  document.getElementById('kpiToday').textContent = today.length;
-  document.getElementById('kpiTotal').textContent = allDone.length;
-  const scores = allDone.map(e => e.score).filter(s => s != null);
+  const allEntries = Object.values(_progress).flatMap(s => Object.values(s));
+  const todayE     = allEntries.filter(e => e.date === TODAY);
+  document.getElementById('kpiToday').textContent = todayE.length;
+
+  const learned = allEntries.filter(e => e.score >= PASS_SCORE);
+  document.getElementById('kpiTotal').textContent = learned.length;
+
+  const scores = allEntries.map(e => e.score).filter(s => s != null);
   document.getElementById('kpiAvg').textContent = scores.length
-    ? (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(1) : '—';
+    ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
 
-  // Countdown CACD
-  const cacd = new Date('2026-10-04');
-  const diff = Math.ceil((cacd - new Date()) / 86400000);
-  document.getElementById('kpiDays').textContent = diff > 0 ? diff : '—';
+  const days = Math.ceil((new Date('2026-10-04') - new Date()) / 86400000);
+  document.getElementById('kpiDays').textContent = days > 0 ? days : '—';
+
+  const el = document.getElementById('navCountdown');
+  if (el) el.textContent = days > 0 ? `${days}d` : 'CACD';
 }
 
-function updateProgressChip() {
-  const done = Object.keys(_progress[_subject] || {}).length;
-  const total = _questions.length;
-  document.getElementById('progressChip').textContent = total ? `${done}/${total} respondidas` : '';
+function updateHomeStats() {
+  const total   = _questions.length;
+  const subjMap = _progress[_subject] || {};
+  const learned = Object.values(subjMap).filter(e => e.score >= PASS_SCORE).length;
+  const retry   = Object.values(subjMap).filter(e => e.score < PASS_SCORE).length;
+
+  const learnedPct = total ? Math.round(learned/total*100) : 0;
+  const retryPct   = total ? Math.round(retry/total*100)   : 0;
+
+  document.getElementById('statBarLearned').style.width = learnedPct + '%';
+  document.getElementById('statValLearned').textContent = `${learned} / ${total}`;
+  document.getElementById('statBarRetry').style.width   = retryPct + '%';
+  document.getElementById('statValRetry').textContent   = retry;
+
+  const hasRetry = retry > 0;
+  document.getElementById('btnRetryOnly').disabled = !hasRetry;
+  document.getElementById('btnStart').disabled    = total === 0;
+  document.getElementById('btnShuffle').disabled  = total === 0;
 }
 
-/* ── CSV LOADING ────────────────────────────────────────────── */
-function loadCSV(subject) {
+/* ═══════════════════════════════════════════════════════════
+   CSV
+══════════════════════════════════════════════════════════════ */
+function loadCSV(subject, callback) {
   const path = CSV_MAP[subject];
-  if (!path) { _questions = []; renderList(); return; }
-
-  document.getElementById('qList').innerHTML = '<div class="empty-state"><p>Carregando questões...</p></div>';
-
+  if (!path) { _questions = []; callback && callback(); return; }
   Papa.parse(path, {
     download: true,
     skipEmptyLines: true,
-    complete: function(results) {
+    complete(results) {
       _questions = results.data
-        .map(row => {
-          const cell = Array.isArray(row) ? row[0] : (row.questao || row[Object.keys(row)[0]] || '');
-          return cell.trim();
-        })
-        .filter(q => q.length > 5 && !q.toLowerCase().startsWith('questao') && !q.toLowerCase().startsWith('pergunta'));
-      renderList();
-      updateProgressChip();
+        .map(row => (Array.isArray(row) ? row[0] : (row.questao || row[Object.keys(row)[0]] || '')).trim())
+        .filter(q => q.length > 5 && !/^(questao|pergunta)/i.test(q));
+      callback && callback();
     },
-    error: function() {
-      document.getElementById('qList').innerHTML = '<div class="empty-state"><p>CSV não encontrado para esta matéria. Em breve!</p></div>';
-      _questions = [];
-    }
+    error() { _questions = []; callback && callback(); }
   });
 }
 
-/* ── SUBJECT SELECT ─────────────────────────────────────────── */
 function selectSubject(subj, btn) {
   _subject = subj;
   document.querySelectorAll('.subj-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('searchInput').value = '';
-  loadCSV(subj);
+  loadCSV(subj, () => { updateHomeStats(); });
 }
 
-/* ── RENDER LIST ────────────────────────────────────────────── */
-function renderList() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
-  const filtered = _questions
-    .map((q, i) => ({ q, i }))
-    .filter(({ q }) => !search || q.toLowerCase().includes(search));
+/* ═══════════════════════════════════════════════════════════
+   SESSION START
+══════════════════════════════════════════════════════════════ */
+function buildQueue(indices) {
+  return indices.map(idx => ({ idx, attempts: 0 }));
+}
 
-  if (!filtered.length) {
-    document.getElementById('qList').innerHTML = '<div class="empty-state"><p>Nenhuma questão encontrada.</p></div>';
+function startSession(shuffle) {
+  if (!_questions.length) return;
+  let indices = _questions.map((_,i) => i);
+  if (shuffle) indices = indices.sort(() => Math.random() - .5);
+  _queue      = buildQueue(indices);
+  _done       = [];
+  _wrongItems = [];
+  beginSession();
+}
+
+function startRetryOnly() {
+  const subjMap = _progress[_subject] || {};
+  const retryIdx = Object.entries(subjMap)
+    .filter(([,e]) => e.score < PASS_SCORE)
+    .map(([i]) => Number(i))
+    .filter(i => i < _questions.length);
+  if (!retryIdx.length) return;
+  _queue      = buildQueue(retryIdx.sort(() => Math.random() - .5));
+  _done       = [];
+  _wrongItems = [];
+  beginSession();
+}
+
+function startRetrySession() {
+  // called from end screen — retry only the wrong from last session
+  const wrongIdx = _wrongItems.map(w => w.idx);
+  if (!wrongIdx.length) { goHome(); return; }
+  _queue      = buildQueue(wrongIdx);
+  _done       = [];
+  _wrongItems = [];
+  showFlashcard();
+  nextQuestion();
+}
+
+function beginSession() {
+  showFlashcard();
+  nextQuestion();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCREEN SWITCHING
+══════════════════════════════════════════════════════════════ */
+function showFlashcard() {
+  document.getElementById('homeScreen').style.display    = 'none';
+  document.getElementById('endScreen').classList.remove('open');
+  document.getElementById('flashcardScreen').classList.add('open');
+}
+function showEnd() {
+  document.getElementById('flashcardScreen').classList.remove('open');
+  document.getElementById('endScreen').classList.add('open');
+}
+function goHome() {
+  document.getElementById('endScreen').classList.remove('open');
+  document.getElementById('flashcardScreen').classList.remove('open');
+  document.getElementById('homeScreen').style.display = '';
+  updateKPIs();
+  updateHomeStats();
+}
+function exitSession() {
+  if (_done.length || confirm('Sair da sessão? O progresso desta sessão já foi salvo.')) goHome();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   QUESTION FLOW
+══════════════════════════════════════════════════════════════ */
+function nextQuestion() {
+  // merge retry queue back into main queue if main is empty
+  if (!_queue.length) {
+    renderEndScreen();
     return;
   }
 
-  document.getElementById('qList').innerHTML = filtered.map(({ q, i }) => {
-    const done  = isDone(_subject, i);
-    const score = getScore(_subject, i);
-    const badgeHtml = score != null ? scoreBadge(score) : '';
-    return `<div class="q-card${done?' done':''}" onclick="openQuestion(${i})">
-      <div class="q-check${done?' checked':''}">✓</div>
-      <div class="q-body">
-        <div class="q-text">${escHtml(q)}</div>
-        <div class="q-meta">${_subject}${done?' · respondida':''}</div>
-      </div>
-      ${badgeHtml}
-    </div>`;
-  }).join('');
+  _current = _queue.shift();
+  _phase   = 'input';
+  renderInputPhase();
+  updateSessionHeader();
 }
 
-function scoreBadge(score) {
-  const cls = score >= 24 ? 'badge-high' : score >= 18 ? 'badge-mid' : 'badge-low';
-  return `<span class="q-score-badge ${cls}">${score}/30</span>`;
-}
+function renderInputPhase() {
+  const q = _questions[_current.idx];
+  document.getElementById('fcQText').textContent = q;
+  document.getElementById('fcQuestion').className = 'fc-question';
+  document.getElementById('fcTextarea').value    = '';
+  document.getElementById('fcWC').textContent    = '0 palavras';
+  document.getElementById('fcResult').style.display    = 'none';
+  document.getElementById('fcAnswerArea').style.display = '';
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+  // retry badge
+  const badge = document.getElementById('fcRetryBadge');
+  if (_current.attempts > 0) {
+    badge.style.display = '';
+    document.getElementById('fcAttemptNum').textContent = _current.attempts + 1;
+  } else {
+    badge.style.display = 'none';
+  }
 
-/* ── OPEN QUESTION ──────────────────────────────────────────── */
-function openQuestion(idx) {
-  _currentIdx = idx;
-  const q = _questions[idx];
-  document.getElementById('ansQuestionText').textContent = q;
-  document.getElementById('ansModeTitle').textContent = `3ª FASE · ${_subject}`;
-  document.getElementById('ansTextarea').value = '';
-  document.getElementById('ansWC').textContent = '0 palavras';
-  document.getElementById('aiResult').style.display = 'none';
-  document.getElementById('btnNext').style.display = 'none';
-  const btn = document.getElementById('btnCorrect');
+  const btn = document.getElementById('btnFcCorrect');
   btn.disabled = false;
   btn.classList.remove('loading');
-  document.getElementById('answerMode').classList.add('open');
-  document.getElementById('ansTextarea').focus();
-  startTimer();
+
+  setTimeout(() => document.getElementById('fcTextarea').focus(), 50);
 }
 
-function openRandom() {
-  if (!_questions.length) return;
-  const undone = _questions.map((_, i) => i).filter(i => !isDone(_subject, i));
-  const pool = undone.length ? undone : _questions.map((_, i) => i);
-  const idx = pool[Math.floor(Math.random() * pool.length)];
-  openQuestion(idx);
+function updateSessionHeader() {
+  const total    = _done.length + _queue.length + 1;  // +1 for current
+  const pos      = _done.length + 1;
+  const correct  = _done.filter(d => d.passed).length;
+  const wrong    = _done.filter(d => !d.passed).length;
+  const progress = _done.length / (total || 1);
+
+  document.getElementById('fcSubjectLabel').textContent = _subject;
+  document.getElementById('fcPos').textContent          = `questão ${pos} de ${total}`;
+  document.getElementById('fcCorrectCount').textContent = `✓ ${correct}`;
+  document.getElementById('fcWrongCount').textContent   = `✗ ${wrong}`;
+  document.getElementById('fcProgressFill').style.width = (progress * 100) + '%';
 }
 
-function closeAnswer() {
-  clearInterval(_timerInterval);
-  document.getElementById('answerMode').classList.remove('open');
-  _currentIdx = null;
-  document.getElementById('ansTimer').textContent = '00:00';
-}
-
-function startTimer() {
-  _timerSecs = 0;
-  clearInterval(_timerInterval);
-  _timerInterval = setInterval(() => {
-    _timerSecs++;
-    const m = String(Math.floor(_timerSecs/60)).padStart(2,'0');
-    const s = String(_timerSecs%60).padStart(2,'0');
-    document.getElementById('ansTimer').textContent = `${m}:${s}`;
-  }, 1000);
-}
-
-document.getElementById('ansTextarea').addEventListener('input', () => {
-  const t = document.getElementById('ansTextarea').value.trim();
-  document.getElementById('ansWC').textContent = (t ? t.split(/\s+/).length : 0) + ' palavras';
-});
-
-/* ── AI CORRECTION ──────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   AI CORRECTION
+══════════════════════════════════════════════════════════════ */
 async function correctWithAI() {
-  const answer = document.getElementById('ansTextarea').value.trim();
-  if (!answer) { alert('Escreva sua resposta antes de corrigir.'); return; }
+  const answer = document.getElementById('fcTextarea').value.trim();
+  if (!answer) {
+    document.getElementById('fcTextarea').focus();
+    document.getElementById('fcTextarea').style.borderColor = 'var(--red)';
+    setTimeout(() => document.getElementById('fcTextarea').style.borderColor = '', 1000);
+    return;
+  }
 
-  const btn = document.getElementById('btnCorrect');
+  const btn = document.getElementById('btnFcCorrect');
   btn.disabled = true;
   btn.classList.add('loading');
-  document.getElementById('aiResult').style.display = 'none';
-
-  const question = _questions[_currentIdx] || '';
 
   try {
     const resp = await fetch('/api/correct-open-question', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question, answer, subject: _subject }),
+      body: JSON.stringify({ question: _questions[_current.idx], answer, subject: _subject }),
     });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      throw new Error(err.error || `Erro ${resp.status}`);
-    }
-
+    if (!resp.ok) { const e = await resp.json().catch(()=>({})); throw new Error(e.error || `Erro ${resp.status}`); }
     const data = await resp.json();
-    clearInterval(_timerInterval);
-    renderAIResult(data);
-
-    if (_currentIdx != null) {
-      markDone(_subject, _currentIdx, data.total);
-      updateKPIs();
-      updateProgressChip();
-      renderList();
-    }
-
-    document.getElementById('btnNext').style.display = '';
+    handleResult(data);
   } catch (err) {
     alert('Erro ao corrigir: ' + err.message);
-  } finally {
     btn.disabled = false;
     btn.classList.remove('loading');
   }
 }
 
-function renderAIResult(data) {
-  const total = data.total ?? 0;
-  const totalColor = total >= 24 ? 'var(--green)' : total >= 18 ? 'var(--amber)' : 'var(--red)';
+function handleResult(data) {
+  const passed = data.total >= PASS_SCORE;
+  _current.attempts++;
 
-  const fortesHtml = (data.pontos_fortes || []).map(p =>
-    `<div class="ai-bullet-item forte">✓ ${escHtml(p)}</div>`
-  ).join('');
-  const fracosHtml = (data.pontos_fracos || []).map(p =>
-    `<div class="ai-bullet-item fraco">✗ ${escHtml(p)}</div>`
-  ).join('');
+  // Save to persistent progress (best score wins)
+  const prev = getStored(_current.idx);
+  if (!prev || data.total > prev.score) recordProgress(_current.idx, data.total);
 
-  document.getElementById('aiResult').innerHTML = `
-    <div class="ai-result-title">AVALIAÇÃO DA IA — 3ª FASE CACD</div>
+  // Session tracking
+  _done.push({ idx: _current.idx, score: data.total, passed });
+  if (!passed) {
+    _wrongItems = _wrongItems.filter(w => w.idx !== _current.idx);
+    _wrongItems.push({ idx: _current.idx, score: data.total, modelo: data.resposta_modelo || '' });
+  }
 
-    <div class="ai-scores">
-      <div class="ai-score-row">
-        <span class="ai-score-label">Precisão Factual</span>
-        <div class="ai-score-bar-wrap"><div class="ai-score-bar bar-gold" style="width:${data.precisao*10}%"></div></div>
-        <span class="ai-score-val" style="color:var(--gold)">${data.precisao}/10</span>
-      </div>
-      <div class="ai-score-row">
-        <span class="ai-score-label">Profundidade Analítica</span>
-        <div class="ai-score-bar-wrap"><div class="ai-score-bar bar-blue" style="width:${data.profundidade*10}%"></div></div>
-        <span class="ai-score-val" style="color:#60a5fa">${data.profundidade}/10</span>
-      </div>
-      <div class="ai-score-row">
-        <span class="ai-score-label">Clareza e Linguagem</span>
-        <div class="ai-score-bar-wrap"><div class="ai-score-bar bar-green" style="width:${data.clareza*10}%"></div></div>
-        <span class="ai-score-val" style="color:var(--green)">${data.clareza}/10</span>
-      </div>
-    </div>
-
-    <div class="ai-total-row">
-      <span class="ai-total-label">NOTA TOTAL</span>
-      <div style="display:flex;align-items:baseline;gap:8px">
-        <span class="ai-total-val" style="color:${totalColor}">${total}</span>
-        <span class="ai-total-sub">/ 30</span>
-      </div>
-    </div>
-
-    <div class="ai-feedback">${escHtml(data.feedback || '')}</div>
-
-    ${(fortesHtml || fracosHtml) ? `
-    <div class="ai-bullets">
-      <div>
-        <h5>PONTOS FORTES</h5>
-        ${fortesHtml || '<div class="ai-bullet-item forte" style="opacity:.5">Nenhum identificado</div>'}
-      </div>
-      <div>
-        <h5>A MELHORAR</h5>
-        ${fracosHtml || '<div class="ai-bullet-item fraco" style="opacity:.5">Nenhum identificado</div>'}
-      </div>
-    </div>` : ''}
-
-    ${data.resposta_modelo ? `
-    <div class="ai-modelo">
-      <div class="ai-modelo-label">RESPOSTA DE REFERÊNCIA</div>
-      <div class="ai-modelo-text">${escHtml(data.resposta_modelo)}</div>
-    </div>` : ''}
-  `;
-  document.getElementById('aiResult').style.display = '';
-  document.getElementById('aiResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  _phase = 'result';
+  renderResultPhase(data, passed);
+  updateSessionHeader();
+  updateKPIs();
 }
 
-/* ── NAV HELPERS ────────────────────────────────────────────── */
-function updateNavCountdown() {
-  const cacd = new Date('2026-10-04');
-  const diff = Math.ceil((cacd - new Date()) / 86400000);
-  const el = document.getElementById('navCountdown');
-  if (el) el.textContent = diff > 0 ? `${diff}d` : 'CACD';
+function renderResultPhase(data, passed) {
+  // Style question box
+  const qEl = document.getElementById('fcQuestion');
+  qEl.className = 'fc-question ' + (passed ? 'state-correct' : 'state-wrong');
+
+  // Hide input, show result
+  document.getElementById('fcAnswerArea').style.display = 'none';
+  document.getElementById('fcResult').style.display     = '';
+
+  // Verdict
+  document.getElementById('fcVerdict').className     = 'fc-result-verdict ' + (passed ? 'verdict-correct' : 'verdict-wrong');
+  document.getElementById('fcVerdict').textContent   = passed ? '✓ Correto' : '✗ Precisa melhorar';
+  document.getElementById('fcTotal').textContent     = data.total;
+  document.getElementById('fcTotal').style.color     = passed ? 'var(--green)' : 'var(--red)';
+
+  // Mini score bars
+  document.getElementById('fcMiniScores').innerHTML = `
+    <div class="fc-mini-row">
+      <span class="fc-mini-label">Precisão Factual</span>
+      <div class="fc-mini-bar-wrap"><div class="fc-mini-bar bar-gold" style="width:${data.precisao*10}%"></div></div>
+      <span class="fc-mini-val" style="color:var(--gold)">${data.precisao}</span>
+    </div>
+    <div class="fc-mini-row">
+      <span class="fc-mini-label">Profundidade</span>
+      <div class="fc-mini-bar-wrap"><div class="fc-mini-bar bar-blue" style="width:${data.profundidade*10}%"></div></div>
+      <span class="fc-mini-val" style="color:#60a5fa">${data.profundidade}</span>
+    </div>
+    <div class="fc-mini-row">
+      <span class="fc-mini-label">Clareza</span>
+      <div class="fc-mini-bar-wrap"><div class="fc-mini-bar bar-green" style="width:${data.clareza*10}%"></div></div>
+      <span class="fc-mini-val" style="color:var(--green)">${data.clareza}</span>
+    </div>`;
+
+  // Feedback
+  document.getElementById('fcFeedback').textContent = data.feedback || '';
+
+  // Resposta modelo
+  const modeloBody   = document.getElementById('fcModeloBody');
+  const modeloToggle = document.getElementById('fcModeloToggle');
+  modeloBody.textContent = data.resposta_modelo || '';
+  if (!passed) {
+    // auto-open on wrong
+    modeloBody.classList.add('open');
+    modeloToggle.textContent = '▾ Resposta de referência';
+  } else {
+    modeloBody.classList.remove('open');
+    modeloToggle.textContent = '▸ Ver resposta de referência';
+  }
+
+  // Actions
+  const actionsEl = document.getElementById('fcActionsResult');
+  if (passed) {
+    actionsEl.innerHTML = `<button class="btn-next" onclick="advanceNext()">Próxima → <small style="font-size:10px;font-weight:400">(Enter)</small></button>`;
+  } else {
+    const canRetry = _current.attempts <= MAX_RETRIES;
+    actionsEl.innerHTML = canRetry
+      ? `<button class="btn-retry" onclick="retryQuestion()">↺ Tentar Novamente</button>
+         <button class="btn-skip-anyway" onclick="advanceNext()">Pular mesmo assim →</button>`
+      : `<button class="btn-next" onclick="advanceNext()">Próxima → <small style="font-size:10px;font-weight:400">(Enter)</small></button>`;
+  }
+
+  // Scroll result into view
+  document.getElementById('fcResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function toggleModelo() {
+  const body = document.getElementById('fcModeloBody');
+  const toggle = document.getElementById('fcModeloToggle');
+  body.classList.toggle('open');
+  toggle.textContent = body.classList.contains('open')
+    ? '▾ Resposta de referência' : '▸ Ver resposta de referência';
+}
+
+function advanceNext() {
+  nextQuestion();
+}
+
+function retryQuestion() {
+  // push current back to END of queue for retry
+  _queue.push({ idx: _current.idx, attempts: _current.attempts });
+  nextQuestion();
+}
+
+function skipQuestion() {
+  _done.push({ idx: _current.idx, score: null, passed: false });
+  nextQuestion();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   END SCREEN
+══════════════════════════════════════════════════════════════ */
+function renderEndScreen() {
+  const correct = _done.filter(d => d.passed).length;
+  const wrong   = _done.filter(d => !d.passed).length;
+  const scores  = _done.map(d => d.score).filter(s => s != null);
+  const avg     = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : '—';
+
+  document.getElementById('endCorrect').textContent = correct;
+  document.getElementById('endWrong').textContent   = wrong;
+  document.getElementById('endAvg').textContent     = avg;
+  document.getElementById('endSub').textContent     = `${_subject} · ${_done.length} questão${_done.length!==1?'ões':''} concluída${_done.length!==1?'s':''}`;
+
+  const wrongList = document.getElementById('endWrongList');
+  if (_wrongItems.length) {
+    wrongList.innerHTML = `<div class="end-wrong-title">QUESTÕES A REVISAR (${_wrongItems.length})</div>` +
+      _wrongItems.map((w,i) => `
+        <div class="end-wrong-item" onclick="toggleEndWrong(${i})">
+          <div class="end-wrong-q">${escHtml(_questions[w.idx] || '')}</div>
+          <div class="end-wrong-modelo" id="ewm${i}">${escHtml(w.modelo)}</div>
+        </div>`).join('');
+    document.getElementById('btnEndRetry').style.display = '';
+  } else {
+    wrongList.innerHTML = '';
+    document.getElementById('btnEndRetry').style.display = 'none';
+  }
+
+  showEnd();
+}
+
+function toggleEndWrong(i) {
+  const el = document.getElementById('ewm' + i);
+  el.classList.toggle('open');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS
+══════════════════════════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  // Ctrl/Cmd+Enter → corrigir
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    if (_phase === 'input') correctWithAI();
+  }
+  // Enter or ArrowRight → avançar (só na fase result)
+  if (_phase === 'result' && (e.key === 'Enter' || e.key === 'ArrowRight')) {
+    const btn = document.querySelector('#fcActionsResult .btn-next');
+    if (btn) { e.preventDefault(); btn.click(); }
+  }
+});
+
+document.getElementById('fcTextarea').addEventListener('input', () => {
+  const t = document.getElementById('fcTextarea').value.trim();
+  document.getElementById('fcWC').textContent = (t ? t.split(/\s+/).length : 0) + ' palavras';
+});
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════════ */
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 async function updateNavUser() {
@@ -555,12 +847,13 @@ async function updateNavUser() {
   } catch {}
 }
 
-/* ── INIT ───────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════ */
 loadProgress();
 updateKPIs();
-updateNavCountdown();
 updateNavUser();
-loadCSV('PI');
+loadCSV('PI', () => updateHomeStats());
 </script>
 </body>
 </html>
