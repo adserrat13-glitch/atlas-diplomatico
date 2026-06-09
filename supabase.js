@@ -216,6 +216,39 @@ const DB = {
     return result;
   },
 
+  // ── TERCEIRA FASE SESSIONS ──────────────────────────────────────────
+
+  async addTerceiraFaseSession(session) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await _sb.from('terceira_fase_sessions').insert({
+      user_id:         user.id,
+      subject:         session.subject,
+      date:            today,
+      total_questions: session.total   || 0,
+      correct:         session.correct || 0,
+      wrong:           session.wrong   || 0,
+      avg_score:       session.avg_score != null ? session.avg_score : null,
+      scores:          session.scores  || [],
+    }).select().single();
+    if (!error) {
+      await _sb.rpc('upsert_activity', { p_user_id: user.id, p_date: today });
+    }
+    return data;
+  },
+
+  async getTerceiraFaseSessions() {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data } = await _sb.from('terceira_fase_sessions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    return data || [];
+  },
+
   // ── REVIEWED ITEMS ──────────────────────────────────────────────────
 
   async getReviewed() {

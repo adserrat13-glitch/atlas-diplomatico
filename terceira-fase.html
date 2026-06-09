@@ -240,6 +240,45 @@ nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;paddi
   .fc-result-total{font-size:28px}
   .end-stats{grid-template-columns:repeat(3,1fr)}
 }
+
+/* ── HOME TABS ────────────────────────────────────────── */
+.home-tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:0}
+.home-tab{background:none;border:none;color:var(--muted2);font-size:13px;font-weight:700;
+  cursor:pointer;padding:8px 18px;border-radius:8px 8px 0 0;font-family:'SF Mono',monospace;
+  letter-spacing:.3px;border-bottom:2px solid transparent;margin-bottom:-1px;transition:.15s}
+.home-tab:hover{color:var(--text)}
+.home-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.home-pane{display:none}
+.home-pane.active{display:block}
+
+/* ── ANALYSIS PANE ────────────────────────────────────── */
+.an-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:640px){.an-kpi-row{grid-template-columns:repeat(2,1fr)}}
+.an-kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.an-kpi-label{font-size:10px;color:var(--muted2);font-family:'SF Mono',monospace;letter-spacing:.3px}
+.an-kpi-val{font-size:24px;font-weight:900;color:var(--gold);margin-top:4px}
+
+.an-charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
+@media(max-width:700px){.an-charts-row{grid-template-columns:1fr}}
+.an-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px}
+.an-chart-title{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted2);
+  font-family:'SF Mono',monospace;margin-bottom:14px}
+.an-chart-canvas{position:relative;width:100%;height:180px}
+
+.an-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:18px 20px;margin-bottom:16px}
+.an-table-title{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--muted2);
+  font-family:'SF Mono',monospace;margin-bottom:12px}
+.an-table{width:100%;border-collapse:collapse;font-size:12px;font-family:'SF Mono',monospace}
+.an-table th{text-align:left;color:var(--muted2);padding:6px 8px;border-bottom:1px solid var(--border);font-weight:700}
+.an-table td{padding:7px 8px;border-bottom:1px solid rgba(42,47,58,.5);color:var(--text)}
+.an-table tr:last-child td{border-bottom:none}
+.an-trend-up{color:var(--green)}
+.an-trend-dn{color:var(--red)}
+.an-trend-eq{color:var(--muted2)}
+
+.an-empty{text-align:center;padding:40px 20px;color:var(--muted2);font-size:13px;line-height:1.8}
+.an-loading{text-align:center;padding:30px;color:var(--muted2);font-family:'SF Mono',monospace;font-size:12px}
 </style>
 </head>
 <body>
@@ -278,6 +317,14 @@ nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;paddi
     <div class="kpi-card"><p>Dias para o CACD</p><h2 id="kpiDays">—</h2></div>
   </section>
 
+  <!-- Tab bar -->
+  <div class="home-tabs">
+    <button class="home-tab active" id="tabPraticar" onclick="switchHomeTab('praticar')">Praticar</button>
+    <button class="home-tab" id="tabAnalise" onclick="switchHomeTab('analise')">📊 Análise</button>
+  </div>
+
+  <!-- Praticar pane -->
+  <div class="home-pane active" id="panePraticar">
   <div class="subj-chips">
     <button class="subj-chip active" onclick="selectSubject('PI',this)">PI</button>
     <button class="subj-chip" onclick="selectSubject('DIP',this)">DIP</button>
@@ -305,6 +352,12 @@ nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;paddi
     <button class="btn-start" id="btnStart" onclick="startSession(false)">Iniciar Sessão →</button>
     <button class="btn-shuffle" id="btnShuffle" onclick="startSession(true)">⚡ Aleatório</button>
     <button class="btn-retry-only" id="btnRetryOnly" onclick="startRetryOnly()">↺ Só Erradas</button>
+  </div>
+  </div><!-- /panePraticar -->
+
+  <!-- Análise pane -->
+  <div class="home-pane" id="paneAnalise">
+    <div id="anContent"><div class="an-loading">Carregando análise…</div></div>
   </div>
 </div>
 
@@ -800,6 +853,18 @@ function renderEndScreen() {
     document.getElementById('btnEndRetry').style.display = 'none';
   }
 
+  // Save session to Supabase (silent)
+  if (typeof DB !== 'undefined' && DB.addTerceiraFaseSession) {
+    DB.addTerceiraFaseSession({
+      subject: _subject,
+      total: _done.length,
+      correct,
+      wrong,
+      avg_score: scores.length ? parseFloat(avg) : null,
+      scores: _done.map(d => ({ idx: d.idx, score: d.score })),
+    }).catch(() => {});
+  }
+
   showEnd();
 }
 
@@ -828,6 +893,208 @@ document.getElementById('fcTextarea').addEventListener('input', () => {
   const t = document.getElementById('fcTextarea').value.trim();
   document.getElementById('fcWC').textContent = (t ? t.split(/\s+/).length : 0) + ' palavras';
 });
+
+/* ═══════════════════════════════════════════════════════════
+   HOME TABS & ANALYSIS
+══════════════════════════════════════════════════════════════ */
+let _analyseLoaded = false;
+
+function switchHomeTab(tab) {
+  document.getElementById('tabPraticar').classList.toggle('active', tab === 'praticar');
+  document.getElementById('tabAnalise').classList.toggle('active', tab === 'analise');
+  document.getElementById('panePraticar').classList.toggle('active', tab === 'praticar');
+  document.getElementById('paneAnalise').classList.toggle('active', tab === 'analise');
+  if (tab === 'analise' && !_analyseLoaded) loadAnalysis();
+}
+
+function loadAnalysis() {
+  _analyseLoaded = true;
+  const container = document.getElementById('anContent');
+  if (typeof DB === 'undefined' || !DB.getTerceiraFaseSessions) {
+    container.innerHTML = '<div class="an-empty">Faça login para ver sua evolução.</div>';
+    return;
+  }
+  DB.getTerceiraFaseSessions().then(sessions => {
+    if (!sessions || !sessions.length) {
+      container.innerHTML = '<div class="an-empty">Complete pelo menos uma sessão para ver sua evolução.<br>Os dados aparecerão aqui após a primeira prática.</div>';
+      return;
+    }
+    renderAnalysis(sessions, container);
+  }).catch(() => {
+    container.innerHTML = '<div class="an-empty">Erro ao carregar dados. Tente novamente.</div>';
+  });
+}
+
+function renderAnalysis(sessions, container) {
+  // KPIs
+  const totalSessions = sessions.length;
+  const totalQuestions = sessions.reduce((s, r) => s + (r.total_questions || 0), 0);
+  const avgScores = sessions.filter(r => r.avg_score != null).map(r => Number(r.avg_score));
+  const globalAvg = avgScores.length ? (avgScores.reduce((a,b)=>a+b,0)/avgScores.length).toFixed(1) : '—';
+  const bestSession = avgScores.length ? Math.max(...avgScores).toFixed(1) : '—';
+
+  container.innerHTML = `
+    <div class="an-kpi-row">
+      <div class="an-kpi"><div class="an-kpi-label">SESSÕES</div><div class="an-kpi-val">${totalSessions}</div></div>
+      <div class="an-kpi"><div class="an-kpi-label">QUESTÕES</div><div class="an-kpi-val">${totalQuestions}</div></div>
+      <div class="an-kpi"><div class="an-kpi-label">MÉDIA /30</div><div class="an-kpi-val">${globalAvg}</div></div>
+      <div class="an-kpi"><div class="an-kpi-label">MELHOR</div><div class="an-kpi-val">${bestSession}</div></div>
+    </div>
+    <div class="an-charts-row">
+      <div class="an-chart-card">
+        <div class="an-chart-title">EVOLUÇÃO DAS ÚLTIMAS 20 SESSÕES</div>
+        <div class="an-chart-canvas"><canvas id="anEvolutionChart"></canvas></div>
+      </div>
+      <div class="an-chart-card">
+        <div class="an-chart-title">RADAR POR MATÉRIA</div>
+        <div class="an-chart-canvas"><canvas id="anRadarChart"></canvas></div>
+      </div>
+    </div>
+    <div class="an-table-wrap">
+      <div class="an-table-title">SESSÕES RECENTES</div>
+      ${buildSessionTable(sessions)}
+    </div>`;
+
+  loadChartJs(() => {
+    renderEvolutionChart(sessions);
+    renderRadarChart(sessions);
+  });
+}
+
+function buildSessionTable(sessions) {
+  const recent = sessions.slice(0, 10);
+  const rows = recent.map((s, i) => {
+    const prev = sessions.slice(i+1).find(p => p.subject === s.subject);
+    let trend = '<span class="an-trend-eq">—</span>';
+    if (prev && s.avg_score != null && prev.avg_score != null) {
+      const diff = Number(s.avg_score) - Number(prev.avg_score);
+      if (diff > 0.4) trend = `<span class="an-trend-up">▲ +${diff.toFixed(1)}</span>`;
+      else if (diff < -0.4) trend = `<span class="an-trend-dn">▼ ${diff.toFixed(1)}</span>`;
+    }
+    const date = s.date ? s.date.slice(5).replace('-','/') : '—';
+    const avg = s.avg_score != null ? Number(s.avg_score).toFixed(1) : '—';
+    return `<tr>
+      <td>${date}</td>
+      <td>${s.subject || '—'}</td>
+      <td>${s.total_questions || 0}</td>
+      <td>${s.correct || 0}</td>
+      <td>${avg}</td>
+      <td>${trend}</td>
+    </tr>`;
+  }).join('');
+  return `<table class="an-table">
+    <thead><tr><th>Data</th><th>Matéria</th><th>Total</th><th>Certas</th><th>Média</th><th>Tendência</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function loadChartJs(callback) {
+  if (window.Chart) { callback(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js';
+  s.onload = callback;
+  document.head.appendChild(s);
+}
+
+function renderEvolutionChart(sessions) {
+  const recent = sessions.slice(0, 20).reverse();
+  const labels = recent.map(s => s.date ? s.date.slice(5).replace('-','/') : '');
+  const data   = recent.map(s => s.avg_score != null ? Number(s.avg_score) : null);
+
+  const ctx = document.getElementById('anEvolutionChart');
+  if (!ctx) return;
+  ctx.height = 180;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Média /30',
+          data,
+          borderColor: '#d4af37',
+          backgroundColor: 'rgba(212,175,55,0.08)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#d4af37',
+          fill: true,
+          tension: 0.3,
+          spanGaps: true,
+        },
+        {
+          label: 'Corte (20)',
+          data: labels.map(() => 20),
+          borderColor: 'rgba(248,113,113,0.4)',
+          borderWidth: 1,
+          borderDash: [5, 4],
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const s = sessions.slice(0, 20).reverse()[ctx.dataIndex];
+              return s ? `${s.subject || ''} · Média: ${ctx.parsed.y} · ${s.correct||0}✓ ${s.wrong||0}✗` : '';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(42,47,58,.5)' } },
+        y: { min: 0, max: 30, ticks: { color: '#6b7280', font: { size: 10 } }, grid: { color: 'rgba(42,47,58,.5)' } }
+      }
+    }
+  });
+}
+
+function renderRadarChart(sessions) {
+  const subjects = ['PI', 'DIP', 'ECO', 'GEO', 'HB', 'HM'];
+  const data = subjects.map(subj => {
+    const last5 = sessions.filter(s => s.subject === subj && s.avg_score != null).slice(0, 5);
+    if (!last5.length) return 0;
+    return parseFloat((last5.reduce((a, s) => a + Number(s.avg_score), 0) / last5.length).toFixed(1));
+  });
+
+  const ctx = document.getElementById('anRadarChart');
+  if (!ctx) return;
+  ctx.height = 180;
+  new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: subjects,
+      datasets: [{
+        label: 'Média /30',
+        data,
+        borderColor: '#d4af37',
+        backgroundColor: 'rgba(212,175,55,0.12)',
+        borderWidth: 2,
+        pointBackgroundColor: '#d4af37',
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        r: {
+          min: 0, max: 30,
+          ticks: { color: '#6b7280', font: { size: 9 }, stepSize: 10, backdropColor: 'transparent' },
+          grid: { color: 'rgba(42,47,58,.7)' },
+          pointLabels: { color: '#9ca3af', font: { size: 11, weight: '700' } },
+          angleLines: { color: 'rgba(42,47,58,.7)' },
+        }
+      }
+    }
+  });
+}
 
 /* ═══════════════════════════════════════════════════════════
    HELPERS
