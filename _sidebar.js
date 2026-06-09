@@ -53,6 +53,12 @@
         { href: '/segunda-fase.html', icon: 'phase2', name: '2ª Fase' },
       ]
     },
+    {
+      label: '3ª FASE',
+      links: [
+        { href: '/terceira-fase.html', icon: 'phase2', name: '3ª Fase' },
+      ]
+    },
   ];
 
   /* ── Detect active path ─────────────────────────────────────── */

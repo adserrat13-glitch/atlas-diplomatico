@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>3ª Fase — Atlas Diplomático</title>
+<link rel="stylesheet" href="theme.css"/>
+<script src="icons.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --bg:#0f1115;--surface:#171a21;--card:#171a21;
+  --border:#2a2f3a;--border2:#2f3542;
+  --text:#e5e7eb;--muted:#9ca3af;--muted2:#6b7280;
+  --gold:#d4af37;--gold-dim:rgba(212,175,55,0.12);
+  --red:#f87171;--green:#34d399;--amber:#f59e0b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:Georgia,serif;min-height:100vh}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:200;height:52px;background:#000;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none;font-family:'SF Mono',ui-monospace,monospace}
+nav::-webkit-scrollbar{display:none}
+.nav-ham{background:none;border:none;color:#888;font-size:18px;cursor:pointer;padding:4px 8px;flex-shrink:0}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{color:#fff;text-decoration:underline}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;transition:.15s;white-space:nowrap;display:flex;align-items:center;gap:4px;flex-shrink:0;letter-spacing:.3px}
+nav a:hover{color:#fff;background:rgba(255,255,255,0.06)}
+nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;padding-bottom:3px}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-left:6px;color:#888}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:32px}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:28px;font-weight:bold;letter-spacing:.5px;color:var(--gold)}
+.page-header p{font-size:14px;color:var(--muted);margin-top:4px}
+
+/* KPI */
+#kpiBar{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px 24px;transition:.2s}
+.kpi-card:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(0,0,0,0.4)}
+.kpi-card p{font-size:12px;color:var(--muted);font-family:'SF Mono',monospace;letter-spacing:.3px}
+.kpi-card h2{font-size:28px;font-weight:bold;margin-top:6px;color:var(--gold)}
+
+/* CHIPS */
+.subj-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.subj-chip{padding:6px 18px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:.15s;font-family:'SF Mono',monospace;letter-spacing:.3px}
+.subj-chip:hover{border-color:var(--gold);color:var(--gold)}
+.subj-chip.active{background:var(--gold-dim);border-color:var(--gold);color:var(--gold)}
+
+/* CONTROLS */
+.controls-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{flex:1;min-width:200px;background:#11141b;border:1px solid var(--border2);border-radius:8px;padding:9px 14px;color:var(--text);font-size:13px;font-family:Georgia,serif}
+.search-input:focus{outline:none;border-color:var(--gold)}
+.search-input::placeholder{color:var(--muted2)}
+.btn-random{background:var(--gold-dim);border:1px solid rgba(212,175,55,.35);color:var(--gold);border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;white-space:nowrap;transition:.15s}
+.btn-random:hover{background:rgba(212,175,55,.2)}
+.progress-chip{font-size:11px;color:var(--muted2);font-family:'SF Mono',monospace;white-space:nowrap}
+
+/* QUESTION LIST */
+.q-list{display:flex;flex-direction:column;gap:8px}
+.q-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;cursor:pointer;transition:.2s;display:flex;align-items:flex-start;gap:12px}
+.q-card:hover{border-color:rgba(212,175,55,.4);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,0.35)}
+.q-card.done{opacity:.6}
+.q-check{width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:2px;border:1.5px solid rgba(212,175,55,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:transparent;transition:.15s}
+.q-check.checked{background:var(--green);border-color:var(--green);color:#000}
+.q-body{flex:1;min-width:0}
+.q-text{font-size:14px;font-weight:600;line-height:1.45;color:var(--text)}
+.q-card.done .q-text{text-decoration:line-through;opacity:.6}
+.q-meta{font-size:11px;color:var(--muted2);margin-top:4px;font-family:'SF Mono',monospace}
+.q-score-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px;font-family:'SF Mono',monospace;flex-shrink:0}
+.badge-high{background:rgba(52,211,153,.15);color:#34d399}
+.badge-mid{background:rgba(245,158,11,.15);color:#f59e0b}
+.badge-low{background:rgba(248,113,113,.15);color:#f87171}
+
+.empty-state{text-align:center;padding:48px;color:var(--muted2)}
+
+/* ANSWER OVERLAY */
+#answerMode{display:none;position:fixed;inset:0;background:var(--bg);z-index:500;overflow-y:auto;flex-direction:column}
+#answerMode.open{display:flex}
+.ans-header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:10}
+.ans-header h3{flex:1;font-size:15px;font-weight:700;color:var(--gold);font-family:'SF Mono',monospace;letter-spacing:.5px}
+.ans-timer{font-size:15px;font-weight:800;color:var(--amber);font-variant-numeric:tabular-nums;font-family:'SF Mono',monospace}
+.ans-wc{font-size:12px;color:var(--muted2);font-family:'SF Mono',monospace}
+.btn-close{background:none;border:1px solid var(--border);color:var(--muted2);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+.btn-close:hover{border-color:var(--red);color:var(--red)}
+
+.ans-content{max-width:800px;margin:0 auto;padding:32px 28px;width:100%;flex:1;display:flex;flex-direction:column;gap:20px}
+
+.ans-question{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 24px}
+.ans-q-label{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.8px;margin-bottom:8px;font-family:'SF Mono',monospace}
+.ans-q-text{font-size:16px;line-height:1.65;color:var(--text);font-weight:600}
+
+.ans-textarea{width:100%;background:#11141b;border:1px solid var(--border2);border-radius:12px;padding:20px;color:var(--text);font-size:15px;font-family:Georgia,serif;line-height:1.9;min-height:280px;resize:vertical}
+.ans-textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.12)}
+.ans-textarea::placeholder{color:var(--muted2)}
+
+.ans-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.btn-correct{background:var(--gold);border:none;color:#000;padding:11px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;display:flex;align-items:center;gap:8px;transition:.15s}
+.btn-correct:hover{opacity:.85}
+.btn-correct:disabled{opacity:.5;cursor:not-allowed}
+.ai-spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.btn-correct.loading .ai-spinner{display:inline-block}
+.btn-next{background:none;border:1px solid var(--border);color:var(--muted2);padding:11px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-next:hover{border-color:var(--gold);color:var(--gold)}
+.btn-skip{background:none;border:1px solid var(--border);color:var(--muted2);padding:11px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-skip:hover{border-color:var(--text);color:var(--text)}
+
+/* AI RESULT */
+#aiResult{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-top:4px}
+.ai-result-title{font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--muted2);margin-bottom:24px;font-family:'SF Mono',monospace}
+
+.ai-scores{display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.ai-score-row{display:flex;align-items:center;gap:12px}
+.ai-score-label{font-size:12px;font-weight:700;color:var(--muted2);width:160px;flex-shrink:0;font-family:'SF Mono',monospace}
+.ai-score-bar-wrap{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.ai-score-bar{height:100%;border-radius:3px;transition:width .5s ease}
+.bar-gold{background:var(--gold)}
+.bar-green{background:var(--green)}
+.bar-blue{background:#60a5fa}
+.ai-score-val{font-size:13px;font-weight:800;width:40px;text-align:right;flex-shrink:0;font-family:'SF Mono',monospace}
+
+.ai-total-row{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--border);padding-top:16px;margin-bottom:24px}
+.ai-total-label{font-size:12px;font-weight:700;color:var(--muted2);letter-spacing:.5px;font-family:'SF Mono',monospace}
+.ai-total-val{font-size:32px;font-weight:900;color:var(--gold)}
+.ai-total-sub{font-size:13px;color:var(--muted2);font-family:'SF Mono',monospace}
+
+.ai-feedback{font-size:14px;line-height:1.8;color:var(--muted);white-space:pre-wrap;margin-bottom:24px}
+
+.ai-bullets{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.ai-bullet-col h5{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--muted2);margin-bottom:10px;font-family:'SF Mono',monospace}
+.ai-bullet-item{font-size:13px;color:var(--text);padding:6px 10px;border-radius:6px;margin-bottom:6px;line-height:1.4}
+.ai-bullet-item.forte{background:rgba(52,211,153,.08);border-left:2px solid var(--green)}
+.ai-bullet-item.fraco{background:rgba(248,113,113,.08);border-left:2px solid var(--red)}
+
+.ai-modelo{background:rgba(212,175,55,.06);border:1px solid rgba(212,175,55,.2);border-radius:10px;padding:16px 20px}
+.ai-modelo-label{font-size:10px;font-weight:800;letter-spacing:1px;color:var(--gold);margin-bottom:8px;font-family:'SF Mono',monospace}
+.ai-modelo-text{font-size:14px;line-height:1.7;color:var(--text);font-style:italic}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SUBJECT TAGS */
+.tag-PI{color:#22d3ee}.tag-DIP{color:#d4af37}.tag-ECO{color:#facc15}
+.tag-GEO{color:#34d399}.tag-HB{color:#fbbf24}.tag-HM{color:#f97316}
+.tag-LP{color:#a78bfa}.tag-ING{color:#60a5fa}
+
+@media(max-width:700px){
+  main{padding:16px}
+  #kpiBar{grid-template-columns:repeat(2,1fr)}
+  .ans-content{padding:16px}
+  .ai-bullets{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="nav-ham" onclick="openSidebar()">☰</button>
+  <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+  <a href="index.html">Início</a>
+  <a href="flashcards.html">Flashcards</a>
+  <a href="analise.html">Análise</a>
+  <a href="agenda.html">Agenda</a>
+  <a href="segunda-fase.html">2ª Fase</a>
+  <a href="terceira-fase.html" class="active">3ª Fase</a>
+  <a href="mapas.html">Mapas</a>
+  <a href="noticias.html">Notícias</a>
+  <a href="admin.html" id="navAdmin" style="display:none"></a>
+  <div class="nav-spacer"></div>
+  <div class="nav-cd" id="navCountdown"></div>
+  <div class="nav-user" id="navUser">?</div>
+</nav>
+
+<aside id="sidebar"></aside>
+<script src="_sidebar.js"></script>
+
+<main>
+  <div class="page-header">
+    <h1>3ª Fase — Questões Abertas</h1>
+    <p>Pratique respostas orais/dissertativas curtas e receba correção imediata da IA.</p>
+  </div>
+
+  <section id="kpiBar">
+    <div class="kpi-card">
+      <p>Respondidas Hoje</p>
+      <h2 id="kpiToday">0</h2>
+    </div>
+    <div class="kpi-card">
+      <p>Total Respondidas</p>
+      <h2 id="kpiTotal">0</h2>
+    </div>
+    <div class="kpi-card">
+      <p>Média IA (/ 30)</p>
+      <h2 id="kpiAvg">—</h2>
+    </div>
+    <div class="kpi-card">
+      <p>Dias para o CACD</p>
+      <h2 id="kpiDays">—</h2>
+    </div>
+  </section>
+
+  <div class="subj-chips" id="subjChips">
+    <button class="subj-chip active" onclick="selectSubject('PI',this)">PI</button>
+    <button class="subj-chip" onclick="selectSubject('DIP',this)">DIP</button>
+    <button class="subj-chip" onclick="selectSubject('ECO',this)">ECO</button>
+    <button class="subj-chip" onclick="selectSubject('GEO',this)">GEO</button>
+    <button class="subj-chip" onclick="selectSubject('HB',this)">HB</button>
+    <button class="subj-chip" onclick="selectSubject('HM',this)">HM</button>
+  </div>
+
+  <div class="controls-row">
+    <input class="search-input" type="text" id="searchInput" placeholder="Buscar questão..." oninput="renderList()"/>
+    <button class="btn-random" onclick="openRandom()">⚡ Questão Aleatória</button>
+    <span class="progress-chip" id="progressChip"></span>
+  </div>
+
+  <div class="q-list" id="qList">
+    <div class="empty-state"><p>Carregando questões...</p></div>
+  </div>
+</main>
+
+<!-- ANSWER OVERLAY -->
+<div id="answerMode">
+  <div class="ans-header">
+    <button class="btn-close" onclick="closeAnswer()">×</button>
+    <h3 id="ansModeTitle">3ª FASE</h3>
+    <span class="ans-wc" id="ansWC">0 palavras</span>
+    <span class="ans-timer" id="ansTimer">00:00</span>
+  </div>
+  <div class="ans-content">
+    <div class="ans-question">
+      <div class="ans-q-label">QUESTÃO</div>
+      <div class="ans-q-text" id="ansQuestionText"></div>
+    </div>
+
+    <textarea class="ans-textarea" id="ansTextarea" placeholder="Escreva sua resposta aqui (tente ser conciso e preciso, como numa resposta oral de 1–2 minutos)..."></textarea>
+
+    <div class="ans-actions">
+      <button class="btn-correct" id="btnCorrect" onclick="correctWithAI()">
+        <div class="ai-spinner"></div>
+        Corrigir com IA
+      </button>
+      <button class="btn-next" id="btnNext" style="display:none" onclick="openRandom()">Próxima Aleatória →</button>
+      <button class="btn-skip" onclick="closeAnswer()">Fechar</button>
+    </div>
+
+    <div id="aiResult" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+/* ── STATE ──────────────────────────────────────────────────── */
+let _subject = 'PI';
+let _questions = [];          // array of strings
+let _progress = {};           // { subject: { q_index: { score, date } } }
+let _currentIdx = null;
+let _timerInterval = null, _timerSecs = 0;
+const TODAY = new Date().toISOString().split('T')[0];
+
+const CSV_MAP = {
+  PI:  '3FASE/PI.csv',
+  DIP: '3FASE/DIP.csv',
+  ECO: '3FASE/ECO.csv',
+  GEO: '3FASE/GEO.csv',
+  HB:  '3FASE/HB.csv',
+  HM:  '3FASE/HM.csv',
+};
+
+/* ── PERSISTENCE ────────────────────────────────────────────── */
+function loadProgress() {
+  try { _progress = JSON.parse(localStorage.getItem('tf_progress') || '{}'); } catch { _progress = {}; }
+}
+function saveProgress() {
+  localStorage.setItem('tf_progress', JSON.stringify(_progress));
+}
+function markDone(subject, idx, score) {
+  if (!_progress[subject]) _progress[subject] = {};
+  _progress[subject][idx] = { score, date: TODAY };
+  saveProgress();
+}
+function isDone(subject, idx) { return !!(_progress[subject] && _progress[subject][idx]); }
+function getScore(subject, idx) { return _progress[subject]?.[idx]?.score ?? null; }
+
+/* ── KPI ────────────────────────────────────────────────────── */
+function updateKPIs() {
+  const allDone = Object.values(_progress).flatMap(s => Object.values(s));
+  const today   = allDone.filter(e => e.date === TODAY);
+  document.getElementById('kpiToday').textContent = today.length;
+  document.getElementById('kpiTotal').textContent = allDone.length;
+  const scores = allDone.map(e => e.score).filter(s => s != null);
+  document.getElementById('kpiAvg').textContent = scores.length
+    ? (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(1) : '—';
+
+  // Countdown CACD
+  const cacd = new Date('2026-10-04');
+  const diff = Math.ceil((cacd - new Date()) / 86400000);
+  document.getElementById('kpiDays').textContent = diff > 0 ? diff : '—';
+}
+
+function updateProgressChip() {
+  const done = Object.keys(_progress[_subject] || {}).length;
+  const total = _questions.length;
+  document.getElementById('progressChip').textContent = total ? `${done}/${total} respondidas` : '';
+}
+
+/* ── CSV LOADING ────────────────────────────────────────────── */
+function loadCSV(subject) {
+  const path = CSV_MAP[subject];
+  if (!path) { _questions = []; renderList(); return; }
+
+  document.getElementById('qList').innerHTML = '<div class="empty-state"><p>Carregando questões...</p></div>';
+
+  Papa.parse(path, {
+    download: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      _questions = results.data
+        .map(row => {
+          const cell = Array.isArray(row) ? row[0] : (row.questao || row[Object.keys(row)[0]] || '');
+          return cell.trim();
+        })
+        .filter(q => q.length > 5 && !q.toLowerCase().startsWith('questao') && !q.toLowerCase().startsWith('pergunta'));
+      renderList();
+      updateProgressChip();
+    },
+    error: function() {
+      document.getElementById('qList').innerHTML = '<div class="empty-state"><p>CSV não encontrado para esta matéria. Em breve!</p></div>';
+      _questions = [];
+    }
+  });
+}
+
+/* ── SUBJECT SELECT ─────────────────────────────────────────── */
+function selectSubject(subj, btn) {
+  _subject = subj;
+  document.querySelectorAll('.subj-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('searchInput').value = '';
+  loadCSV(subj);
+}
+
+/* ── RENDER LIST ────────────────────────────────────────────── */
+function renderList() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = _questions
+    .map((q, i) => ({ q, i }))
+    .filter(({ q }) => !search || q.toLowerCase().includes(search));
+
+  if (!filtered.length) {
+    document.getElementById('qList').innerHTML = '<div class="empty-state"><p>Nenhuma questão encontrada.</p></div>';
+    return;
+  }
+
+  document.getElementById('qList').innerHTML = filtered.map(({ q, i }) => {
+    const done  = isDone(_subject, i);
+    const score = getScore(_subject, i);
+    const badgeHtml = score != null ? scoreBadge(score) : '';
+    return `<div class="q-card${done?' done':''}" onclick="openQuestion(${i})">
+      <div class="q-check${done?' checked':''}">✓</div>
+      <div class="q-body">
+        <div class="q-text">${escHtml(q)}</div>
+        <div class="q-meta">${_subject}${done?' · respondida':''}</div>
+      </div>
+      ${badgeHtml}
+    </div>`;
+  }).join('');
+}
+
+function scoreBadge(score) {
+  const cls = score >= 24 ? 'badge-high' : score >= 18 ? 'badge-mid' : 'badge-low';
+  return `<span class="q-score-badge ${cls}">${score}/30</span>`;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── OPEN QUESTION ──────────────────────────────────────────── */
+function openQuestion(idx) {
+  _currentIdx = idx;
+  const q = _questions[idx];
+  document.getElementById('ansQuestionText').textContent = q;
+  document.getElementById('ansModeTitle').textContent = `3ª FASE · ${_subject}`;
+  document.getElementById('ansTextarea').value = '';
+  document.getElementById('ansWC').textContent = '0 palavras';
+  document.getElementById('aiResult').style.display = 'none';
+  document.getElementById('btnNext').style.display = 'none';
+  const btn = document.getElementById('btnCorrect');
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  document.getElementById('answerMode').classList.add('open');
+  document.getElementById('ansTextarea').focus();
+  startTimer();
+}
+
+function openRandom() {
+  if (!_questions.length) return;
+  const undone = _questions.map((_, i) => i).filter(i => !isDone(_subject, i));
+  const pool = undone.length ? undone : _questions.map((_, i) => i);
+  const idx = pool[Math.floor(Math.random() * pool.length)];
+  openQuestion(idx);
+}
+
+function closeAnswer() {
+  clearInterval(_timerInterval);
+  document.getElementById('answerMode').classList.remove('open');
+  _currentIdx = null;
+  document.getElementById('ansTimer').textContent = '00:00';
+}
+
+function startTimer() {
+  _timerSecs = 0;
+  clearInterval(_timerInterval);
+  _timerInterval = setInterval(() => {
+    _timerSecs++;
+    const m = String(Math.floor(_timerSecs/60)).padStart(2,'0');
+    const s = String(_timerSecs%60).padStart(2,'0');
+    document.getElementById('ansTimer').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+document.getElementById('ansTextarea').addEventListener('input', () => {
+  const t = document.getElementById('ansTextarea').value.trim();
+  document.getElementById('ansWC').textContent = (t ? t.split(/\s+/).length : 0) + ' palavras';
+});
+
+/* ── AI CORRECTION ──────────────────────────────────────────── */
+async function correctWithAI() {
+  const answer = document.getElementById('ansTextarea').value.trim();
+  if (!answer) { alert('Escreva sua resposta antes de corrigir.'); return; }
+
+  const btn = document.getElementById('btnCorrect');
+  btn.disabled = true;
+  btn.classList.add('loading');
+  document.getElementById('aiResult').style.display = 'none';
+
+  const question = _questions[_currentIdx] || '';
+
+  try {
+    const resp = await fetch('/api/correct-open-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, answer, subject: _subject }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || `Erro ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    clearInterval(_timerInterval);
+    renderAIResult(data);
+
+    if (_currentIdx != null) {
+      markDone(_subject, _currentIdx, data.total);
+      updateKPIs();
+      updateProgressChip();
+      renderList();
+    }
+
+    document.getElementById('btnNext').style.display = '';
+  } catch (err) {
+    alert('Erro ao corrigir: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+function renderAIResult(data) {
+  const total = data.total ?? 0;
+  const totalColor = total >= 24 ? 'var(--green)' : total >= 18 ? 'var(--amber)' : 'var(--red)';
+
+  const fortesHtml = (data.pontos_fortes || []).map(p =>
+    `<div class="ai-bullet-item forte">✓ ${escHtml(p)}</div>`
+  ).join('');
+  const fracosHtml = (data.pontos_fracos || []).map(p =>
+    `<div class="ai-bullet-item fraco">✗ ${escHtml(p)}</div>`
+  ).join('');
+
+  document.getElementById('aiResult').innerHTML = `
+    <div class="ai-result-title">AVALIAÇÃO DA IA — 3ª FASE CACD</div>
+
+    <div class="ai-scores">
+      <div class="ai-score-row">
+        <span class="ai-score-label">Precisão Factual</span>
+        <div class="ai-score-bar-wrap"><div class="ai-score-bar bar-gold" style="width:${data.precisao*10}%"></div></div>
+        <span class="ai-score-val" style="color:var(--gold)">${data.precisao}/10</span>
+      </div>
+      <div class="ai-score-row">
+        <span class="ai-score-label">Profundidade Analítica</span>
+        <div class="ai-score-bar-wrap"><div class="ai-score-bar bar-blue" style="width:${data.profundidade*10}%"></div></div>
+        <span class="ai-score-val" style="color:#60a5fa">${data.profundidade}/10</span>
+      </div>
+      <div class="ai-score-row">
+        <span class="ai-score-label">Clareza e Linguagem</span>
+        <div class="ai-score-bar-wrap"><div class="ai-score-bar bar-green" style="width:${data.clareza*10}%"></div></div>
+        <span class="ai-score-val" style="color:var(--green)">${data.clareza}/10</span>
+      </div>
+    </div>
+
+    <div class="ai-total-row">
+      <span class="ai-total-label">NOTA TOTAL</span>
+      <div style="display:flex;align-items:baseline;gap:8px">
+        <span class="ai-total-val" style="color:${totalColor}">${total}</span>
+        <span class="ai-total-sub">/ 30</span>
+      </div>
+    </div>
+
+    <div class="ai-feedback">${escHtml(data.feedback || '')}</div>
+
+    ${(fortesHtml || fracosHtml) ? `
+    <div class="ai-bullets">
+      <div>
+        <h5>PONTOS FORTES</h5>
+        ${fortesHtml || '<div class="ai-bullet-item forte" style="opacity:.5">Nenhum identificado</div>'}
+      </div>
+      <div>
+        <h5>A MELHORAR</h5>
+        ${fracosHtml || '<div class="ai-bullet-item fraco" style="opacity:.5">Nenhum identificado</div>'}
+      </div>
+    </div>` : ''}
+
+    ${data.resposta_modelo ? `
+    <div class="ai-modelo">
+      <div class="ai-modelo-label">RESPOSTA DE REFERÊNCIA</div>
+      <div class="ai-modelo-text">${escHtml(data.resposta_modelo)}</div>
+    </div>` : ''}
+  `;
+  document.getElementById('aiResult').style.display = '';
+  document.getElementById('aiResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── NAV HELPERS ────────────────────────────────────────────── */
+function updateNavCountdown() {
+  const cacd = new Date('2026-10-04');
+  const diff = Math.ceil((cacd - new Date()) / 86400000);
+  const el = document.getElementById('navCountdown');
+  if (el) el.textContent = diff > 0 ? `${diff}d` : 'CACD';
+}
+
+async function updateNavUser() {
+  if (typeof DB === 'undefined') return;
+  try {
+    const user = await DB.getUser?.();
+    const el = document.getElementById('navUser');
+    if (el && user?.email) el.textContent = user.email[0].toUpperCase();
+    const adminEl = document.getElementById('navAdmin');
+    if (adminEl && await DB.isAdmin?.()) adminEl.style.display = '';
+  } catch {}
+}
+
+/* ── INIT ───────────────────────────────────────────────────── */
+loadProgress();
+updateKPIs();
+updateNavCountdown();
+updateNavUser();
+loadCSV('PI');
+</script>
+</body>
+</html>
