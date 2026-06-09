@@ -613,8 +613,8 @@ function loadNextBlock() {
 }
 
 function continueSession() {
-  _done       = [];
-  _wrongItems = [];
+  _done = [];
+  // keep _wrongItems accumulated across blocks
   loadNextBlock();
 }
 
@@ -888,20 +888,35 @@ function renderEndScreen() {
   document.getElementById('endCorrect').textContent = correct;
   document.getElementById('endWrong').textContent   = wrong;
   document.getElementById('endAvg').textContent     = avg;
-  document.getElementById('endSub').textContent     = `${_subject} · ${_done.length} questão${_done.length!==1?'ões':''} concluída${_done.length!==1?'s':''}`;
 
-  // Show/hide continue button
-  document.getElementById('btnEndContinue').style.display = _remainingQueue.length ? '' : 'none';
+  const remaining = _remainingQueue.length;
+  const nextBlock = Math.min(remaining, SESSION_SIZE);
+  const subLabel  = remaining
+    ? `Bloco concluído · ainda ${remaining} questão${remaining!==1?'ões':''} restante${remaining!==1?'s':''}`
+    : `${_subject} · sessão completa`;
+  document.getElementById('endSub').textContent = subLabel;
+
+  // Show/hide continue button with remaining count
+  const btnCont = document.getElementById('btnEndContinue');
+  if (remaining) {
+    btnCont.style.display = '';
+    btnCont.textContent   = `Continuar +${nextBlock} →`;
+  } else {
+    btnCont.style.display = 'none';
+  }
 
   const wrongList = document.getElementById('endWrongList');
   if (_wrongItems.length) {
-    wrongList.innerHTML = `<div class="end-wrong-title">QUESTÕES A REVISAR (${_wrongItems.length})</div>` +
+    const label = remaining
+      ? `ERRADAS ATÉ AGORA (${_wrongItems.length}) — revisar ao fim da sessão`
+      : `QUESTÕES A REVISAR (${_wrongItems.length})`;
+    wrongList.innerHTML = `<div class="end-wrong-title">${label}</div>` +
       _wrongItems.map((w,i) => `
         <div class="end-wrong-item" onclick="toggleEndWrong(${i})">
           <div class="end-wrong-q">${escHtml(_questions[w.idx] || '')}</div>
           <div class="end-wrong-modelo" id="ewm${i}">${escHtml(w.modelo)}</div>
         </div>`).join('');
-    document.getElementById('btnEndRetry').style.display = '';
+    document.getElementById('btnEndRetry').style.display = remaining ? 'none' : '';
   } else {
     wrongList.innerHTML = '';
     document.getElementById('btnEndRetry').style.display = 'none';
