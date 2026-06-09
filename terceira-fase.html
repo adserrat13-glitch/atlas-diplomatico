@@ -228,6 +228,9 @@ nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;paddi
 .btn-end-new{background:none;border:1px solid var(--border);color:var(--muted);padding:13px 20px;
   border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
 .btn-end-new:hover{border-color:var(--gold);color:var(--gold)}
+.btn-end-continue{background:var(--gold);border:none;color:#000;padding:13px 28px;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:'SF Mono',monospace;transition:.15s}
+.btn-end-continue:hover{opacity:.85}
 
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -440,6 +443,7 @@ nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;paddi
     </div>
     <div class="end-wrong-list" id="endWrongList"></div>
     <div class="end-actions">
+      <button class="btn-end-continue" id="btnEndContinue" onclick="continueSession()" style="display:none">Continuar +10 →</button>
       <button class="btn-end-retry" id="btnEndRetry" onclick="startRetrySession()">↺ Revisar Erradas</button>
       <button class="btn-end-new" onclick="goHome()">Nova Sessão</button>
     </div>
@@ -450,8 +454,9 @@ nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;paddi
 /* ═══════════════════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════════════════════ */
-const PASS_SCORE  = 20;   // ≥ 20 / 30 = certo
-const MAX_RETRIES = 2;    // máximo de re-tentativas por questão na sessão
+const PASS_SCORE   = 20;  // ≥ 20 / 30 = certo
+const MAX_RETRIES  = 2;   // máximo de re-tentativas por questão na sessão
+const SESSION_SIZE = 10;  // questões por bloco
 
 const CSV_MAP = {
   PI:  '3FASE/PI.csv',
@@ -466,11 +471,12 @@ let _subject   = 'PI';
 let _questions = [];   // all strings for subject
 
 // Session
-let _queue     = [];   // [{idx, attempts}] — pending
-let _done      = [];   // [{idx, score, passed}] — completed this session
-let _wrongItems= [];   // [{idx, score, modelo}] — wrong in session (for end screen)
-let _current   = null; // {idx, attempts}
-let _phase     = 'input';
+let _queue          = [];   // [{idx, attempts}] — pending this block
+let _remainingQueue = [];   // rest of indices for "Continuar"
+let _done           = [];   // [{idx, score, passed}] — completed this session
+let _wrongItems     = [];   // [{idx, score, modelo}] — wrong in session (for end screen)
+let _current        = null; // {idx, attempts}
+let _phase          = 'input';
 
 // Persistent
 let _progress  = {};   // { subject: { idx: {score, date} } }
@@ -571,10 +577,10 @@ function startSession(shuffle) {
   if (!_questions.length) return;
   let indices = _questions.map((_,i) => i);
   if (shuffle) indices = indices.sort(() => Math.random() - .5);
-  _queue      = buildQueue(indices);
+  _remainingQueue = buildQueue(indices);
   _done       = [];
   _wrongItems = [];
-  beginSession();
+  loadNextBlock();
 }
 
 function startRetryOnly() {
@@ -584,21 +590,30 @@ function startRetryOnly() {
     .map(([i]) => Number(i))
     .filter(i => i < _questions.length);
   if (!retryIdx.length) return;
-  _queue      = buildQueue(retryIdx.sort(() => Math.random() - .5));
+  _remainingQueue = buildQueue(retryIdx.sort(() => Math.random() - .5));
   _done       = [];
   _wrongItems = [];
+  loadNextBlock();
+}
+
+function loadNextBlock() {
+  _queue          = _remainingQueue.splice(0, SESSION_SIZE);
   beginSession();
 }
 
-function startRetrySession() {
-  // called from end screen — retry only the wrong from last session
-  const wrongIdx = _wrongItems.map(w => w.idx);
-  if (!wrongIdx.length) { goHome(); return; }
-  _queue      = buildQueue(wrongIdx);
+function continueSession() {
   _done       = [];
   _wrongItems = [];
-  showFlashcard();
-  nextQuestion();
+  loadNextBlock();
+}
+
+function startRetrySession() {
+  const wrongIdx = _wrongItems.map(w => w.idx);
+  if (!wrongIdx.length) { goHome(); return; }
+  _remainingQueue = buildQueue(wrongIdx);
+  _done       = [];
+  _wrongItems = [];
+  loadNextBlock();
 }
 
 function beginSession() {
@@ -838,6 +853,9 @@ function renderEndScreen() {
   document.getElementById('endWrong').textContent   = wrong;
   document.getElementById('endAvg').textContent     = avg;
   document.getElementById('endSub').textContent     = `${_subject} · ${_done.length} questão${_done.length!==1?'ões':''} concluída${_done.length!==1?'s':''}`;
+
+  // Show/hide continue button
+  document.getElementById('btnEndContinue').style.display = _remainingQueue.length ? '' : 'none';
 
   const wrongList = document.getElementById('endWrongList');
   if (_wrongItems.length) {
