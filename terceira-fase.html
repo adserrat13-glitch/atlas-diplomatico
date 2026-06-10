@@ -509,6 +509,33 @@ function recordProgress(idx, score) {
 }
 function getStored(idx) { return _progress[_subject]?.[idx] ?? null; }
 
+// ── Session checkpoint (resume) ──
+function saveCheckpoint() {
+  if (!_remainingQueue.length) { clearCheckpoint(); return; }
+  localStorage.setItem('tf_checkpoint', JSON.stringify({
+    subject: _subject,
+    remaining: _remainingQueue,
+    wrongItems: _wrongItems,
+  }));
+}
+function clearCheckpoint() {
+  localStorage.removeItem('tf_checkpoint');
+}
+function loadCheckpoint() {
+  try { return JSON.parse(localStorage.getItem('tf_checkpoint') || 'null'); } catch { return null; }
+}
+function updateResumeButton() {
+  const cp = loadCheckpoint();
+  const btn = document.getElementById('btnStart');
+  if (cp && cp.subject === _subject && cp.remaining.length) {
+    btn.textContent = `↩ Continuar ${cp.subject} (${cp.remaining.length} restantes)`;
+    btn.dataset.resume = '1';
+  } else {
+    btn.textContent = 'Iniciar Sessão →';
+    btn.dataset.resume = '';
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════
    KPI & HOME STATS
 ══════════════════════════════════════════════════════════════ */
@@ -574,7 +601,7 @@ function selectSubject(subj, btn) {
   _subject = subj;
   document.querySelectorAll('.subj-chip').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  loadCSV(subj, () => { updateHomeStats(); });
+  loadCSV(subj, () => { updateHomeStats(); updateResumeButton(); });
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -586,11 +613,25 @@ function buildQueue(indices) {
 
 function startSession(shuffle) {
   if (!_questions.length) return;
+  // If resume button was clicked, restore checkpoint
+  const btn = document.getElementById('btnStart');
+  if (btn.dataset.resume === '1') {
+    const cp = loadCheckpoint();
+    if (cp && cp.subject === _subject) {
+      _remainingQueue = cp.remaining;
+      _wrongItems     = cp.wrongItems || [];
+      _done           = [];
+      loadNextBlock();
+      return;
+    }
+  }
+  // New session
   let indices = _questions.map((_,i) => i);
   if (shuffle) indices = indices.sort(() => Math.random() - .5);
   _remainingQueue = buildQueue(indices);
   _done       = [];
   _wrongItems = [];
+  clearCheckpoint();
   loadNextBlock();
 }
 
@@ -604,17 +645,18 @@ function startRetryOnly() {
   _remainingQueue = buildQueue(retryIdx.sort(() => Math.random() - .5));
   _done       = [];
   _wrongItems = [];
+  clearCheckpoint();
   loadNextBlock();
 }
 
 function loadNextBlock() {
-  _queue          = _remainingQueue.splice(0, SESSION_SIZE);
+  _queue = _remainingQueue.splice(0, SESSION_SIZE);
+  saveCheckpoint();
   beginSession();
 }
 
 function continueSession() {
   _done = [];
-  // keep _wrongItems accumulated across blocks
   loadNextBlock();
 }
 
@@ -650,6 +692,7 @@ function goHome() {
   document.getElementById('homeScreen').style.display = '';
   updateKPIs();
   updateHomeStats();
+  updateResumeButton();
 }
 function exitSession() {
   if (_done.length || confirm('Sair da sessão? O progresso desta sessão já foi salvo.')) goHome();
@@ -922,6 +965,9 @@ function renderEndScreen() {
     document.getElementById('btnEndRetry').style.display = 'none';
   }
 
+  // Clear checkpoint when all blocks done
+  if (!remaining) clearCheckpoint();
+
   // Save session to Supabase (silent)
   if (typeof DB !== 'undefined' && DB.addTerceiraFaseSession) {
     DB.addTerceiraFaseSession({
@@ -1189,7 +1235,7 @@ async function updateNavUser() {
 loadProgress();
 updateKPIs();
 updateNavUser();
-loadCSV('PI', () => updateHomeStats());
+loadCSV('PI', () => { updateHomeStats(); updateResumeButton(); });
 </script>
 </body>
 </html>
