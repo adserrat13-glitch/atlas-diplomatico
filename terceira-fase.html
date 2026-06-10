@@ -507,7 +507,20 @@ function recordProgress(idx, score) {
   _progress[_subject][idx] = { score, date: TODAY };
   saveProgress();
 }
+function recordSkipped(idx) {
+  if (!_progress[_subject]) _progress[_subject] = {};
+  const prev = _progress[_subject][idx];
+  // only mark skipped if not already learned
+  if (!prev || prev.score == null || prev.score < PASS_SCORE) {
+    _progress[_subject][idx] = { skipped: true, date: TODAY };
+    saveProgress();
+  }
+}
 function getStored(idx) { return _progress[_subject]?.[idx] ?? null; }
+function isSkippedToday(idx) {
+  const e = getStored(idx);
+  return e && e.skipped && e.date === TODAY;
+}
 
 // ── Session checkpoint (resume) ──
 function saveCheckpoint() {
@@ -559,10 +572,12 @@ function updateKPIs() {
 }
 
 function updateHomeStats() {
-  const total   = _questions.length;
-  const subjMap = _progress[_subject] || {};
-  const learned = Object.values(subjMap).filter(e => e.score >= PASS_SCORE).length;
-  const retry   = Object.values(subjMap).filter(e => e.score < PASS_SCORE).length;
+  const total    = _questions.length;
+  const subjMap  = _progress[_subject] || {};
+  const entries  = Object.values(subjMap);
+  const learned  = entries.filter(e => e.score >= PASS_SCORE).length;
+  const skipped  = entries.filter(e => e.skipped && e.date === TODAY).length;
+  const retry    = entries.filter(e => !e.skipped && e.score != null && e.score < PASS_SCORE).length;
 
   const learnedPct = total ? Math.round(learned/total*100) : 0;
   const retryPct   = total ? Math.round(retry/total*100)   : 0;
@@ -570,7 +585,7 @@ function updateHomeStats() {
   document.getElementById('statBarLearned').style.width = learnedPct + '%';
   document.getElementById('statValLearned').textContent = `${learned} / ${total}`;
   document.getElementById('statBarRetry').style.width   = retryPct + '%';
-  document.getElementById('statValRetry').textContent   = retry;
+  document.getElementById('statValRetry').textContent   = retry + (skipped ? ` (+${skipped} puladas hoje)` : '');
 
   const hasRetry = retry > 0;
   document.getElementById('btnRetryOnly').disabled = !hasRetry;
@@ -625,10 +640,12 @@ function startSession(shuffle) {
       return;
     }
   }
-  // New session
+  // New session — skip questions puladas hoje para o fim da fila
   let indices = _questions.map((_,i) => i);
   if (shuffle) indices = indices.sort(() => Math.random() - .5);
-  _remainingQueue = buildQueue(indices);
+  const skippedToday = indices.filter(i => isSkippedToday(i));
+  const normal       = indices.filter(i => !isSkippedToday(i));
+  _remainingQueue = buildQueue([...normal, ...skippedToday]);
   _done       = [];
   _wrongItems = [];
   clearCheckpoint();
@@ -915,7 +932,8 @@ function retryQuestion() {
 }
 
 function skipQuestion() {
-  _done.push({ idx: _current.idx, score: null, passed: false });
+  recordSkipped(_current.idx);
+  _done.push({ idx: _current.idx, score: null, passed: false, skipped: true });
   nextQuestion();
 }
 
