@@ -180,6 +180,10 @@ let state = {
   feedbackShown: false,
 };
 
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function renderTopics() {
   const el = document.getElementById('screen-topics');
   el.innerHTML = EDITAL.map(sec => `
@@ -200,7 +204,7 @@ function showScreen(id) {
 async function startSession(topico) {
   state = { topico, perguntas: [], respostas: [], avaliacoes: [], currentQ: 0, feedbackShown: false };
   showScreen('screen-quiz');
-  renderLoading('Gerando perguntas para "' + topico + '"…');
+  renderLoading('Gerando perguntas para "' + esc(topico) + '"…');
 
   try {
     const res = await fetch('/api/generate-gap-questions', {
@@ -234,9 +238,9 @@ function renderQuestion(idx) {
   document.getElementById('progress-fill').style.width = pct + '%';
 
   document.getElementById('quiz-content').innerHTML = `
-    <div class="q-meta">Pergunta ${idx + 1} de ${state.perguntas.length} · ${state.topico}</div>
-    <div class="q-conceito">Conceito testado: ${q.conceito_alvo}</div>
-    <div class="q-text">${q.pergunta}</div>
+    <div class="q-meta">Pergunta ${idx + 1} de ${state.perguntas.length} · ${esc(state.topico)}</div>
+    <div class="q-conceito">Conceito testado: ${esc(q.conceito_alvo)}</div>
+    <div class="q-text">${esc(q.pergunta)}</div>
     <textarea class="answer-area" id="answer-input" placeholder="Escreva sua resposta (mínimo 5 caracteres)…" oninput="updateCharCount(this)"></textarea>
     <div class="char-count"><span id="char-count">0</span> / 3000</div>
     <div class="btn-row">
@@ -298,24 +302,24 @@ function renderFeedback(av, q) {
 
       <div class="lacuna-box ${hasLacuna ? '' : 'none'}">
         <div class="lacuna-label">${hasLacuna ? '⚠ Lacuna revelada' : '✓ Domínio confirmado'}</div>
-        ${av.lacuna_revelada}
+        ${esc(av.lacuna_revelada)}
       </div>
 
       ${av.o_que_faltou.length ? `
         <div class="list-section">
           <h4>O que faltou</h4>
-          <ul>${av.o_que_faltou.map(x => `<li>${x}</li>`).join('')}</ul>
+          <ul>${av.o_que_faltou.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
         </div>` : ''}
 
       ${av.o_que_acertou.length ? `
         <div class="list-section">
           <h4>O que acertou</h4>
-          <ul>${av.o_que_acertou.map(x => `<li>${x}</li>`).join('')}</ul>
+          <ul>${av.o_que_acertou.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
         </div>` : ''}
 
       <div class="list-section">
         <h4>Resposta modelo</h4>
-        <div class="modelo-box">${av.resposta_modelo}</div>
+        <div class="modelo-box">${esc(av.resposta_modelo)}</div>
       </div>
 
       <div class="btn-row">
@@ -351,8 +355,8 @@ function showReport() {
     const hasLacuna = !av.lacuna_revelada.toLowerCase().startsWith('nenhuma');
     return `
       <li class="gap-item ${hasLacuna ? '' : 'ok'}">
-        <div class="gap-q">P${i + 1} · ${q.conceito_alvo}</div>
-        <div class="gap-text">${av.lacuna_revelada}</div>
+        <div class="gap-q">P${i + 1} · ${esc(q.conceito_alvo)}</div>
+        <div class="gap-text">${esc(av.lacuna_revelada)}</div>
       </li>`;
   }).join('');
 
