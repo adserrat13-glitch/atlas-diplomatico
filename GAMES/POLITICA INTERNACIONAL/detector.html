@@ -3,39 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Detector de Falsos Especialistas — Direito</title>
+  <title>Detector de Falsos Especialistas — Política Internacional</title>
   <link rel="stylesheet" href="../../theme.css">
   <link rel="stylesheet" href="../../games-theme.css">
   <style>
     body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
     .container { max-width: 760px; margin: 0 auto; padding: 2rem 1rem; }
-
     .header { text-align: center; margin-bottom: 2.5rem; }
-    .header h1 { font-size: 1.5rem; color: var(--dir, #b56a61); letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 0.5rem; }
+    .header h1 { font-size: 1.5rem; color: var(--pi, #60a5fa); letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 0.5rem; }
     .header p { color: var(--text-muted, #888); font-size: 0.9rem; margin: 0; }
-
     .screen { display: none; }
     .screen.active { display: block; }
-
     .topic-section { margin-bottom: 2rem; }
-    .topic-section h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dir, #b56a61); margin: 0 0 0.75rem; border-bottom: 1px solid var(--border, #333); padding-bottom: 0.4rem; }
+    .topic-section h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--pi, #60a5fa); margin: 0 0 0.75rem; border-bottom: 1px solid var(--border, #333); padding-bottom: 0.4rem; }
     .topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; }
     .topic-btn { background: var(--card-bg, #1a1a1a); border: 1px solid var(--border, #333); color: var(--text); padding: 0.65rem 0.9rem; border-radius: 6px; cursor: pointer; text-align: left; font-size: 0.85rem; transition: border-color 0.15s, background 0.15s; }
-    .topic-btn:hover { border-color: var(--dir, #b56a61); background: var(--card-hover, #222); }
-
+    .topic-btn:hover { border-color: var(--pi, #60a5fa); background: var(--card-hover, #222); }
     .progress-bar { height: 4px; background: var(--border, #333); border-radius: 2px; margin-bottom: 1.5rem; }
-    .progress-fill { height: 100%; background: var(--dir, #b56a61); border-radius: 2px; transition: width 0.3s; }
+    .progress-fill { height: 100%; background: var(--pi, #60a5fa); border-radius: 2px; transition: width 0.3s; }
     .q-meta { font-size: 0.75rem; color: var(--text-muted, #888); margin-bottom: 0.5rem; }
-    .q-conceito { font-size: 0.7rem; background: var(--card-bg, #1a1a1a); color: var(--dir, #b56a61); border-left: 3px solid var(--dir, #b56a61); padding: 0.3rem 0.6rem; border-radius: 0 4px 4px 0; margin-bottom: 1rem; display: inline-block; }
+    .q-conceito { font-size: 0.7rem; background: var(--card-bg, #1a1a1a); color: var(--pi, #60a5fa); border-left: 3px solid var(--pi, #60a5fa); padding: 0.3rem 0.6rem; border-radius: 0 4px 4px 0; margin-bottom: 1rem; display: inline-block; }
     .q-text { font-size: 1.05rem; line-height: 1.6; margin-bottom: 1.25rem; }
     .answer-area { width: 100%; min-height: 120px; background: var(--card-bg, #1a1a1a); border: 1px solid var(--border, #333); border-radius: 8px; color: var(--text); padding: 0.75rem 1rem; font-size: 0.95rem; font-family: var(--font); resize: vertical; box-sizing: border-box; }
-    .answer-area:focus { outline: none; border-color: var(--dir, #b56a61); }
+    .answer-area:focus { outline: none; border-color: var(--pi, #60a5fa); }
     .char-count { text-align: right; font-size: 0.72rem; color: var(--text-muted, #888); margin-top: 0.3rem; }
-
     .feedback-panel { background: var(--card-bg, #1a1a1a); border: 1px solid var(--border, #333); border-radius: 10px; padding: 1.25rem; margin-top: 1.25rem; }
     .feedback-scores { display: flex; gap: 1rem; margin-bottom: 1rem; }
     .score-pill { flex: 1; text-align: center; background: var(--bg, #111); border-radius: 8px; padding: 0.6rem 0.4rem; }
-    .score-pill .val { font-size: 1.4rem; font-weight: 700; color: var(--dir, #b56a61); }
+    .score-pill .val { font-size: 1.4rem; font-weight: 700; color: var(--pi, #60a5fa); }
     .score-pill .lbl { font-size: 0.65rem; color: var(--text-muted, #888); text-transform: uppercase; }
     .lacuna-box { background: #2a1a0e; border-left: 3px solid #d97706; padding: 0.75rem 1rem; border-radius: 0 6px 6px 0; margin-bottom: 1rem; font-size: 0.9rem; }
     .lacuna-box.none { background: #0e1f13; border-color: #22c55e; }
@@ -45,163 +40,115 @@
     .list-section h4 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted, #888); margin: 0 0 0.4rem; }
     .list-section ul { margin: 0; padding-left: 1.2rem; font-size: 0.85rem; line-height: 1.6; }
     .modelo-box { background: var(--bg, #111); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; line-height: 1.65; color: var(--text-muted, #bbb); font-style: italic; }
-
     .report-header { text-align: center; margin-bottom: 2rem; }
-    .total-score { font-size: 3rem; font-weight: 700; color: var(--dir, #b56a61); }
+    .total-score { font-size: 3rem; font-weight: 700; color: var(--pi, #60a5fa); }
     .score-max { font-size: 1rem; color: var(--text-muted, #888); }
     .verdict { font-size: 1rem; margin: 0.5rem 0 0; }
     .gap-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
-    .gap-item { background: var(--card-bg, #1a1a1a); border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.875rem; border-left: 3px solid var(--dir, #b56a61); }
+    .gap-item { background: var(--card-bg, #1a1a1a); border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.875rem; border-left: 3px solid var(--pi, #60a5fa); }
     .gap-item.ok { border-color: #22c55e; }
     .gap-q { font-size: 0.7rem; color: var(--text-muted, #888); margin-bottom: 0.25rem; }
     .gap-text { line-height: 1.5; }
-
     .btn { display: inline-block; padding: 0.65rem 1.4rem; border-radius: 7px; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: opacity 0.15s; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-primary { background: var(--dir, #b56a61); color: #fff; }
+    .btn-primary { background: var(--pi, #60a5fa); color: #fff; }
     .btn-ghost { background: transparent; border: 1px solid var(--border, #333); color: var(--text); }
     .btn-row { display: flex; gap: 0.75rem; margin-top: 1rem; }
-
     .loading { text-align: center; padding: 2rem; color: var(--text-muted, #888); font-size: 0.9rem; }
-    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border, #333); border-top-color: var(--dir, #b56a61); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 0.5rem; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border, #333); border-top-color: var(--pi, #60a5fa); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 0.5rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     .back-link { display: inline-block; color: var(--text-muted, #888); font-size: 0.8rem; margin-bottom: 1.5rem; text-decoration: none; }
-    .back-link:hover { color: var(--dir, #b56a61); }
+    .back-link:hover { color: var(--pi, #60a5fa); }
   </style>
 </head>
 <body>
 <div class="container">
   <a href="../../detector/index.html" class="back-link">← Voltar ao Hub</a>
-
   <div class="header">
     <h1>Detector de Falsos Especialistas</h1>
     <p>Selecione um tópico. Responda 5 perguntas. Descubra onde estão suas lacunas reais.</p>
   </div>
-
   <div id="screen-topics" class="screen active"></div>
-
   <div id="screen-quiz" class="screen">
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div id="quiz-content"></div>
   </div>
-
   <div id="screen-report" class="screen">
     <div class="report-header">
       <div class="total-score" id="report-score">0</div>
       <div class="score-max">/ 150 pontos</div>
       <p class="verdict" id="report-verdict"></p>
     </div>
-    <h3 style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dir,#b56a61);margin:0 0 1rem">Lacunas identificadas</h3>
+    <h3 style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--pi,#60a5fa);margin:0 0 1rem">Lacunas identificadas</h3>
     <ul class="gap-list" id="gap-list"></ul>
     <div class="btn-row" style="margin-top:2rem;justify-content:center">
       <button class="btn btn-primary" onclick="resetToTopics()">Testar outro tópico</button>
     </div>
   </div>
 </div>
-
 <script>
 const EDITAL = [
   {
-    secao: '1. Direito Constitucional e Teoria do Estado',
+    secao: '1. Teoria das Relações Internacionais',
     topicos: [
-      'Normas jurídicas — estrutura, validade e eficácia',
-      'Personalidade jurídica — pessoas físicas e jurídicas no direito brasileiro',
-      'Constituição: conceito, classificações e primado constitucional',
-      'Controle de constitucionalidade — difuso, concentrado e instrumentos processuais',
-      'Estado: elementos, soberania, formas e modelos de divisão de competência',
-      'Sistemas de governo e formas de Estado',
-      'Estado democrático de direito: conceito, objetivos e divisão de poderes',
-      'Organização e competências dos poderes no direito brasileiro',
-      'Processo legislativo brasileiro',
-      'Direitos e garantias fundamentais no ordenamento jurídico brasileiro',
+      'Conceitos básicos de RI — atores, processos e instituições',
+      'Principais paradigmas teóricos das RI',
     ],
   },
   {
-    secao: '2. Direito Administrativo',
+    secao: '2. Política Externa Brasileira',
     topicos: [
-      'Administração Pública: princípios constitucionais (LIMPE e outros)',
-      'Estrutura da Administração Pública Federal',
-      'Atos administrativos: conceito, elementos, classificação e vícios',
-      'Processo e procedimento administrativo',
-      'Licitações e contratos administrativos',
-      'Responsabilidade civil do Estado',
-      'Direitos, deveres e responsabilidades do servidor público',
-      'Improbidade administrativa',
-      'Regime disciplinar e processo administrativo disciplinar',
-      'Regime Jurídico dos Servidores do Serviço Exterior (Lei nº 11.440/2006)',
-      'Finanças públicas e normas orçamentárias',
+      'Evolução da PEB desde 1945 — principais vertentes e linhas de ação',
+      'Brasil e a América do Sul — integração regional',
+      'MERCOSUL — origens, objetivos e estágio atual',
+      'Iniciativas de integração física, energética, política e de defesa na América do Sul',
+      'Argentina: política externa e relações com o Brasil',
+      'Relações do Brasil com os demais países do hemisfério',
     ],
   },
   {
-    secao: '3. Fontes e Sujeitos do Direito Internacional',
+    secao: '3. Relações Bilaterais do Brasil',
     topicos: [
-      'DIP e Direito Interno — relação e incorporação no direito brasileiro',
-      'Constituição e Direito Internacional — art. 4º CF/1988',
-      'Fontes do DIP: tratados, costume, princípios gerais, jurisprudência e doutrina',
-      'Jus cogens, obrigações erga omnes e soft law',
-      'Tratados internacionais: elaboração, vigência, reservas e extinção',
-      'Acordos executivos e conflito entre fontes',
-      'Estado no DIP: surgimento, extinção, sucessão e reconhecimento',
-      'Sujeitos especiais do Direito Internacional',
-      'Território e formação do território brasileiro',
+      'EUA: política externa e relações com o Brasil',
+      'União Europeia — origens, estrutura, política externa e relações com o Brasil',
+      'Rússia: política externa e relações com o Brasil',
+      'África: política externa e relações com o Brasil',
+      'China, Índia e Japão: políticas externas e relações com o Brasil',
+      'Oriente Médio — questão israelo-palestina e situações nacionais relevantes',
+      'Comunidade dos Países de Língua Portuguesa (CPLP)',
     ],
   },
   {
-    secao: '4. Pessoas, Nacionalidade e Jurisdição',
+    secao: '4. Agenda Internacional do Brasil',
     topicos: [
-      'Nacionalidade: aquisição, perda, reaquisição e dupla/múltipla nacionalidade',
-      'Proteção a brasileiros no exterior e direitos de nacionais no exterior',
-      'Situação jurídica do estrangeiro, extradição, apatridia e polipatria',
-      'Asilo diplomático e territorial',
-      'Relações diplomáticas e consulares — imunidades',
-      'Responsabilidade internacional do Estado e proteção diplomática',
-      'Jurisdição — LINDB (Lei de Introdução às Normas do Direito Brasileiro)',
+      'Multilateralismo universal — ONU, conferências e órgãos multilaterais',
+      'Desenvolvimento sustentável — pobreza, insegurança alimentar e fome',
+      'Meio ambiente na agenda internacional',
+      'Mar, espaço e Antártida',
+      'Direitos humanos e políticas de identidade — gênero, raça e religião',
+      'Migrações internacionais, refugiados e apátridas',
+      'Comércio internacional e OMC — cadeias globais de suprimento',
+      'Sistema financeiro internacional',
+      'Desarmamento e não proliferação',
+      'Crimes de guerra, genocídio e Tribunal Penal Internacional',
+      'Terrorismo, narcotráfico e crimes cibernéticos de alcance global',
+      'Reforma da ONU e operações de paz',
     ],
   },
   {
-    secao: '5. Solução de Controvérsias e Organizações Internacionais',
+    secao: '5. Brasil em Coalizões e Cooperação',
     topicos: [
-      'Solução pacífica de controvérsias: bons ofícios, mediação, conciliação e arbitragem',
-      'Corte Internacional de Justiça e outros tribunais internacionais',
-      'Organizações internacionais — ONU, OEA e incorporação ao direito brasileiro',
-      'Carta Democrática Interamericana',
-      'Direito da Integração Regional — MERCOSUL e solução de controvérsias',
-    ],
-  },
-  {
-    secao: '6. Uso da Força, Direitos Humanos e Direito Humanitário',
-    topicos: [
-      'Uso da força, segurança coletiva e operações de manutenção da paz',
-      'Desarmamento, não proliferação e controle de armas',
-      'Direito internacional dos direitos humanos — exigibilidade e incorporação no Brasil',
-      'Sistema Interamericano de Direitos Humanos',
-      'Direito Internacional Humanitário e conflitos armados',
-      'Direito Internacional dos Refugiados e instituto do refúgio no Brasil',
-      'Direito penal internacional — Tribunal Penal Internacional',
-    ],
-  },
-  {
-    secao: '7. Direito Internacional Especializado',
-    topicos: [
-      'Direito do comércio internacional — OMC e solução de controvérsias',
-      'Direito Internacional do Meio Ambiente',
-      'Direito Internacional do Mar — CNUDM e TIDM',
-      'Direito internacional do trabalho — OIT, convenções e supervisão normativa',
-      'Áreas além da jurisdição exclusiva dos Estados',
-      'Cooperação jurídica internacional — matéria penal e cível',
+      'Sistema interamericano — OEA',
+      'Blocos econômicos, acordos comerciais e promoção comercial',
+      'Dimensão da segurança na política exterior do Brasil',
+      'G-20, IBAS e BRICS',
+      'Cooperação Sul-Sul',
+      'Diplomacia da saúde',
     ],
   },
 ];
 
-let state = {
-  topico: '',
-  perguntas: [],
-  respostas: [],
-  avaliacoes: [],
-  currentQ: 0,
-  feedbackShown: false,
-};
+let state = { topico: '', perguntas: [], respostas: [], avaliacoes: [], currentQ: 0, feedbackShown: false };
 
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -229,20 +176,13 @@ async function startSession(elOrStr) {
   state = { topico, perguntas: [], respostas: [], avaliacoes: [], currentQ: 0, feedbackShown: false };
   showScreen('screen-quiz');
   renderLoading('Gerando perguntas para "' + esc(topico) + '"…');
-
   try {
-    const res = await fetch('/api/generate-gap-questions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topico }),
-    });
+    const res = await fetch('/api/generate-gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao gerar perguntas');
     state.perguntas = data.perguntas;
     renderQuestion(0);
-  } catch (err) {
-    renderError(err.message);
-  }
+  } catch (err) { renderError(err.message); }
 }
 
 function renderLoading(msg) {
@@ -260,7 +200,6 @@ function renderQuestion(idx) {
   const q = state.perguntas[idx];
   const pct = (idx / state.perguntas.length) * 100;
   document.getElementById('progress-fill').style.width = pct + '%';
-
   document.getElementById('quiz-content').innerHTML = `
     <div class="q-meta">Pergunta ${idx + 1} de ${state.perguntas.length} · ${esc(state.topico)}</div>
     <div class="q-conceito">Conceito testado: ${esc(q.conceito_alvo)}</div>
@@ -275,46 +214,28 @@ function renderQuestion(idx) {
   `;
 }
 
-function updateCharCount(el) {
-  document.getElementById('char-count').textContent = el.value.length;
-}
+function updateCharCount(el) { document.getElementById('char-count').textContent = el.value.length; }
 
 async function submitAnswer() {
   const resposta = document.getElementById('answer-input').value;
-  if (resposta.trim().length < 5) {
-    alert('Escreva ao menos uma frase antes de avaliar.');
-    return;
-  }
-
+  if (resposta.trim().length < 5) { alert('Escreva ao menos uma frase antes de avaliar.'); return; }
   const btn = document.getElementById('btn-submit');
-  btn.disabled = true;
-  btn.textContent = 'Avaliando…';
-
+  btn.disabled = true; btn.textContent = 'Avaliando…';
   const q = state.perguntas[state.currentQ];
   state.respostas[state.currentQ] = resposta;
-
   try {
-    const res = await fetch('/api/evaluate-gap-answer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pergunta: q.pergunta, conceito_alvo: q.conceito_alvo, resposta }),
-    });
+    const res = await fetch('/api/evaluate-gap-answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pergunta: q.pergunta, conceito_alvo: q.conceito_alvo, resposta }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro na avaliação');
     state.avaliacoes[state.currentQ] = data;
     renderFeedback(data, q);
-  } catch (err) {
-    btn.disabled = false;
-    btn.textContent = 'Avaliar resposta';
-    alert('Erro: ' + err.message);
-  }
+  } catch (err) { btn.disabled = false; btn.textContent = 'Avaliar resposta'; alert('Erro: ' + err.message); }
 }
 
 function renderFeedback(av, q) {
   state.feedbackShown = true;
   const hasLacuna = !av.lacuna_revelada.toLowerCase().startsWith('nenhuma');
   const isLast = state.currentQ === state.perguntas.length - 1;
-
   document.getElementById('feedback-area').innerHTML = `
     <div class="feedback-panel">
       <div class="feedback-scores">
@@ -323,76 +244,39 @@ function renderFeedback(av, q) {
         <div class="score-pill"><div class="val">${av.precisao}</div><div class="lbl">Precisão</div></div>
         <div class="score-pill"><div class="val">${av.total}</div><div class="lbl">Total/30</div></div>
       </div>
-
       <div class="lacuna-box ${hasLacuna ? '' : 'none'}">
         <div class="lacuna-label">${hasLacuna ? '⚠ Lacuna revelada' : '✓ Domínio confirmado'}</div>
         ${esc(av.lacuna_revelada)}
       </div>
-
-      ${av.o_que_faltou.length ? `
-        <div class="list-section">
-          <h4>O que faltou</h4>
-          <ul>${av.o_que_faltou.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-        </div>` : ''}
-
-      ${av.o_que_acertou.length ? `
-        <div class="list-section">
-          <h4>O que acertou</h4>
-          <ul>${av.o_que_acertou.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-        </div>` : ''}
-
-      <div class="list-section">
-        <h4>Resposta modelo</h4>
-        <div class="modelo-box">${esc(av.resposta_modelo)}</div>
-      </div>
-
+      ${av.o_que_faltou.length ? `<div class="list-section"><h4>O que faltou</h4><ul>${av.o_que_faltou.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      ${av.o_que_acertou.length ? `<div class="list-section"><h4>O que acertou</h4><ul>${av.o_que_acertou.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+      <div class="list-section"><h4>Resposta modelo</h4><div class="modelo-box">${esc(av.resposta_modelo)}</div></div>
       <div class="btn-row">
-        ${isLast
-          ? `<button class="btn btn-primary" onclick="showReport()">Ver relatório final →</button>`
-          : `<button class="btn btn-primary" onclick="renderQuestion(${state.currentQ + 1})">Próxima pergunta →</button>`}
+        ${isLast ? `<button class="btn btn-primary" onclick="showReport()">Ver relatório final →</button>` : `<button class="btn btn-primary" onclick="renderQuestion(${state.currentQ + 1})">Próxima pergunta →</button>`}
       </div>
     </div>
   `;
-
   document.getElementById('btn-submit').style.display = 'none';
   document.getElementById('feedback-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function showReport() {
   const total = state.avaliacoes.reduce((s, a) => s + (a?.total || 0), 0);
-  const maxScore = state.perguntas.length * 30;
-  const pct = Math.round((total / maxScore) * 100);
-
-  const verdict =
-    pct >= 80 ? 'Domínio sólido — siga para o próximo tópico.' :
-    pct >= 60 ? 'Conhecimento parcial — revise os pontos marcados.' :
-    pct >= 40 ? 'Lacunas significativas — retorne ao material básico.' :
-    'Domínio superficial — este tópico precisa de atenção prioritária.';
-
+  const pct = Math.round((total / (state.perguntas.length * 30)) * 100);
+  const verdict = pct >= 80 ? 'Domínio sólido — siga para o próximo tópico.' : pct >= 60 ? 'Conhecimento parcial — revise os pontos marcados.' : pct >= 40 ? 'Lacunas significativas — retorne ao material básico.' : 'Domínio superficial — este tópico precisa de atenção prioritária.';
   document.getElementById('report-score').textContent = total;
   document.getElementById('report-verdict').textContent = verdict;
-
-  const gapList = document.getElementById('gap-list');
-  gapList.innerHTML = state.perguntas.map((q, i) => {
-    const av = state.avaliacoes[i];
-    if (!av) return '';
+  document.getElementById('gap-list').innerHTML = state.perguntas.map((q, i) => {
+    const av = state.avaliacoes[i]; if (!av) return '';
     const hasLacuna = !av.lacuna_revelada.toLowerCase().startsWith('nenhuma');
-    return `
-      <li class="gap-item ${hasLacuna ? '' : 'ok'}">
-        <div class="gap-q">P${i + 1} · ${esc(q.conceito_alvo)}</div>
-        <div class="gap-text">${esc(av.lacuna_revelada)}</div>
-      </li>`;
+    return `<li class="gap-item ${hasLacuna ? '' : 'ok'}"><div class="gap-q">P${i + 1} · ${esc(q.conceito_alvo)}</div><div class="gap-text">${esc(av.lacuna_revelada)}</div></li>`;
   }).join('');
-
   document.getElementById('progress-fill').style.width = '100%';
   showScreen('screen-report');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function resetToTopics() {
-  showScreen('screen-topics');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+function resetToTopics() { showScreen('screen-topics'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 renderTopics();
 </script>

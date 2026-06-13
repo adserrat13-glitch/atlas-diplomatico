@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detector de Falsos Especialistas — CACD</title>
+  <link rel="stylesheet" href="../theme.css">
+  <link rel="stylesheet" href="../games-theme.css">
+  <style>
+    body { background: var(--bg, #0f1115); color: var(--text, #e5e7eb); font-family: var(--font, 'JetBrains Mono', monospace); min-height: 100vh; }
+    .container { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem; }
+    .back-link { display: inline-block; color: var(--text-muted, #6b7280); font-size: 0.8rem; margin-bottom: 2rem; text-decoration: none; }
+    .back-link:hover { color: #d4af37; }
+    .header { text-align: center; margin-bottom: 3rem; }
+    .header .label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; color: #6b7280; margin-bottom: 0.75rem; }
+    .header h1 { font-size: 1.75rem; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 0.75rem; color: #d4af37; }
+    .header p { color: #6b7280; font-size: 0.9rem; margin: 0 auto; max-width: 480px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+    .card { display: flex; flex-direction: column; gap: 0.6rem; background: #141416; border: 1px solid rgba(255,255,255,.06); border-left: 4px solid var(--accent, #d4af37); border-radius: 12px; padding: 1.25rem 1.1rem; text-decoration: none; color: inherit; transition: background 0.15s, transform 0.12s; }
+    .card:hover { background: #1c1c1f; transform: translateY(-2px); }
+    .card-icon { font-size: 1.5rem; line-height: 1; }
+    .card-name { font-size: 0.95rem; font-weight: 800; color: #fff; letter-spacing: 0.02em; }
+    .card-desc { font-size: 0.75rem; color: #6b7280; line-height: 1.5; }
+    .card-btn { margin-top: auto; font-size: 0.72rem; font-weight: 700; color: var(--accent, #d4af37); letter-spacing: 0.05em; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,.06); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="../index.html" class="back-link">← Voltar ao início</a>
+  <div class="header">
+    <div class="label">Atlas Diplomático · CACD</div>
+    <h1>Detector de Falsos Especialistas</h1>
+    <p>Selecione uma matéria. Escolha um tópico do edital. Descubra suas lacunas reais com IA.</p>
+  </div>
+  <div class="grid">
+    <a class="card" href="../GAMES/ECONOMIA/detector.html" style="--accent:#d9a05f">
+      <div class="card-icon">📈</div>
+      <div class="card-name">Economia</div>
+      <div class="card-desc">Micro, macro, economia internacional e história econômica brasileira</div>
+      <div class="card-btn">Testar conhecimento →</div>
+    </a>
+    <a class="card" href="../GAMES/DIREITO/detector.html" style="--accent:#b56a61">
+      <div class="card-icon">⚖️</div>
+      <div class="card-name">Direito</div>
+      <div class="card-desc">Constitucional, administrativo e direito internacional público</div>
+      <div class="card-btn">Testar conhecimento →</div>
+    </a>
+    <a class="card" href="../GAMES/POLITICA INTERNACIONAL/detector.html" style="--accent:#60a5fa">
+      <div class="card-icon">🌐</div>
+      <div class="card-name">Política Internacional</div>
+      <div class="card-desc">Relações internacionais, política externa brasileira e agenda global</div>
+      <div class="card-btn">Testar conhecimento →</div>
+    </a>
+    <a class="card" href="../GAMES/GEOGRAFIA/detector.html" style="--accent:#4ade80">
+      <div class="card-icon">🗺️</div>
+      <div class="card-name">Geografia</div>
+      <div class="card-desc">População, econômica, agrária, urbana, política e ambiental</div>
+      <div class="card-btn">Testar conhecimento →</div>
+    </a>
+    <a class="card" href="../GAMES/HISTORIA DO BRASIL/detector.html" style="--accent:#fb923c">
+      <div class="card-icon">🇧🇷</div>
+      <div class="card-name">História do Brasil</div>
+      <div class="card-desc">Colonial, Império, Repúblicas e Brasil contemporâneo</div>
+      <div class="card-btn">Testar conhecimento →</div>
+    </a>
+    <a class="card" href="../GAMES/HISTORIA MUNDIAL/detector.html" style="--accent:#f59e0b">
+      <div class="card-icon">🌍</div>
+      <div class="card-name">História Mundial</div>
+      <div class="card-desc">Estruturas econômicas, revoluções, RI e ideias políticas</div>
+      <div class="card-btn">Testar conhecimento →</div>
+    </a>
+  </div>
+</div>
+</body>
+</html>
