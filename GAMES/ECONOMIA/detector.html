@@ -190,7 +190,7 @@ function renderTopics() {
     <div class="topic-section">
       <h2>${sec.secao}</h2>
       <div class="topic-grid">
-        ${sec.topicos.map(t => `<button class="topic-btn" onclick="startSession(${JSON.stringify(t)})">${t}</button>`).join('')}
+        ${sec.topicos.map(t => `<button class="topic-btn" onclick="startSession(this.dataset.t)" data-t="${esc(t)}">${esc(t)}</button>`).join('')}
       </div>
     </div>
   `).join('');
@@ -201,7 +201,8 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 
-async function startSession(topico) {
+async function startSession(elOrStr) {
+  const topico = typeof elOrStr === 'string' ? elOrStr : elOrStr.dataset.t;
   state = { topico, perguntas: [], respostas: [], avaliacoes: [], currentQ: 0, feedbackShown: false };
   showScreen('screen-quiz');
   renderLoading('Gerando perguntas para "' + esc(topico) + '"…');
