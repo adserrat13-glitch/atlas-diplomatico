@@ -239,7 +239,13 @@
     .island-fill::after { content:''; position:absolute; inset:0;
       background:repeating-linear-gradient(90deg,transparent 0,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); }
 
+    /* ── PLANO + GAMES lado a lado ── */
+    .plano-games-row { display:grid; grid-template-columns:1fr 340px; gap:16px; align-items:start; }
+    .plano-games-row .daily-cycle { margin:0; }
+    .games-col {}
+
     @media(max-width:1000px) { .widget-row{grid-template-columns:repeat(2,1fr);} .bottom-grid{grid-template-columns:1fr 1fr;} }
+    @media(max-width:900px)  { .plano-games-row{grid-template-columns:1fr;} }
     @media(max-width:760px)  { .islands-grid{grid-template-columns:repeat(2,1fr);} .metric-bar{gap:5px;} }
     @media(max-width:520px)  { .islands-grid{grid-template-columns:1fr;} .widget-row{grid-template-columns:1fr 1fr;} .bottom-grid{grid-template-columns:1fr;} .metric-chip{min-width:80px;} }
   </style>
@@ -306,17 +312,17 @@
       </div>
     </div>
 
-    <!-- PLANO DO DIA -->
-    <div class="daily-cycle" id="dailyCycleSection">
-      <div class="cycle-header">📅 PLANO_DO_DIA — <span id="cycleDate"></span></div>
-      <div class="cycle-grid" id="dailyCycleGrid"></div>
-      <div class="cycle-complete" id="cycleComplete">🎯 Plano do dia completo! Zerado!</div>
-    </div>
-
-    <!-- GAMES -->
-    <div>
-      <div class="sec-lbl">Games</div>
-      <div class="games-grid" id="gamesGrid"></div>
+    <!-- PLANO DO DIA + GAMES lado a lado -->
+    <div class="plano-games-row">
+      <div class="daily-cycle" id="dailyCycleSection">
+        <div class="cycle-header">📅 PLANO_DO_DIA — <span id="cycleDate"></span></div>
+        <div class="cycle-grid" id="dailyCycleGrid"></div>
+        <div class="cycle-complete" id="cycleComplete">🎯 Plano do dia completo! Zerado!</div>
+      </div>
+      <div class="games-col">
+        <div class="sec-lbl">Games</div>
+        <div class="games-grid" id="gamesGrid"></div>
+      </div>
     </div>
 
     <!-- WIDGET ROW -->
