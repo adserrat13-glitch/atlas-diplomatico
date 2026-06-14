@@ -6,6 +6,8 @@
   <title>Detector de Falsos Especialistas — Geografia</title>
   <link rel="stylesheet" href="../../theme.css">
   <link rel="stylesheet" href="../../games-theme.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../supabase.js"></script>
   <style>
     body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
     .container { max-width: 760px; margin: 0 auto; padding: 2rem 1rem; }
@@ -203,7 +205,16 @@ function showReport() {
   document.getElementById('report-verdict').textContent = verdict;
   document.getElementById('gap-list').innerHTML = state.perguntas.map((q, i) => { const av = state.avaliacoes[i]; if (!av) return ''; const hasLacuna = !av.lacuna_revelada.toLowerCase().startsWith('nenhuma'); return `<li class="gap-item ${hasLacuna ? '' : 'ok'}"><div class="gap-q">P${i + 1} · ${esc(q.conceito_alvo)}</div><div class="gap-text">${esc(av.lacuna_revelada)}</div></li>`; }).join('');
   document.getElementById('progress-fill').style.width = '100%';
-  showScreen('screen-report'); window.scrollTo({ top: 0, behavior: 'smooth' });
+  saveDetectorSession('GEO').finally(() => { showScreen('screen-report'); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+}
+async function saveDetectorSession(subjectId) {
+  try {
+    const user = await DB.getUser(); if (!user) return;
+    const total = state.avaliacoes.reduce((s, a) => s + (a?.total || 0), 0);
+    const maxScore = state.perguntas.length * 30;
+    const wrongItems = state.perguntas.map((q, i) => { const av = state.avaliacoes[i]; if (!av || av.total >= 20) return null; return { q: q.pergunta, correct: av.lacuna_revelada, userAns: state.respostas[i] || '' }; }).filter(Boolean);
+    await DB.addSession({ type: 'detector', deck: state.topico, subject: subjectId, total: maxScore, correct: total, wrong: maxScore - total, wrong_items: wrongItems });
+  } catch (e) { console.warn('detector save:', e); }
 }
 function resetToTopics() { showScreen('screen-topics'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 renderTopics();
