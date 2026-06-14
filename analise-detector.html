@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Evolução — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1115; --card:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#9ca3af; --accent:#d4af37;
+      --green:#34d399; --red:#f87171; --yellow:#facc15; --blue:#60a5fa;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
+
+    /* NAV */
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:#d4af37; }
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:#d4af37; border-bottom:2px solid #d4af37; border-radius:0; padding-bottom:3px; }
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
+      border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+
+    /* MAIN */
+    main { max-width:1200px; margin:0 auto; padding:32px 24px; display:flex; flex-direction:column; gap:28px; }
+
+    /* PAGE HEADER */
+    .page-header { margin-bottom:4px; }
+    .page-header h1 { font-size:22px; font-weight:900; letter-spacing:.5px; }
+    .page-header p { font-size:13px; color:var(--muted); margin-top:5px; }
+
+    /* STATS ROW */
+    .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+    .stat-box { background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding:18px 20px; position:relative; overflow:hidden; }
+    .stat-box::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .stat-box.sb-green::before { background:var(--green); }
+    .stat-box.sb-yellow::before { background:var(--yellow); }
+    .stat-box.sb-blue::before { background:var(--blue); }
+    .stat-box.sb-red::before { background:var(--red); }
+    .stat-val { font-size:30px; font-weight:900; line-height:1; }
+    .stat-lbl { font-size:11px; color:var(--muted); margin-top:5px; font-weight:600;
+      letter-spacing:.5px; text-transform:uppercase; }
+
+    /* SECTION */
+    .section { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+    .section-title { font-size:11px; font-weight:900; letter-spacing:2px;
+      color:var(--muted); text-transform:uppercase; }
+
+    /* CHIPS */
+    .chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .chip { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:700;
+      cursor:pointer; border:1px solid rgba(255,255,255,.1); color:#888;
+      background:rgba(255,255,255,.04); transition:.15s; user-select:none; }
+    .chip.active { color:#000; border-color:transparent; }
+    .chip:hover:not(.active) { background:rgba(255,255,255,.08); color:#fff; }
+
+    /* CHART WRAP */
+    .chart-wrap { position:relative; }
+
+    /* LACUNAS GRID */
+    .lacunas-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+    .lacuna-card { background:rgba(255,255,255,.03); border:1px solid var(--border);
+      border-radius:12px; padding:16px; }
+    .lacuna-subj { font-size:11px; font-weight:900; letter-spacing:1.5px;
+      text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center;
+      justify-content:space-between; }
+    .lacuna-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px;
+      background:rgba(248,113,113,.15); color:var(--red); }
+    .lacuna-item { display:flex; align-items:flex-start; gap:8px; padding:7px 0;
+      border-bottom:1px solid rgba(255,255,255,.05); }
+    .lacuna-item:last-child { border-bottom:none; }
+    .lacuna-count { min-width:24px; height:24px; border-radius:50%; background:rgba(248,113,113,.15);
+      color:var(--red); font-size:10px; font-weight:900; display:flex;
+      align-items:center; justify-content:center; flex-shrink:0; }
+    .lacuna-q { font-size:11px; color:var(--muted); line-height:1.4; }
+    .lacuna-ans { font-size:10px; color:var(--green); margin-top:2px; font-weight:600; }
+
+    .empty-state { text-align:center; padding:40px; color:var(--muted); font-size:13px; }
+
+    @media(max-width:900px) { .stats-row{grid-template-columns:repeat(2,1fr);} }
+    @media(max-width:560px) { .stats-row{grid-template-columns:1fr 1fr;} main{padding:20px 14px;} }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">Início</a>
+    <a href="flashcards.html">Flashcards</a>
+    <a href="analise.html">Análise</a>
+    <a href="agenda.html">Agenda</a>
+    <a href="segunda-fase.html">2ª Fase</a>
+    <a href="gramatica-matching.html">Gramática</a>
+    <a href="GAMES/index.html">Games</a>
+    <a href="analise-tps-tematica.html">Análise TPS</a>
+    <a href="analise-detector.html" class="active">Evolução</a>
+    <a href="detector/index.html">Detector</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <h1>Central de Evolução</h1>
+      <p>Acompanhe seu progresso por matéria, lacunas de conhecimento e tendências semanais.</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-box sb-green">
+        <div class="stat-val" id="stTotal" style="color:var(--green)">—</div>
+        <div class="stat-lbl">Sessões totais</div>
+      </div>
+      <div class="stat-box sb-yellow">
+        <div class="stat-val" id="stAvg" style="color:var(--yellow)">—</div>
+        <div class="stat-lbl">Acerto médio</div>
+      </div>
+      <div class="stat-box sb-blue">
+        <div class="stat-val" id="stWeek" style="color:var(--blue)">—</div>
+        <div class="stat-lbl">Esta semana</div>
+      </div>
+      <div class="stat-box sb-red">
+        <div class="stat-val" id="stGaps" style="color:var(--red)">—</div>
+        <div class="stat-lbl">Erros únicos</div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO 1: EVOLUÇÃO POR MATÉRIA -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Evolução por Matéria</div>
+        <div id="subjectChips" class="chips"></div>
+      </div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="chartEvolucao"></canvas>
+      </div>
+    </div>
+
+    <!-- SEÇÃO 3: PROGRESSO SEMANAL -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Progresso Semanal — últimas 12 semanas</div>
+      </div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chartSemanal"></canvas>
+      </div>
+    </div>
+
+    <!-- SEÇÃO 4: FLASHCARD vs SIMULADO -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Flashcard vs Simulado por Matéria</div>
+      </div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="chartComparativo"></canvas>
+      </div>
+    </div>
+
+    <!-- SEÇÃO 2: LACUNAS -->
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Lacunas — itens mais errados</div>
+      </div>
+      <div id="lacunasGrid" class="lacunas-grid"></div>
+    </div>
+
+  </main>
+
+  <script>
+    const SUBJECTS = [
+      { id:'LP',  name:'Português',      color:'#ffffff', icon:'📖' },
+      { id:'ING', name:'Inglês',         color:'#cccccc', icon:'🇬🇧' },
+      { id:'HB',  name:'Hist. Brasil',   color:'#fb923c', icon:'🏛️' },
+      { id:'HM',  name:'Hist. Mundial',  color:'#f59e0b', icon:'🌍' },
+      { id:'GEO', name:'Geografia',      color:'#4ade80', icon:'🗺️' },
+      { id:'PI',  name:'Pol. Int.',      color:'#60a5fa', icon:'🌐' },
+      { id:'ECO', name:'Economia',       color:'#d9a05f', icon:'📈' },
+      { id:'DIR', name:'Direito',        color:'#b56a61', icon:'⚖️' },
+    ];
+    const SUBJ_MAP = Object.fromEntries(SUBJECTS.map(s => [s.id, s]));
+
+    let _sessions = [];
+    let _activeSubjects = new Set(SUBJECTS.map(s => s.id));
+    let _chartEv = null, _chartSem = null, _chartComp = null;
+
+    const CHART_DEFAULTS = {
+      plugins: { legend:{ labels:{ color:'#9ca3af', font:{size:11} } } },
+      scales: {
+        x: { ticks:{ color:'#9ca3af', font:{size:10} }, grid:{ color:'rgba(255,255,255,.05)' } },
+        y: { ticks:{ color:'#9ca3af', font:{size:10} }, grid:{ color:'rgba(255,255,255,.05)' } }
+      }
+    };
+
+    // ── SEÇÃO 1: EVOLUÇÃO ──────────────────────────────────────────────
+    function buildEvolucaoData() {
+      const datasets = [];
+      for (const subj of SUBJECTS) {
+        if (!_activeSubjects.has(subj.id)) continue;
+        const ss = _sessions
+          .filter(s => s.subject === subj.id && s.total > 0)
+          .sort((a, b) => a.date.localeCompare(b.date));
+        if (!ss.length) continue;
+        datasets.push({
+          label: subj.name,
+          data: ss.map(s => ({ x: s.date, y: Math.round(s.correct / s.total * 100) })),
+          borderColor: subj.color,
+          backgroundColor: subj.color + '22',
+          tension: 0.35,
+          pointRadius: 3,
+          borderWidth: 2,
+          fill: false,
+        });
+      }
+      return datasets;
+    }
+
+    function renderEvolucao() {
+      const ctx = document.getElementById('chartEvolucao').getContext('2d');
+      const datasets = buildEvolucaoData();
+
+      // meta 70%
+      const allDates = _sessions.map(s => s.date).sort();
+      const minDate = allDates[0] || new Date().toISOString().split('T')[0];
+      const maxDate = allDates[allDates.length - 1] || minDate;
+
+      if (_chartEv) _chartEv.destroy();
+      _chartEv = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [
+            ...datasets,
+            {
+              label: 'Meta 70%',
+              data: [{ x: minDate, y: 70 }, { x: maxDate, y: 70 }],
+              borderColor: '#facc1555',
+              borderDash: [6, 4],
+              borderWidth: 1.5,
+              pointRadius: 0,
+              fill: false,
+            }
+          ]
+        },
+        options: {
+          ...CHART_DEFAULTS,
+          responsive: true, maintainAspectRatio: false,
+          scales: {
+            x: { type:'time', time:{ unit:'day', displayFormats:{ day:'dd/MM' } },
+              ticks:{ color:'#9ca3af', font:{size:10}, maxTicksLimit:12 },
+              grid:{ color:'rgba(255,255,255,.05)' } },
+            y: { min:0, max:100,
+              ticks:{ color:'#9ca3af', font:{size:10}, callback: v => v+'%' },
+              grid:{ color:'rgba(255,255,255,.05)' } }
+          },
+          plugins: { legend:{ labels:{ color:'#9ca3af', font:{size:11}, boxWidth:12 } } }
+        }
+      });
+    }
+
+    function renderSubjectChips() {
+      const el = document.getElementById('subjectChips');
+      el.innerHTML = SUBJECTS.map(s => {
+        const active = _activeSubjects.has(s.id);
+        return `<div class="chip${active?' active':''}"
+          style="${active?`background:${s.color};color:#000`:'color:#888'}"
+          data-id="${s.id}">${s.icon} ${s.name}</div>`;
+      }).join('');
+      el.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const id = chip.dataset.id;
+          if (_activeSubjects.has(id)) {
+            if (_activeSubjects.size > 1) _activeSubjects.delete(id);
+          } else {
+            _activeSubjects.add(id);
+          }
+          renderSubjectChips();
+          renderEvolucao();
+        });
+      });
+    }
+
+    // ── SEÇÃO 3: SEMANAL ───────────────────────────────────────────────
+    function getISOWeek(dateStr) {
+      const d = new Date(dateStr + 'T12:00:00Z');
+      const thursday = new Date(d);
+      thursday.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) + 3);
+      const firstThursday = new Date(thursday.getUTCFullYear(), 0, 4);
+      return Math.ceil(((thursday - firstThursday) / 86400000 + 1) / 7);
+    }
+
+    function renderSemanal() {
+      const ctx = document.getElementById('chartSemanal').getContext('2d');
+      const now = new Date();
+      const weeks = [];
+      for (let w = 11; w >= 0; w--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - w * 7);
+        const key = `${d.getFullYear()}-W${String(getISOWeek(d.toISOString().split('T')[0])).padStart(2,'0')}`;
+        weeks.push({ key, label: d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }), total:0, correct:0 });
+      }
+      for (const s of _sessions) {
+        const key = `${s.date.slice(0,4)}-W${String(getISOWeek(s.date)).padStart(2,'0')}`;
+        const w = weeks.find(x => x.key === key);
+        if (w) { w.total += s.total || 0; w.correct += s.correct || 0; }
+      }
+
+      if (_chartSem) _chartSem.destroy();
+      _chartSem = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: weeks.map(w => w.label),
+          datasets: [
+            { label: 'Itens estudados', data: weeks.map(w => w.total),
+              backgroundColor: '#60a5fa44', borderColor: '#60a5fa', borderWidth: 1.5,
+              yAxisID: 'yItems', order: 2 },
+            { label: 'Acerto médio %', type: 'line',
+              data: weeks.map(w => w.total > 0 ? Math.round(w.correct/w.total*100) : null),
+              borderColor: '#d4af37', backgroundColor: '#d4af3722',
+              tension: 0.3, pointRadius: 4, borderWidth: 2,
+              yAxisID: 'yPct', order: 1 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend:{ labels:{ color:'#9ca3af', font:{size:11}, boxWidth:12 } } },
+          scales: {
+            x: { ticks:{ color:'#9ca3af', font:{size:10} }, grid:{ color:'rgba(255,255,255,.05)' } },
+            yItems: { position:'left', ticks:{ color:'#60a5fa', font:{size:10} }, grid:{ color:'rgba(255,255,255,.05)' } },
+            yPct: { position:'right', min:0, max:100,
+              ticks:{ color:'#d4af37', font:{size:10}, callback: v => v+'%' },
+              grid:{ drawOnChartArea:false } }
+          }
+        }
+      });
+    }
+
+    // ── SEÇÃO 4: FC vs SIM ─────────────────────────────────────────────
+    function renderComparativo() {
+      const ctx = document.getElementById('chartComparativo').getContext('2d');
+      const labels = [], fcData = [], simData = [];
+      for (const subj of SUBJECTS) {
+        const fc  = _sessions.filter(s => s.subject === subj.id && s.type === 'flashcard' && s.total > 0);
+        const sim = _sessions.filter(s => s.subject === subj.id && s.type === 'simulado'  && s.total > 0);
+        if (!fc.length && !sim.length) continue;
+        labels.push(subj.name);
+        fcData.push(fc.length  ? Math.round(fc.reduce((a,s)=>a+s.correct/s.total*100,0)/fc.length)   : null);
+        simData.push(sim.length ? Math.round(sim.reduce((a,s)=>a+s.correct/s.total*100,0)/sim.length) : null);
+      }
+
+      if (_chartComp) _chartComp.destroy();
+      _chartComp = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Flashcard', data: fcData,  backgroundColor: '#60a5fa88', borderColor:'#60a5fa', borderWidth:1.5 },
+            { label: 'Simulado',  data: simData, backgroundColor: '#d4af3788', borderColor:'#d4af37', borderWidth:1.5 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend:{ labels:{ color:'#9ca3af', font:{size:11}, boxWidth:12 } } },
+          scales: {
+            x: { ticks:{ color:'#9ca3af', font:{size:10} }, grid:{ color:'rgba(255,255,255,.05)' } },
+            y: { min:0, max:100,
+              ticks:{ color:'#9ca3af', font:{size:10}, callback: v => v+'%' },
+              grid:{ color:'rgba(255,255,255,.05)' } }
+          }
+        }
+      });
+    }
+
+    // ── SEÇÃO 2: LACUNAS ───────────────────────────────────────────────
+    function renderLacunas() {
+      const errorsBySubject = {};
+      for (const s of _sessions) {
+        if (!s.wrong_items?.length) continue;
+        const sid = s.subject || 'OUTRO';
+        if (!errorsBySubject[sid]) errorsBySubject[sid] = {};
+        for (const item of s.wrong_items) {
+          const key = (item.q || '').trim().slice(0, 120);
+          if (!key) continue;
+          if (!errorsBySubject[sid][key]) errorsBySubject[sid][key] = { q: key, correct: item.correct || '', count: 0 };
+          errorsBySubject[sid][key].count++;
+        }
+      }
+
+      const subjWithErrors = Object.entries(errorsBySubject)
+        .map(([id, items]) => ({ id, subj: SUBJ_MAP[id], items: Object.values(items).sort((a,b)=>b.count-a.count).slice(0,5), total: Object.values(items).reduce((a,x)=>a+x.count,0) }))
+        .filter(x => x.items.length)
+        .sort((a,b) => b.total - a.total);
+
+      const grid = document.getElementById('lacunasGrid');
+      if (!subjWithErrors.length) {
+        grid.innerHTML = '<div class="empty-state">Nenhum erro registrado ainda. Continue estudando!</div>';
+        return;
+      }
+
+      grid.innerHTML = subjWithErrors.map(({ id, subj, items, total }) => {
+        const color = subj?.color || '#888';
+        const icon  = subj?.icon  || '📚';
+        const name  = subj?.name  || id;
+        return `<div class="lacuna-card">
+          <div class="lacuna-subj" style="color:${color}">${icon} ${name} <span class="lacuna-badge">${total} erros</span></div>
+          ${items.map(item => `
+            <div class="lacuna-item">
+              <div class="lacuna-count">${item.count}</div>
+              <div>
+                <div class="lacuna-q">${item.q}</div>
+                ${item.correct ? `<div class="lacuna-ans">✓ ${String(item.correct).slice(0,80)}</div>` : ''}
+              </div>
+            </div>`).join('')}
+        </div>`;
+      }).join('');
+    }
+
+    // ── STATS SUMMARY ──────────────────────────────────────────────────
+    function renderStats() {
+      const total = _sessions.length;
+      const avg = total > 0
+        ? Math.round(_sessions.filter(s=>s.total>0).reduce((a,s)=>a+s.correct/s.total*100,0) / _sessions.filter(s=>s.total>0).length)
+        : 0;
+      const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+      const weekKey = weekAgo.toISOString().split('T')[0];
+      const weekCount = _sessions.filter(s=>s.date>=weekKey).reduce((a,s)=>a+(s.total||0),0);
+      let uniqueErrors = 0;
+      const seen = new Set();
+      for (const s of _sessions) {
+        for (const item of (s.wrong_items||[])) {
+          const k = (item.q||'').trim().slice(0,120);
+          if (k && !seen.has(k)) { seen.add(k); uniqueErrors++; }
+        }
+      }
+      document.getElementById('stTotal').textContent = total;
+      document.getElementById('stAvg').textContent   = avg + '%';
+      document.getElementById('stWeek').textContent  = weekCount;
+      document.getElementById('stGaps').textContent  = uniqueErrors;
+    }
+
+    // ── COUNTDOWN ──────────────────────────────────────────────────────
+    async function setCountdown() {
+      try {
+        const examDate = await DB.getExamDate();
+        const now = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+        const exam = new Date(examDate.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+        now.setHours(0,0,0,0); exam.setHours(0,0,0,0);
+        const days = Math.ceil((exam-now)/86400000);
+        const el = document.getElementById('navCountdown');
+        if (el) el.textContent = `${days}d CACD`;
+      } catch(e) {}
+    }
+
+    // ── INIT ───────────────────────────────────────────────────────────
+    (async () => {
+      // Chart.js needs time adapter for time scale
+      const ta = document.createElement('script');
+      ta.src = 'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js';
+      ta.onload = async () => {
+        const user = await DB.requireAuth();
+        const profile = await DB.getProfile();
+        const initials = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+        document.getElementById('navUser').textContent = initials;
+
+        _sessions = await DB.getSessions(user.id);
+
+        renderStats();
+        renderSubjectChips();
+        renderEvolucao();
+        renderSemanal();
+        renderComparativo();
+        renderLacunas();
+        setCountdown();
+      };
+      document.head.appendChild(ta);
+    })();
+  </script>
+</body>
+</html>
