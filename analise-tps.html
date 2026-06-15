@@ -583,8 +583,197 @@ function buildExecDashboard(sessions, activity, examDate){
   </div>`;
 }
 
-// ── MODULE 2: LEARNING CURVE (EWMA + confidence band) ─────────────────────
-function buildLearningCurve(qs){
+// ── MODULE 2: STUDY RHYTHM — Daily Volume + Subject Comparison ─────────────
+const DAILY_GOAL=30;
+
+function buildStudyRhythm(sessions, qs){
+  if(!qs.length) return {html:'',init(){}};
+
+  // Últimos 30 dias
+  const today=new Date(); today.setHours(0,0,0,0);
+  const days30=[];
+  for(let i=29;i>=0;i--){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    days30.push(d.toISOString().slice(0,10));
+  }
+
+  // Volume por dia
+  const qsByDay={};
+  qs.forEach(q=>{ if(q.date){ qsByDay[q.date]=(qsByDay[q.date]||0)+1; } });
+  const dailyVol=days30.map(d=>qsByDay[d]||0);
+  const barColors=dailyVol.map(v=>v>=DAILY_GOAL?'rgba(52,211,153,0.75)':v>=15?'rgba(251,191,36,0.65)':'rgba(255,255,255,0.15)');
+
+  // Acerto por matéria — 30d atual vs 30d anterior
+  const cut30=days30[0]; // data de 30 dias atrás
+  const cut60=new Date(today); cut60.setDate(cut60.getDate()-60);
+  const cut60s=cut60.toISOString().slice(0,10);
+
+  const subjsWithData=[];
+  SUBJECTS.forEach(sub=>{
+    const subQs=qs.filter(q=>q.subject===sub.id);
+    const now30=subQs.filter(q=>q.date>=cut30);
+    const prev30=subQs.filter(q=>q.date>=cut60s&&q.date<cut30);
+    const pctNow =now30.length>=5 ?Math.round(now30.reduce((a,q)=>a+q.hit,0)/now30.length*100):null;
+    const pctPrev=prev30.length>=5?Math.round(prev30.reduce((a,q)=>a+q.hit,0)/prev30.length*100):null;
+    if(pctNow!==null||pctPrev!==null) subjsWithData.push({sub,pctNow,pctPrev});
+  });
+
+  const compLabels=subjsWithData.map(s=>s.sub.name);
+  const compNow  =subjsWithData.map(s=>s.pctNow);
+  const compPrev =subjsWithData.map(s=>s.pctPrev);
+
+  const dayLabels=days30.map(d=>{
+    const [,m,dd]=d.split('-'); return `${dd}/${m}`;
+  });
+
+  return {
+    html:`<div class="charts-2col" style="margin-bottom:4px">
+      <div class="card">
+        <h3>Volume Diário de Questões — Últimos 30 Dias</h3>
+        <div class="chart-wrap h220"><canvas id="chartDailyVolume"></canvas></div>
+        <div class="chart-meta">
+          <span style="color:#34d399">■ Meta (${DAILY_GOAL}q) atingida</span>
+          <span style="color:#fbbf24">■ Parcial (≥15q)</span>
+          <span style="color:rgba(255,255,255,.3)">■ Baixo</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Acerto por Matéria — 30d Atual vs Anterior</h3>
+        <div class="chart-wrap h220"><canvas id="chartSubjectComparison"></canvas></div>
+        <div class="chart-meta">
+          <span style="color:#8ea7ff">■ Últimos 30d</span>
+          <span style="color:rgba(255,255,255,.25)">■ 30d anteriores</span>
+          <span style="color:rgba(110,231,183,.6)">— Meta 70%</span>
+        </div>
+      </div>
+    </div>`,
+    init(){
+      // Gráfico 1: Volume diário (barras)
+      const ctx1=document.getElementById('chartDailyVolume').getContext('2d');
+      new Chart(ctx1,{type:'bar',data:{
+        labels:dayLabels,
+        datasets:[
+          {type:'line',label:`Meta (${DAILY_GOAL}q)`,data:days30.map(()=>DAILY_GOAL),
+            borderColor:'rgba(110,231,183,0.5)',borderDash:[5,4],borderWidth:1.5,
+            pointRadius:0,fill:false,tension:0,order:0},
+          {type:'bar',label:'Questões',data:dailyVol,
+            backgroundColor:barColors,borderRadius:4,order:1}
+        ]
+      },options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label(c){return c.dataset.type==='line'?null:`${c.parsed.y} questões`;},filter(i){return i.dataset.type!=='line';}}}},
+        scales:{
+          y:{min:0,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',maxTicksLimit:5}},
+          x:{grid:{display:false},ticks:{color:'#6b7280',maxRotation:45,font:{size:9},maxTicksLimit:10}}
+        }
+      }});
+
+      // Gráfico 2: Comparação de matérias (barras agrupadas)
+      const ctx2=document.getElementById('chartSubjectComparison').getContext('2d');
+      new Chart(ctx2,{type:'bar',data:{
+        labels:compLabels,
+        datasets:[
+          {type:'line',label:'Meta 70%',data:compLabels.map(()=>70),
+            borderColor:'rgba(110,231,183,0.45)',borderDash:[5,4],borderWidth:1.5,
+            pointRadius:0,fill:false,tension:0,order:0},
+          {type:'bar',label:'Últimos 30d',data:compNow,
+            backgroundColor:'rgba(142,167,255,0.75)',borderRadius:3,order:1},
+          {type:'bar',label:'30d anteriores',data:compPrev,
+            backgroundColor:'rgba(255,255,255,0.18)',borderRadius:3,order:2}
+        ]
+      },options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},
+          tooltip:{callbacks:{label(c){return c.parsed.y!==null?`${c.dataset.label}: ${c.parsed.y}%`:null;}}}},
+        scales:{
+          y:{min:0,max:100,grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#6b7280',callback:v=>v+'%',maxTicksLimit:5}},
+          x:{grid:{display:false},ticks:{color:'#6b7280',font:{size:9},maxRotation:30}}
+        }
+      }});
+    }
+  };
+}
+
+// ── MODULE 3: URGENCY CHART — Priority by Subject ───────────────────────────
+function buildUrgencyChart(sessions, qs){
+  if(!qs.length) return {html:'',init(){}};
+
+  const today=Date.now();
+  const subjectMap=buildSubjectQsMap(qs);
+
+  const ranked=SUBJECTS.map(sub=>{
+    const m=subjectMap[sub.id];
+    if(!m||m.total<5) return null;
+    const pct=Math.round(m.correct/m.total*100);
+    // Dias desde a última questão dessa matéria
+    const dates=Object.keys(m.byDate).sort();
+    const lastDate=dates[dates.length-1];
+    const diasSemEstudar=lastDate?Math.floor((today-new Date(lastDate).getTime())/86400000):60;
+    const urgency=Math.round((100-pct)*(1+diasSemEstudar/30));
+    return {sub,pct,diasSemEstudar,urgency,total:m.total};
+  }).filter(Boolean).sort((a,b)=>b.urgency-a.urgency);
+
+  if(!ranked.length) return {html:'',init(){}};
+
+  const avgUrgency=Math.round(ranked.reduce((a,r)=>a+r.urgency,0)/ranked.length);
+
+  // Cor escalonada: mais urgente = vermelho mais vivo
+  const maxU=ranked[0].urgency;
+  const barColors=ranked.map(r=>{
+    const ratio=r.urgency/maxU;
+    const l=Math.round(25+15*(1-ratio)); // 25%–40% lightness
+    return `hsl(0,70%,${l}%)`;
+  });
+
+  const alerts=ranked.slice(0,3).map(r=>{
+    const col=r.pct<55?'var(--red)':r.pct<70?'var(--yellow)':'var(--muted)';
+    return `<span style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid ${col};color:${col}">
+      🔴 <b>${r.sub.name}</b> — ${r.pct}% acerto · ${r.diasSemEstudar}d sem estudar
+    </span>`;
+  }).join('');
+
+  return {
+    html:`<div class="card" style="margin-bottom:4px">
+      <h3>Urgência de Revisão por Matéria</h3>
+      <div class="chart-wrap h240"><canvas id="chartUrgency"></canvas></div>
+      <div id="urgencyAlerts" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">${alerts}</div>
+    </div>`,
+    init(){
+      const ctx=document.getElementById('chartUrgency').getContext('2d');
+      new Chart(ctx,{type:'bar',data:{
+        labels:ranked.map(r=>r.sub.name),
+        datasets:[
+          {type:'line',label:'Média',data:ranked.map(()=>avgUrgency),
+            borderColor:'rgba(255,255,255,0.25)',borderWidth:1.5,borderDash:[5,4],
+            pointRadius:0,fill:false,tension:0,order:0},
+          {type:'bar',label:'Urgência',data:ranked.map(r=>r.urgency),
+            backgroundColor:barColors,borderRadius:4,order:1}
+        ]
+      },options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{callbacks:{
+            label(c){
+              if(c.dataset.label==='Média') return `Média: ${c.parsed.y}`;
+              const r=ranked[c.dataIndex];
+              return [`Score urgência: ${r.urgency}`,`Acerto: ${r.pct}%`,`Sem estudar: ${r.diasSemEstudar}d`,`Total: ${r.total}q`];
+            }
+          }}
+        },
+        scales:{
+          y:{display:false},
+          x:{grid:{display:false},ticks:{color:'#9ca3af',font:{size:11}}}
+        }
+      }});
+    }
+  };
+}
+
+// ── (stubs removidos — funções substituídas por buildStudyRhythm/buildUrgencyChart) ──
+function buildLearningCurve(qs){ return {html:'',init(){}}; }
+function _oldLearningCurveBody(qs){
   if(!qs.length) return {html:'',init(){}};
 
   // EWMA com α=0.05
@@ -690,8 +879,8 @@ function buildLearningCurve(qs){
   };
 }
 
-// ── MODULE 3: CONTROL CHART P + CUSUM ──────────────────────────────────────
-function buildControlChart(qs){
+function buildControlChart(qs){ return {html:'',init(){}}; }
+function _oldControlChartBody(qs){
   if(qs.length<20) return {html:'',init(){}};
 
   const BLOCK=20, META=70;
@@ -1716,8 +1905,8 @@ window.renderTableBody=renderTableBody;
   const qs=flattenQuestions(sessions);
 
   // Build all components
-  const learningCurve = buildLearningCurve(qs);
-  const controlChart  = buildControlChart(qs);
+  const studyRhythm  = buildStudyRhythm(sessions, qs);
+  const urgencyChart = buildUrgencyChart(sessions, qs);
   const proficiency  = buildProficiencyChart(sessions);
   const subjectCards = buildSubjectCards(sessions);
   const temporal     = buildTemporalComparison(sessions);
@@ -1729,11 +1918,11 @@ window.renderTableBody=renderTableBody;
     ${secLabel('Painel Executivo')}
     ${buildExecDashboard(sessions,activity,examDate)}
 
-    ${secLabel('Curva de Aprendizado — Evolução da Probabilidade de Acerto')}
-    ${learningCurve.html}
+    ${secLabel('Ritmo de Estudo — Volume Diário e Evolução por Matéria')}
+    ${studyRhythm.html}
 
-    ${secLabel('Carta de Controle de Desempenho por Bloco (P)')}
-    ${controlChart.html}
+    ${secLabel('Urgência de Revisão por Matéria')}
+    ${urgencyChart.html}
 
     ${secLabel('Curva de Proficiência + Previsão Futura')}
     ${proficiency.html}
@@ -1798,8 +1987,8 @@ window.renderTableBody=renderTableBody;
   document.getElementById('mainContent').innerHTML=html;
 
   // Init charts
-  learningCurve.init();
-  controlChart.init();
+  studyRhythm.init();
+  urgencyChart.init();
   proficiency.init();
   temporal.init();
   radar.init();
