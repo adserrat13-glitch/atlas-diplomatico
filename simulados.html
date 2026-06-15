@@ -439,14 +439,22 @@
     ]);
 
     function classifyQuestion(text) {
+      let best = null, bestScore = 0;
       for (const rule of SUBJECT_RULES) {
         const matches = text.match(rule.rx);
-        if (matches && matches.length) {
-          const tags = [...new Set(matches.map(m => m.trim()))].slice(0, 3);
-          return { subjectCode: rule.code, subjectLabel: rule.label, tags };
-        }
+        const score = matches ? new Set(matches.map(m => m.trim().toLowerCase())).size : 0;
+        if (score > bestScore) { bestScore = score; best = rule; }
       }
-      return { subjectCode: 'PI', subjectLabel: 'Política Internacional', tags: [] };
+      if (!best) return { subjectCode: 'PI', subjectLabel: 'Política Internacional', tags: [] };
+      const tags = [...new Set((text.match(best.rx)||[]).map(m => m.trim()))].slice(0, 3);
+      return { subjectCode: best.code, subjectLabel: best.label, tags };
+    }
+
+    function dominantSubject(answers) {
+      const freq = {};
+      answers.forEach(a => { if (a.subjectCode) freq[a.subjectCode] = (freq[a.subjectCode]||0)+1; });
+      const sorted = Object.entries(freq).sort(([,a],[,b]) => b-a);
+      return sorted[0]?.[0] || 'PI';
     }
 
     function extractKeywords(text) {
@@ -755,12 +763,21 @@
       const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
       const mins = Math.floor(timerSecs / 60);
 
+      const subjectsBreakdown = {};
+      answers.forEach(a => {
+        const sc = a.subjectCode || 'PI';
+        if (!subjectsBreakdown[sc]) subjectsBreakdown[sc] = {total:0, correct:0};
+        subjectsBreakdown[sc].total++;
+        if (a.isCorrect) subjectsBreakdown[sc].correct++;
+      });
+
       DB.addSession({
         type: 'simulado', deck: deckName,
-        subject: detectSubject(deckName),
+        subject: dominantSubject(answers),
         total, correct, wrong, time_seconds: timerSecs,
+        subjects_breakdown: subjectsBreakdown,
         wrong_items: answers.filter(a => !a.isCorrect)
-          .map(a => ({q: a.q, answer: a.correct, userAns: a.userAns}))
+          .map(a => ({q: a.q, answer: a.correct, userAns: a.userAns, subjectCode: a.subjectCode}))
       });
 
       document.getElementById('summaryScore').textContent = pct + '%';

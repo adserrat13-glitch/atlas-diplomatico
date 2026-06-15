@@ -355,14 +355,15 @@ const SUBJECT_RULES = [
 ];
 
 function classifyText(text) {
+  let best = null, bestScore = 0;
   for (const rule of SUBJECT_RULES) {
     const matches = text.match(rule.rx);
-    if (matches && matches.length) {
-      const tags = [...new Set(matches.map(m => m.trim()))].slice(0, 3);
-      return { subjectCode: rule.code, subjectLabel: rule.label, tags };
-    }
+    const score = matches ? new Set(matches.map(m => m.trim().toLowerCase())).size : 0;
+    if (score > bestScore) { bestScore = score; best = rule; }
   }
-  return { subjectCode: 'PI', subjectLabel: 'Pol. Internacional', tags: [] };
+  if (!best) return { subjectCode: 'PI', subjectLabel: 'Pol. Internacional', tags: [] };
+  const tags = [...new Set((text.match(best.rx)||[]).map(m => m.trim()))].slice(0, 3);
+  return { subjectCode: best.code, subjectLabel: best.label, tags };
 }
 
 Chart.defaults.color = '#8f8f8f';
@@ -433,12 +434,43 @@ function flattenQuestions(sessions){
   sessions.forEach(s=>{
     const d=sessionDate(s);
     const wrongs=s.wrong_items||[];
-    for(let i=0;i<s.correct;i++) qs.push({date:d,subject:s.subject,hit:1,q:null});
-    wrongs.forEach(w=>qs.push({date:d,subject:s.subject,hit:0,q:w.q||w.answer,correct:w.answer||w.correct,userAns:w.userAns}));
+    // Wrong items: use per-question subjectCode if available, else reclassify from text
+    wrongs.forEach(w=>{
+      const subj = w.subjectCode || (w.q ? classifyText(w.q).subjectCode : null) || s.subject || 'PI';
+      qs.push({date:d,subject:subj,hit:0,q:w.q||w.answer,correct:w.answer||w.correct,userAns:w.userAns});
+    });
+    // Correct answers: distribute by subjects_breakdown if available, else use session subject
+    const breakdown = s.subjects_breakdown;
+    if(breakdown && Object.keys(breakdown).length > 0){
+      Object.entries(breakdown).forEach(([subj,{correct}])=>{
+        for(let i=0;i<(correct||0);i++) qs.push({date:d,subject:subj,hit:1,q:null});
+      });
+    } else {
+      for(let i=0;i<s.correct;i++) qs.push({date:d,subject:s.subject||'PI',hit:1,q:null});
+    }
+    // Missing wrongs without detail
     const missing=Math.max(0,(s.wrong||0)-wrongs.length);
-    for(let i=0;i<missing;i++) qs.push({date:d,subject:s.subject,hit:0,q:null});
+    for(let i=0;i<missing;i++) qs.push({date:d,subject:s.subject||'PI',hit:0,q:null});
   });
   return qs.sort((a,b)=>a.date.localeCompare(b.date));
+}
+
+// Returns per-subject stats from flattened questions (correct classification)
+// subjectQsMap[subjectId] = {total, correct, byDate:{date:{c,t}}}
+function buildSubjectQsMap(qs){
+  const map={};
+  qs.forEach(q=>{
+    const id=q.subject||'PI';
+    if(!map[id]) map[id]={total:0,correct:0,byDate:{}};
+    map[id].total++;
+    if(q.hit) map[id].correct++;
+    if(q.date){
+      if(!map[id].byDate[q.date]) map[id].byDate[q.date]={c:0,t:0};
+      map[id].byDate[q.date].t++;
+      if(q.hit) map[id].byDate[q.date].c++;
+    }
+  });
+  return map;
 }
 
 function movingAvgN(questions,N){
@@ -477,12 +509,11 @@ function buildExecDashboard(sessions, activity, examDate){
   const prev30Avg = avgScore(sessionsByPeriod(sessions,60,30));
   const monthDelta = (now30Avg!==null&&prev30Avg!==null) ? Math.round(now30Avg-prev30Avg) : null;
 
+  const _qsMap=buildSubjectQsMap(qs);
   const subRanked=SUBJECTS.map(sub=>{
-    const all=sessions.filter(s=>s.subject===sub.id);
-    const t=all.reduce((a,s)=>a+s.total,0);
-    const c=all.reduce((a,s)=>a+s.correct,0);
-    return {...sub,total:t,pct:t>0?Math.round(c/t*100):null};
-  }).filter(s=>s.total>=20&&s.pct!==null).sort((a,b)=>b.pct-a.pct);
+    const m=_qsMap[sub.id]||{total:0,correct:0};
+    return {...sub,total:m.total,pct:m.total>=20?Math.round(m.correct/m.total*100):null};
+  }).filter(s=>s.pct!==null).sort((a,b)=>b.pct-a.pct);
   const strongest = subRanked[0]||null;
   const weakest   = subRanked[subRanked.length-1]||null;
 
@@ -685,27 +716,42 @@ function buildProficiencyChart(sessions){
 
 // ── MODULE 5: SUBJECT CARDS ─────────────────────────────────────────────────
 function buildSubjectCards(sessions){
-  const now=Date.now();
+  // Use flattened questions (per-question subject classification) instead of session-level subject
+  const allQs = flattenQuestions(sessions);
+  const now = Date.now();
+
+  // Helper: filter flattened questions by subject and date window
+  function qsBySubjPeriod(subjId, daysBack, daysEnd=0){
+    return allQs.filter(q=>{
+      if(q.subject!==subjId) return false;
+      const t=new Date(q.date||0).getTime();
+      return t>=now-daysBack*86400000 && t<=now-daysEnd*86400000;
+    });
+  }
+  function qPct(qs){ return qs.length>0?Math.round(qs.filter(q=>q.hit).length/qs.length*100):null; }
+
   const ranked=SUBJECTS.map(sub=>{
-    const all =sessions.filter(s=>s.subject===sub.id);
-    const l30 =all.filter(s=>new Date(sessionDate(s)).getTime()>=now-30*86400000);
-    const p30 =all.filter(s=>{const t=new Date(sessionDate(s)).getTime();return t>=now-60*86400000&&t<now-30*86400000;});
-    const l90 =all.filter(s=>new Date(sessionDate(s)).getTime()>=now-90*86400000);
-    const p90 =all.filter(s=>{const t=new Date(sessionDate(s)).getTime();return t>=now-180*86400000&&t<now-90*86400000;});
-    const totalQ=all.reduce((a,s)=>a+s.total,0);
-    const totalC=all.reduce((a,s)=>a+s.correct,0);
-    const totalPct=totalQ>0?Math.round(totalC/totalQ*100):null;
-    const avg30=avgScore(l30),avgP30=avgScore(p30);
-    const avg90=avgScore(l90),avgP90=avgScore(p90);
-    const delta30=(avg30!==null&&avgP30!==null)?Math.round(avg30-avgP30):null;
-    const delta90=(avg90!==null&&avgP90!==null)?Math.round(avg90-avgP90):null;
-    const spark=all.slice(-8).map(s=>pct(s.correct,s.total));
-    // Trend: slope of last 5 session scores
-    const last5=all.slice(-5).map(s=>pct(s.correct,s.total));
+    const allSubjQs = allQs.filter(q=>q.subject===sub.id);
+    const l30Qs  = qsBySubjPeriod(sub.id,30);
+    const p30Qs  = qsBySubjPeriod(sub.id,60,30);
+    const l90Qs  = qsBySubjPeriod(sub.id,90);
+    const p90Qs  = qsBySubjPeriod(sub.id,180,90);
+    const totalQ = allSubjQs.length;
+    const totalC = allSubjQs.filter(q=>q.hit).length;
+    const totalPct = totalQ>0?Math.round(totalC/totalQ*100):null;
+    const avg30  = qPct(l30Qs), avgP30 = qPct(p30Qs);
+    const avg90  = qPct(l90Qs), avgP90 = qPct(p90Qs);
+    const delta30 = (avg30!==null&&avgP30!==null)?avg30-avgP30:null;
+    const delta90 = (avg90!==null&&avgP90!==null)?avg90-avgP90:null;
+    // Sparkline: last 8 date-groups for this subject
+    const dateGroups={};
+    allSubjQs.forEach(q=>{if(q.date){if(!dateGroups[q.date])dateGroups[q.date]={c:0,t:0};dateGroups[q.date].t++;if(q.hit)dateGroups[q.date].c++;}});
+    const spark=Object.keys(dateGroups).sort().slice(-8).map(d=>Math.round(dateGroups[d].c/dateGroups[d].t*100));
+    // Trend: slope of last 5 date-group scores
+    const last5=Object.keys(dateGroups).sort().slice(-5).map(d=>Math.round(dateGroups[d].c/dateGroups[d].t*100));
     const slopeV=linearSlope(last5);
     const trendLabel=slopeV>=2?'↑ Melhorando':slopeV<=-2?'↓ Piorando':'→ Estável';
     const trendColor=slopeV>=2?'var(--green)':slopeV<=-2?'var(--red)':'var(--muted)';
-    // Speed: delta30/month
     const speedLabel=delta30!==null?`${delta30>=0?'+':''}${delta30}%/mês`:'—';
     return {...sub,totalQ,totalPct,delta30,delta90,spark,trendLabel,trendColor,speedLabel};
   }).filter(s=>s.totalQ>0).sort((a,b)=>b.totalPct-a.totalPct);
@@ -733,15 +779,29 @@ function buildSubjectCards(sessions){
           datasets:[{data:sparkData,borderColor:sparkColor,backgroundColor:sparkColor+'22',fill:true,tension:0.4,pointRadius:0}]},
           options:{responsive:true,maintainAspectRatio:false,
             plugins:{legend:{display:false}},
-            scales:{x:{display:false},y:{display:false,min:0,max:100}}}});
+            scales:{x:{display:false},y:{display:false,min:0,max:100,suggestedMin:0,suggestedMax:100}}}});
       });
     }
-    return `<div class="subj-card">
+    // Border highlight: top-3 green, bottom-3 red
+    const isTop = idx < 3;
+    const isBot = idx >= ranked.length - 3 && ranked.length > 3;
+    const borderStyle = isTop ? 'border-color:rgba(52,211,153,.45);' : isBot ? 'border-color:rgba(248,113,113,.35);' : '';
+    const tooltipTitle = [
+      `#${idx+1} ${sub.name}`,
+      `Total: ${sub.totalQ}q · ${sub.totalPct}%`,
+      sub.delta30!==null ? `30d: ${sub.delta30>=0?'+':''}${sub.delta30}%` : '',
+      sub.delta90!==null ? `90d: ${sub.delta90>=0?'+':''}${sub.delta90}%` : '',
+      sub.trendLabel
+    ].filter(Boolean).join(' | ');
+    return `<div class="subj-card" style="${borderStyle}" title="${tooltipTitle}">
       <div class="subj-card-rank">#${idx+1}</div>
       <div class="subj-card-name"><span class="subj-dot" style="background:${sub.color}"></span>${sub.name}</div>
-      <div class="subj-pct" style="color:${sub.totalPct>=70?'var(--green)':sub.totalPct>=50?'var(--yellow)':'var(--red)'}">${sub.totalPct}%</div>
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+        <div class="subj-pct" style="color:${sub.totalPct>=70?'var(--green)':sub.totalPct>=50?'var(--yellow)':'var(--red)'}">${sub.totalPct}%</div>
+        <span style="font-size:12px;color:var(--muted)">${sub.totalQ}q</span>
+      </div>
       <div class="subj-meta">
-        <span>${sub.totalQ}q</span>${d30Html}${d90Html?'<span>'+d90Html+'</span>':''}
+        ${d30Html}${d90Html?'<span>'+d90Html+'</span>':''}
         <span style="color:var(--blue)">⚡ ${sub.speedLabel}</span>
       </div>
       ${sub.spark.length>=2?`<canvas id="${sid}" class="subj-sparkline"></canvas>`:''}
@@ -829,11 +889,11 @@ function escHtml(s){
 
 // ── MODULE 7: WEAKNESSES WITH PRIORITY ─────────────────────────────────────
 function buildWeaknesses(sessions){
+  const _qs=flattenQuestions(sessions);
+  const _map=buildSubjectQsMap(_qs);
   const subStats=SUBJECTS.map(sub=>{
-    const all=sessions.filter(s=>s.subject===sub.id);
-    const t=all.reduce((a,s)=>a+s.total,0);
-    const c=all.reduce((a,s)=>a+s.correct,0);
-    return {...sub,totalQ:t,totalPct:t>0?Math.round(c/t*100):null};
+    const m=_map[sub.id]||{total:0,correct:0};
+    return {...sub,totalQ:m.total,totalPct:m.total>0?Math.round(m.correct/m.total*100):null};
   }).filter(s=>s.totalQ>=5&&s.totalPct!==null).sort((a,b)=>a.totalPct-b.totalPct);
 
   const weakHtml=subStats.slice(0,5).map(sub=>{
@@ -873,25 +933,35 @@ function buildWeaknesses(sessions){
 
 // ── MODULE 8: PLATEAU BY SUBJECT ────────────────────────────────────────────
 function buildPlateauBySubject(sessions){
+  const allQs=flattenQuestions(sessions);
+  const cutoff30=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
   const plateaus=[];
   SUBJECTS.forEach(sub=>{
-    const all=sessions.filter(s=>s.subject===sub.id);
-    const recent=sessionsByPeriod(all,30);
-    if(recent.length<4) return;
-    const scores=recent.map(s=>pct(s.correct,s.total));
-    const sd=stddev(scores);
+    const subQs=allQs.filter(q=>q.subject===sub.id);
+    const recent=subQs.filter(q=>q.date>=cutoff30);
+    if(recent.length<10) return;
+    // Agrupa por data para calcular score diário
+    const byDate={};
+    recent.forEach(q=>{
+      if(!byDate[q.date]) byDate[q.date]={c:0,t:0};
+      byDate[q.date].t++;
+      if(q.hit) byDate[q.date].c++;
+    });
+    const dailyScores=Object.values(byDate).map(d=>Math.round(d.c/d.t*100));
+    if(dailyScores.length<4) return;
+    const sd=stddev(dailyScores);
     if(sd<4){
-      // Count days since last significant change (≥3%)
+      const sortedDates=Object.keys(byDate).sort();
       let stagnantDays=0;
-      const dated=all.slice().sort((a,b)=>sessionDate(a).localeCompare(sessionDate(b)));
-      for(let i=dated.length-1;i>0;i--){
-        const curr=pct(dated[i].correct,dated[i].total);
-        const prev=pct(dated[i-1].correct,dated[i-1].total);
+      for(let i=sortedDates.length-1;i>0;i--){
+        const curr=Math.round(byDate[sortedDates[i]].c/byDate[sortedDates[i]].t*100);
+        const prev=Math.round(byDate[sortedDates[i-1]].c/byDate[sortedDates[i-1]].t*100);
         if(Math.abs(curr-prev)>=3) break;
-        const diff=Math.round((new Date(sessionDate(dated[i]))-new Date(sessionDate(dated[i-1])))/86400000);
+        const diff=Math.round((new Date(sortedDates[i])-new Date(sortedDates[i-1]))/86400000);
         stagnantDays+=diff;
       }
-      plateaus.push({sub,avg:Math.round(scores.reduce((a,v)=>a+v,0)/scores.length),sd,stagnantDays});
+      const avg=Math.round(dailyScores.reduce((a,v)=>a+v,0)/dailyScores.length);
+      plateaus.push({sub,avg,sd,stagnantDays});
     }
   });
 
@@ -1080,25 +1150,86 @@ function buildStackedBar(sessions){
 
 // ── MODULE 13: RADAR ────────────────────────────────────────────────────────
 function buildRadarChart(sessions){
-  const scores=SUBJECTS.map(sub=>{
-    const all=sessions.filter(s=>s.subject===sub.id);
-    const t=all.reduce((a,s)=>a+s.total,0);
-    const c=all.reduce((a,s)=>a+s.correct,0);
-    return t>0?Math.round(c/t*100):0;
+  // Use flattened questions to get per-subject scores from real classified data
+  const qs = flattenQuestions(sessions);
+  const subjectStats = {};
+  qs.forEach(q => {
+    if (!subjectStats[q.subject]) subjectStats[q.subject] = {c:0,t:0};
+    subjectStats[q.subject].t++;
+    if (q.hit) subjectStats[q.subject].c++;
   });
+
+  const scores = SUBJECTS.map(sub => {
+    const st = subjectStats[sub.id];
+    return st && st.t > 0 ? Math.round(st.c / st.t * 100) : 0;
+  });
+  const counts = SUBJECTS.map(sub => (subjectStats[sub.id]?.t || 0));
+
+  const legendHtml = SUBJECTS.map((sub,i) => `
+    <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:${scores[i]>0?sub.color:'var(--muted)'};margin:2px 6px 2px 0">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sub.color}"></span>
+      ${sub.name}${counts[i]>0?' ('+scores[i]+'%)':''}
+    </span>`).join('');
+
   return {
     html:`<div class="card" style="margin-bottom:4px">
       <h3>Radar por Matéria</h3>
-      <div class="chart-wrap h300"><canvas id="chartRadar"></canvas></div>
+      <div class="chart-wrap" style="height:360px"><canvas id="chartRadar"></canvas></div>
+      <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:2px">${legendHtml}</div>
     </div>`,
     init(){
       const ctx=document.getElementById('chartRadar').getContext('2d');
-      new Chart(ctx,{type:'radar',data:{labels:SUBJECTS.map(s=>s.name),datasets:[{
-        label:'Acerto %',data:scores,backgroundColor:'rgba(212,175,55,0.12)',
-        borderColor:'#d4af37',pointBackgroundColor:SUBJECTS.map(s=>s.color),pointRadius:4}]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-          scales:{r:{min:0,max:100,ticks:{stepSize:20,font:{size:10}},
-            grid:{color:'rgba(255,255,255,0.07)'},pointLabels:{font:{size:11}}}}}});
+      new Chart(ctx,{type:'radar',
+        data:{
+          labels:SUBJECTS.map(s=>s.name),
+          datasets:[
+            {
+              label:'Acerto %',
+              data:scores,
+              backgroundColor:'rgba(212,175,55,0.12)',
+              borderColor:'#d4af37',
+              borderWidth:2,
+              pointBackgroundColor:SUBJECTS.map(s=>s.color),
+              pointRadius:5,
+              pointHoverRadius:7
+            },
+            {
+              label:'Meta 70%',
+              data:Array(SUBJECTS.length).fill(70),
+              backgroundColor:'transparent',
+              borderColor:'rgba(52,211,153,0.25)',
+              borderDash:[4,4],
+              borderWidth:1,
+              pointRadius:0
+            }
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              callbacks:{
+                label(ctx){
+                  const idx=ctx.dataIndex;
+                  const sub=SUBJECTS[idx];
+                  const n=counts[idx];
+                  if(ctx.datasetIndex===1) return 'Meta: 70%';
+                  return `${sub.name}: ${ctx.raw}% · ${n}q`;
+                }
+              }
+            }
+          },
+          scales:{r:{
+            min:0,max:100,
+            ticks:{stepSize:20,font:{size:10},backdropColor:'transparent'},
+            grid:{color:'rgba(255,255,255,0.08)'},
+            angleLines:{color:'rgba(255,255,255,0.08)'},
+            pointLabels:{font:{size:11},color:'#9ca3af'}
+          }}
+        }
+      });
     }
   };
 }
@@ -1177,10 +1308,15 @@ function generateInsights(sessions, activity, examDate){
   const insights=[];
   if(!sessions.length) return insights;
 
+  const _allQs=flattenQuestions(sessions);
+  const _cutoff30=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const _cutoff60=new Date(Date.now()-60*86400000).toISOString().slice(0,10);
   SUBJECTS.forEach(sub=>{
-    const now30 =sessionsByPeriod(sessions,30).filter(s=>s.subject===sub.id);
-    const prev30=sessionsByPeriod(sessions,60,30).filter(s=>s.subject===sub.id);
-    const a=avgScore(now30), b=avgScore(prev30);
+    const subQs=_allQs.filter(q=>q.subject===sub.id);
+    const now30=subQs.filter(q=>q.date>=_cutoff30);
+    const prev30=subQs.filter(q=>q.date>=_cutoff60&&q.date<_cutoff30);
+    const a=now30.length>=5?Math.round(now30.reduce((s,q)=>s+q.hit,0)/now30.length*100):null;
+    const b=prev30.length>=5?Math.round(prev30.reduce((s,q)=>s+q.hit,0)/prev30.length*100):null;
     if(a!==null&&b!==null){
       const delta=Math.round(a-b);
       if(delta>=10) insights.push({type:'good',icon:'📈',text:`Seu desempenho em <b>${sub.name}</b> subiu <b>${delta}%</b> nas últimas 4 semanas.`});
@@ -1188,12 +1324,11 @@ function generateInsights(sessions, activity, examDate){
     }
   });
 
+  const _map=buildSubjectQsMap(_allQs);
   const subRanked=SUBJECTS.map(sub=>{
-    const all=sessions.filter(s=>s.subject===sub.id);
-    const t=all.reduce((a,s)=>a+s.total,0);
-    const c=all.reduce((a,s)=>a+s.correct,0);
-    return {...sub,total:t,pct:t>0?Math.round(c/t*100):null};
-  }).filter(s=>s.total>=10).sort((a,b)=>b.pct-a.pct);
+    const m=_map[sub.id]||{total:0,correct:0};
+    return {...sub,total:m.total,pct:m.total>=10?Math.round(m.correct/m.total*100):null};
+  }).filter(s=>s.pct!==null).sort((a,b)=>b.pct-a.pct);
   if(subRanked.length){
     const best=subRanked[0],worst=subRanked[subRanked.length-1];
     insights.push({type:'good',icon:'🏆',text:`<b>${best.name}</b> é sua disciplina mais forte — <b>${best.pct}%</b> de acerto.`});
@@ -1289,16 +1424,24 @@ function buildInsights(sessions, activity, examDate){
 
 // ── MODULE 17: RECOMMENDATIONS ──────────────────────────────────────────────
 function buildRecommendations(sessions){
+  const allQs=flattenQuestions(sessions);
+  const _map=buildSubjectQsMap(allQs);
+  const cut30=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const cut60=new Date(Date.now()-60*86400000).toISOString().slice(0,10);
   const stats=SUBJECTS.map(sub=>{
-    const all=sessions.filter(s=>s.subject===sub.id);
-    const l30=sessionsByPeriod(all,30),p30=sessionsByPeriod(all,60,30);
-    const t=all.reduce((a,s)=>a+s.total,0);
-    const c=all.reduce((a,s)=>a+s.correct,0);
+    const m=_map[sub.id]||{total:0,correct:0};
+    const t=m.total, c=m.correct;
     const totalPct=t>0?Math.round(c/t*100):null;
-    const a30=avgScore(l30),aP30=avgScore(p30);
+    const subQs=allQs.filter(q=>q.subject===sub.id);
+    const l30=subQs.filter(q=>q.date>=cut30);
+    const p30=subQs.filter(q=>q.date>=cut60&&q.date<cut30);
+    const a30=l30.length>=5?Math.round(l30.reduce((s,q)=>s+q.hit,0)/l30.length*100):null;
+    const aP30=p30.length>=5?Math.round(p30.reduce((s,q)=>s+q.hit,0)/p30.length*100):null;
     const trend=(a30!==null&&aP30!==null)?a30-aP30:0;
-    const recent=sessionsByPeriod(all,30);
-    const plateau=recent.length>=4&&stddev(recent.map(s=>pct(s.correct,s.total)))<4;
+    const byDate30={};
+    l30.forEach(q=>{if(!byDate30[q.date]) byDate30[q.date]={c:0,t:0};byDate30[q.date].t++;if(q.hit)byDate30[q.date].c++;});
+    const dScores=Object.values(byDate30).map(d=>Math.round(d.c/d.t*100));
+    const plateau=dScores.length>=4&&stddev(dScores)<4;
     return {...sub,totalPct,trend,total:t,plateau};
   }).filter(s=>s.total>=5&&s.totalPct!==null);
 
