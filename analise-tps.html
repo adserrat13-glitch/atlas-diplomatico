@@ -321,6 +321,7 @@ const SUBJECTS = [
   {id:'GEO',  name:'Geografia',     color:'#34d399'},
   {id:'PI',   name:'Pol. Int.',     color:'#22d3ee'},
   {id:'ECO',  name:'Economia',      color:'#facc15'},
+  {id:'DIP',  name:'Dir. Int.',      color:'#fb923c'},
   {id:'DIR',  name:'Direito',       color:'#f87171'},
   {id:'LING', name:'Espanhol/FR',   color:'#f472b6'},
 ];
@@ -329,7 +330,9 @@ const SUBJ_MAP = Object.fromEntries(SUBJECTS.map(s=>[s.id,s]));
 // Subject classification rules (same as simulados.html)
 const SUBJECT_RULES = [
   { code:'DIP', label:'Direito Internacional',
-    rx:/Convenção de Viena|CIJ|Corte Internacional|arbitragem internacional|imunidade diplomática|TNP|TPI|CNUDM|UNCLOS|extradição|asilo diplomático|refugiado|ACNUR|direito humanitário|Convenção de Genebra|jus cogens|pacta sunt servanda|personalidade jurídica internacional/gi },
+    rx:/Convenção de Viena|CIJ|Corte Internacional|arbitragem internacional|imunidade diplomática|TNP|TPI|CNUDM|UNCLOS|extradição|asilo diplomático|refugiado|ACNUR|direito humanitário|Convenção de Genebra|jus cogens|pacta sunt servanda|personalidade jurídica internacional|direito internacional público|tratado internacional|costume internacional|organização internacional|responsabilidade internacional|soberania estatal|reconhecimento de Estado|sucessão de Estados|território estatal|espaço aéreo internacional|alto-mar|fundos marinhos|direito do mar|convenção internacional|protocolo adicional|reserva ao tratado|ratificação|promulgação|\bONU\b|nações unidas/gi },
+  { code:'DIR', label:'Direito',
+    rx:/constituição federal|direito constitucional|direito administrativo|direito civil|direito penal|direito processual|habeas corpus|mandado de segurança|ação civil pública|controle de constitucionalidade|\bSTF\b|\bSTJ\b|\bTCU\b|supremo tribunal|poder judiciário|poder legislativo|poder executivo|separação de poderes|estado de direito|estado democrático|federalismo|princípio da legalidade|princípio da moralidade|administração pública|serviço público|licitação|concurso público|improbidade administrativa|responsabilidade civil do estado|direitos fundamentais|direitos humanos internos|liberdade de expressão|direito à vida|dignidade da pessoa humana/gi },
   { code:'ECO', label:'Economia',
     rx:/\bPIB\b|inflação|deflação|\bFMI\b|Banco Mundial|\bBNDES\b|câmbio|balança comercial|balança de pagamentos|política monetária|política fiscal|recessão|crescimento econômico|dívida pública|\bOMC\b|\bGATT\b|tarifas alfandegárias|Bretton Woods|Plano Real|Consenso de Washington|desemprego|\bSelic\b|\bCopom\b|superávit|déficit|reservas internacionais|desindustrialização|neoliberalismo|protecionismo|livre-comércio/gi },
   { code:'GEO', label:'Geografia',
