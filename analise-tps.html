@@ -119,7 +119,6 @@
     .subj-delta { font-weight:600; }
     .subj-delta.pos { color:var(--green); }
     .subj-delta.neg { color:var(--red); }
-    .subj-sparkline { height:32px; width:100%; }
     .subj-badge { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:700;
       padding:2px 8px; border-radius:20px; margin-top:6px; }
     .badge-strong   { background:rgba(52,211,153,.12); color:var(--green);  border:1px solid rgba(52,211,153,.2); }
@@ -446,7 +445,24 @@ function flattenQuestions(sessions){
         for(let i=0;i<(correct||0);i++) qs.push({date:d,subject:subj,hit:1,q:null});
       });
     } else {
-      for(let i=0;i<s.correct;i++) qs.push({date:d,subject:s.subject||'PI',hit:1,q:null});
+      // Sessão legada sem breakdown: distribuir acertos pelas matérias detectadas nos wrong_items
+      const freq={};
+      wrongs.forEach(w=>{
+        const sc=w.subjectCode||(w.q?classifyText(w.q).subjectCode:null)||s.subject||'PI';
+        freq[sc]=(freq[sc]||0)+1;
+      });
+      const freqEntries=Object.entries(freq);
+      if(freqEntries.length>1){
+        const total=Object.values(freq).reduce((a,v)=>a+v,0);
+        let remaining=s.correct||0;
+        freqEntries.forEach(([subj,cnt],i)=>{
+          const share=i<freqEntries.length-1?Math.round((cnt/total)*(s.correct||0)):remaining;
+          for(let j=0;j<share;j++) qs.push({date:d,subject:subj,hit:1,q:null});
+          remaining-=share;
+        });
+      } else {
+        for(let i=0;i<(s.correct||0);i++) qs.push({date:d,subject:s.subject||'PI',hit:1,q:null});
+      }
     }
     // Missing wrongs without detail
     const missing=Math.max(0,(s.wrong||0)-wrongs.length);
@@ -715,12 +731,20 @@ function buildProficiencyChart(sessions){
 }
 
 // ── MODULE 5: SUBJECT CARDS ─────────────────────────────────────────────────
+function makeSvgSpark(spark, color){
+  if(spark.length<2) return '';
+  const W=100,H=28,n=spark.length,bw=Math.max(1,Math.floor(W/n)-1);
+  const bars=spark.map((v,i)=>{
+    const bh=Math.max(2,Math.round(v/100*H));
+    return `<rect x="${i*(bw+1)}" y="${H-bh}" width="${bw}" height="${bh}" fill="${color}" opacity="0.75" rx="1"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block;margin-top:6px;border-radius:3px">${bars}</svg>`;
+}
+
 function buildSubjectCards(sessions){
-  // Use flattened questions (per-question subject classification) instead of session-level subject
   const allQs = flattenQuestions(sessions);
   const now = Date.now();
 
-  // Helper: filter flattened questions by subject and date window
   function qsBySubjPeriod(subjId, daysBack, daysEnd=0){
     return allQs.filter(q=>{
       if(q.subject!==subjId) return false;
@@ -743,11 +767,10 @@ function buildSubjectCards(sessions){
     const avg90  = qPct(l90Qs), avgP90 = qPct(p90Qs);
     const delta30 = (avg30!==null&&avgP30!==null)?avg30-avgP30:null;
     const delta90 = (avg90!==null&&avgP90!==null)?avg90-avgP90:null;
-    // Sparkline: last 8 date-groups for this subject
+    // Sparkline: last 12 date-groups
     const dateGroups={};
     allSubjQs.forEach(q=>{if(q.date){if(!dateGroups[q.date])dateGroups[q.date]={c:0,t:0};dateGroups[q.date].t++;if(q.hit)dateGroups[q.date].c++;}});
-    const spark=Object.keys(dateGroups).sort().slice(-8).map(d=>Math.round(dateGroups[d].c/dateGroups[d].t*100));
-    // Trend: slope of last 5 date-group scores
+    const spark=Object.keys(dateGroups).sort().slice(-12).map(d=>Math.round(dateGroups[d].c/dateGroups[d].t*100));
     const last5=Object.keys(dateGroups).sort().slice(-5).map(d=>Math.round(dateGroups[d].c/dateGroups[d].t*100));
     const slopeV=linearSlope(last5);
     const trendLabel=slopeV>=2?'↑ Melhorando':slopeV<=-2?'↓ Piorando':'→ Estável';
@@ -756,33 +779,19 @@ function buildSubjectCards(sessions){
     return {...sub,totalQ,totalPct,delta30,delta90,spark,trendLabel,trendColor,speedLabel};
   }).filter(s=>s.totalQ>0).sort((a,b)=>b.totalPct-a.totalPct);
 
-  if(!ranked.length) return {html:'<div class="empty-msg">Sem dados de matérias ainda.</div>',inits:[]};
+  if(!ranked.length) return '<div class="empty-msg">Sem dados de matérias ainda.</div>';
 
-  const inits=[];
   const cards=ranked.map((sub,idx)=>{
     const badge=sub.totalPct>=75?'<span class="subj-badge badge-strong">🟢 Forte</span>'
                :sub.totalPct>=60?'<span class="subj-badge badge-maintain">🟡 Manter</span>'
                :'<span class="subj-badge badge-review">🔴 Revisar</span>';
+    const insuffBadge=sub.totalQ<15
+      ?`<span style="font-size:9px;color:var(--muted);padding:1px 5px;border:1px solid var(--border);border-radius:4px;margin-left:4px">dados insuf.</span>`:'';
     const d30Html=sub.delta30!==null
       ?`<span class="subj-delta ${sub.delta30>=0?'pos':'neg'}">${sub.delta30>=0?'+':''}${sub.delta30}% 30d</span>`
       :'<span style="color:var(--muted)">—</span>';
     const d90Html=sub.delta90!==null
       ?`<span class="subj-delta ${sub.delta90>=0?'pos':'neg'}">${sub.delta90>=0?'+':''}${sub.delta90}% 90d</span>`:'';
-    const sid=`spark_${sub.id}`;
-    if(sub.spark.length>=2){
-      const sparkData=sub.spark, sparkColor=sub.color;
-      inits.push(()=>{
-        const ctx=document.getElementById(sid)?.getContext('2d');
-        if(!ctx) return;
-        new Chart(ctx,{type:'line',data:{
-          labels:sparkData.map((_,i)=>i+1),
-          datasets:[{data:sparkData,borderColor:sparkColor,backgroundColor:sparkColor+'22',fill:true,tension:0.4,pointRadius:0}]},
-          options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:false}},
-            scales:{x:{display:false},y:{display:false,min:0,max:100,suggestedMin:0,suggestedMax:100}}}});
-      });
-    }
-    // Border highlight: top-3 green, bottom-3 red
     const isTop = idx < 3;
     const isBot = idx >= ranked.length - 3 && ranked.length > 3;
     const borderStyle = isTop ? 'border-color:rgba(52,211,153,.45);' : isBot ? 'border-color:rgba(248,113,113,.35);' : '';
@@ -795,7 +804,7 @@ function buildSubjectCards(sessions){
     ].filter(Boolean).join(' | ');
     return `<div class="subj-card" style="${borderStyle}" title="${tooltipTitle}">
       <div class="subj-card-rank">#${idx+1}</div>
-      <div class="subj-card-name"><span class="subj-dot" style="background:${sub.color}"></span>${sub.name}</div>
+      <div class="subj-card-name"><span class="subj-dot" style="background:${sub.color}"></span>${sub.name}${insuffBadge}</div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
         <div class="subj-pct" style="color:${sub.totalPct>=70?'var(--green)':sub.totalPct>=50?'var(--yellow)':'var(--red)'}">${sub.totalPct}%</div>
         <span style="font-size:12px;color:var(--muted)">${sub.totalQ}q</span>
@@ -804,13 +813,13 @@ function buildSubjectCards(sessions){
         ${d30Html}${d90Html?'<span>'+d90Html+'</span>':''}
         <span style="color:var(--blue)">⚡ ${sub.speedLabel}</span>
       </div>
-      ${sub.spark.length>=2?`<canvas id="${sid}" class="subj-sparkline"></canvas>`:''}
+      ${makeSvgSpark(sub.spark, sub.color)}
       ${badge}
       <div class="subj-trend" style="color:${sub.trendColor}">${sub.trendLabel}</div>
     </div>`;
   }).join('');
 
-  return {html:`<div class="subject-grid">${cards}</div>`,inits};
+  return `<div class="subject-grid">${cards}</div>`;
 }
 
 // ── MODULE 6: SUBJECT TOPICS ────────────────────────────────────────────────
@@ -1557,7 +1566,7 @@ window.renderTableBody=renderTableBody;
     ${proficiency.html}
 
     ${secLabel('Desempenho por Disciplina')}
-    ${subjectCards.html}
+    ${subjectCards}
 
     ${secLabel('Análise por Assunto e Subtema')}
     <div class="card" style="margin-bottom:4px">
@@ -1620,7 +1629,7 @@ window.renderTableBody=renderTableBody;
   proficiency.init();
   temporal.init();
   radar.init();
-  subjectCards.inits.forEach(fn=>fn());
+  // subjectCards uses SVG sparklines — no JS init needed
   if(difficulty.html) difficulty.init();
   if(stacked.html) stacked.init();
 
