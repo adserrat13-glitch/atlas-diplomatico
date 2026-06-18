@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Inglês — Tutor CACD — Atlas Diplomático</title>
+<link rel="stylesheet" href="theme.css" />
+<script src="icons.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<style>
+:root{
+  --bg:#0f1115;--surface:#171a21;--card:rgba(255,255,255,0.04);
+  --border:#2a2f3a;--text:#e5e7eb;--muted:#9ca3af;--muted2:#6b7280;
+  --gold:#d4af37;--blue:#60a5fa;--green:#34d399;--amber:#f59e0b;--red:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono','SF Mono','Courier New',monospace;min-height:100vh}
+nav{position:sticky;top:0;z-index:200;height:52px;background:#000;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;padding:0 16px;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nav-logo{font-size:13px;font-weight:900;letter-spacing:2.5px;margin-right:14px;white-space:nowrap;flex-shrink:0;color:#fff}
+.nav-logo span{text-decoration:underline}
+nav a{color:#888;text-decoration:none;font-size:11px;font-weight:600;padding:5px 9px;border-radius:6px;transition:.15s;white-space:nowrap;flex-shrink:0}
+nav a:hover{color:#fff;background:rgba(255,255,255,0.06)}
+nav a.active{color:var(--gold);border-bottom:2px solid var(--gold);border-radius:0;padding-bottom:3px}
+.nav-ham{background:none;border:none;color:#888;font-size:16px;cursor:pointer;padding:4px 8px;border-radius:6px;flex-shrink:0;margin-right:4px}
+.nav-ham:hover{color:#fff;background:rgba(255,255,255,.07)}
+.nav-spacer{flex:1;min-width:8px}
+.nav-cd{font-size:11px;font-weight:700;color:#f5e642;background:rgba(245,230,66,.1);border:1px solid rgba(245,230,66,.25);padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.nav-user{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-left:6px;color:#888}
+
+main{padding:32px;max-width:880px;margin:0 auto}
+.page-header{margin-bottom:24px}
+.page-header h1{font-size:22px;font-weight:800;letter-spacing:.5px}
+.page-header p{font-size:13px;color:var(--muted2);margin-top:4px}
+
+.modes{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:24px}
+.mode-btn{padding:10px 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;letter-spacing:.3px}
+.mode-btn:hover{border-color:var(--blue);color:var(--blue)}
+.mode-btn.active{background:rgba(96,165,250,.12);border-color:var(--blue);color:var(--blue)}
+.mode-btn small{display:block;font-size:10px;font-weight:500;color:var(--muted2);margin-top:3px;letter-spacing:0}
+.mode-btn.active small{color:var(--blue)}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.panel h2{font-size:13px;color:var(--muted2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px}
+.ex-title{font-size:17px;font-weight:800;margin-bottom:10px;color:var(--gold)}
+.ex-task{font-size:14px;line-height:1.6;margin-bottom:12px;white-space:pre-wrap}
+.ex-points{margin:10px 0 6px;padding-left:18px}
+.ex-points li{font-size:13px;line-height:1.7;color:var(--text)}
+.ex-meta{font-size:12px;color:var(--muted2);margin-top:10px}
+.ex-source{font-size:14px;line-height:1.7;white-space:pre-wrap;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+.ex-instruction{font-size:13px;font-weight:700;color:var(--amber);margin-top:12px}
+
+textarea{width:100%;min-height:200px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;line-height:1.6;padding:14px;resize:vertical}
+textarea:focus{outline:none;border-color:var(--blue)}
+.wordcount{font-size:12px;color:var(--muted2);text-align:right;margin-top:6px}
+
+.btn{padding:11px 22px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px;transition:.15s}
+.btn-primary{background:var(--blue);color:#06121f}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{color:#fff;border-color:var(--muted)}
+.btn-row{display:flex;gap:10px;margin-top:14px}
+
+.loading{display:flex;align-items:center;gap:10px;color:var(--muted2);font-size:13px;padding:20px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err{color:var(--red);font-size:13px;padding:14px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:8px}
+
+/* correção */
+.score-card{display:flex;align-items:center;gap:18px;margin-bottom:18px}
+.score-big{font-size:42px;font-weight:900;min-width:90px;text-align:center}
+.score-big span{display:block;font-size:11px;font-weight:600;color:var(--muted2);letter-spacing:.5px}
+.score-summary{font-size:14px;line-height:1.6;color:var(--text)}
+.fb-table{width:100%;border-collapse:collapse;margin-bottom:18px}
+.fb-table th,.fb-table td{padding:9px 12px;text-align:left;font-size:13px;border-bottom:1px solid var(--border)}
+.fb-table th{color:var(--muted2);font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+.fb-table td:last-child{text-align:right;font-weight:700}
+.fb-block{margin-bottom:18px}
+.fb-block h3{font-size:12px;color:var(--muted2);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px}
+.fb-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;font-size:13px;line-height:1.6}
+.fb-item .orig{color:var(--red)}
+.fb-item .fix{color:var(--green)}
+.fb-item .why{color:var(--muted2);font-size:12px;margin-top:4px}
+.fb-note{font-size:13px;line-height:1.7;background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.25);border-radius:8px;padding:14px}
+.hidden{display:none}
+@media(max-width:700px){main{padding:16px}.score-card{flex-direction:column;align-items:flex-start;gap:10px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <button class="nav-ham" onclick="openSidebar()">☰</button>
+  <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+  <a href="index.html">Início</a>
+  <a href="ingles.html" class="active">Inglês</a>
+  <a href="espanhol.html">Espanhol</a>
+  <a href="flashcards.html">Flashcards</a>
+  <a href="analise.html">Análise</a>
+  <div class="nav-spacer"></div>
+  <div class="nav-cd" id="navCountdown"></div>
+  <div class="nav-user" id="navUser">?</div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1>🇬🇧 Tutor de Inglês — CACD</h1>
+    <p>Exercícios inéditos nível C1/C2 com correção no rigor do CACD. Escolha um modo para começar.</p>
+  </div>
+
+  <div class="modes" id="modes">
+    <button class="mode-btn" data-mode="COMPOSITION" onclick="selectMode(this)">COMPOSITION<small>Redação em inglês</small></button>
+    <button class="mode-btn" data-mode="PTEN" onclick="selectMode(this)">PT → EN<small>Tradução p/ inglês</small></button>
+    <button class="mode-btn" data-mode="ENPT" onclick="selectMode(this)">EN → PT<small>Tradução p/ português</small></button>
+    <button class="mode-btn" data-mode="SUMMARY" onclick="selectMode(this)">SUMMARY<small>Resumo em inglês</small></button>
+  </div>
+
+  <div id="exercisePanel" class="panel hidden">
+    <h2>Exercício</h2>
+    <div id="exerciseBody"></div>
+  </div>
+
+  <div id="answerPanel" class="panel hidden">
+    <h2>Sua resposta</h2>
+    <textarea id="answer" placeholder="Escreva sua resposta aqui..." oninput="updateWordCount()"></textarea>
+    <div class="wordcount" id="wordcount">0 palavras</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="correctBtn" onclick="correct()">Corrigir</button>
+      <button class="btn btn-ghost" onclick="generate()">Gerar outro exercício</button>
+    </div>
+  </div>
+
+  <div id="statusArea"></div>
+
+  <div id="feedbackPanel" class="panel hidden">
+    <h2>Correção CACD</h2>
+    <div id="feedbackBody"></div>
+  </div>
+</main>
+
+<script>
+let CURRENT_MODE = null;
+let CURRENT_EXERCISE = null;   // objeto retornado por tutor-generate
+const LANG = 'en';
+
+function selectMode(btn){
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  CURRENT_MODE = btn.dataset.mode;
+  generate();
+}
+
+function setStatus(html){ document.getElementById('statusArea').innerHTML = html; }
+function loadingHTML(txt){ return `<div class="loading"><div class="spinner"></div>${txt}</div>`; }
+function errHTML(txt){ return `<div class="err">⚠️ ${txt}</div>`; }
+
+async function postJSON(url, body){
+  const r = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data = await r.json().catch(()=>({error:'Resposta inválida do servidor'}));
+  if(!r.ok) throw new Error(data.error || ('Erro '+r.status));
+  return data;
+}
+
+async function generate(){
+  if(!CURRENT_MODE) return;
+  document.getElementById('feedbackPanel').classList.add('hidden');
+  document.getElementById('answerPanel').classList.add('hidden');
+  document.getElementById('exercisePanel').classList.add('hidden');
+  document.getElementById('answer').value = '';
+  updateWordCount();
+  setStatus(loadingHTML('Gerando exercício inédito...'));
+  try{
+    const data = await postJSON('/api/tutor-generate', {lang:LANG, mode:CURRENT_MODE});
+    CURRENT_EXERCISE = data.exercise;
+    renderExercise(CURRENT_MODE, data.exercise);
+    setStatus('');
+    document.getElementById('exercisePanel').classList.remove('hidden');
+    document.getElementById('answerPanel').classList.remove('hidden');
+    document.getElementById('answer').focus();
+  }catch(e){
+    setStatus(errHTML('Não foi possível gerar o exercício: '+e.message));
+  }
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function renderExercise(mode, ex){
+  const body = document.getElementById('exerciseBody');
+  if(mode === 'COMPOSITION'){
+    const points = Array.isArray(ex.points) ? ex.points.map(p=>`<li>${esc(p)}</li>`).join('') : '';
+    body.innerHTML = `
+      <div class="ex-title">${esc(ex.title)}</div>
+      <div class="ex-task">${esc(ex.task)}</div>
+      ${points?`<div class="ex-meta">Pontos a considerar:</div><ul class="ex-points">${points}</ul>`:''}
+      <div class="ex-meta">📏 ${esc(ex.word_count||'350-500 words')} · Nível ${esc(ex.difficulty||'C1/C2')}</div>`;
+  } else {
+    body.innerHTML = `
+      <div class="ex-source">${esc(ex.source_text)}</div>
+      <div class="ex-instruction">${esc(ex.instruction)}</div>`;
+  }
+}
+
+function updateWordCount(){
+  const v = document.getElementById('answer').value.trim();
+  const n = v ? v.split(/\s+/).length : 0;
+  document.getElementById('wordcount').textContent = n + (n===1?' palavra':' palavras');
+}
+
+function exercisePromptText(mode, ex){
+  if(mode==='COMPOSITION') return `${ex.title||''}\n${ex.task||''}\nPontos: ${(ex.points||[]).join('; ')}`;
+  return `${ex.source_text||''}\n${ex.instruction||''}`;
+}
+
+async function correct(){
+  const answer = document.getElementById('answer').value.trim();
+  if(answer.length < 10){ setStatus(errHTML('Escreva uma resposta mais completa antes de corrigir.')); return; }
+  const btn = document.getElementById('correctBtn');
+  btn.disabled = true;
+  setStatus(loadingHTML('Corrigindo no padrão CACD...'));
+  try{
+    const promptText = exercisePromptText(CURRENT_MODE, CURRENT_EXERCISE);
+    const fb = await postJSON('/api/tutor-correct', {lang:LANG, mode:CURRENT_MODE, prompt:promptText, answer});
+    renderFeedback(fb);
+    setStatus('');
+    document.getElementById('feedbackPanel').classList.remove('hidden');
+    document.getElementById('feedbackPanel').scrollIntoView({behavior:'smooth'});
+    // Persistir no Supabase (não bloqueia a UI se falhar)
+    DB.addIdiomaSession({
+      lang:LANG, mode:CURRENT_MODE, prompt:CURRENT_EXERCISE,
+      answer, score:fb.score, feedback:fb
+    }).catch(()=>{});
+  }catch(e){
+    setStatus(errHTML('Não foi possível corrigir: '+e.message));
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+function scoreColor(s){ if(s==null) return 'var(--muted)'; if(s>=90) return 'var(--green)'; if(s>=70) return 'var(--amber)'; return 'var(--red)'; }
+
+function renderFeedback(fb){
+  const body = document.getElementById('feedbackBody');
+  const rows = (fb.table||[]).map(t=>`<tr><td>${esc(t.categoria)}</td><td>${esc(t.nota)}</td></tr>`).join('');
+  const errs = (fb.errors||[]).map(e=>`<div class="fb-item"><span class="orig">${esc(e.trecho)}</span> → <span class="fix">${esc(e.correcao)}</span><div class="why">${esc(e.problema)}</div></div>`).join('');
+  const rew = (fb.rewrites||[]).map(r=>`<div class="fb-item"><span class="orig">${esc(r.original)}</span><br><span class="fix">${esc(r.c2)}</span></div>`).join('');
+  body.innerHTML = `
+    <div class="score-card">
+      <div class="score-big" style="color:${scoreColor(fb.score)}">${fb.score==null?'—':fb.score}<span>/100</span></div>
+      <div class="score-summary">${esc(fb.summary)}</div>
+    </div>
+    ${rows?`<table class="fb-table"><thead><tr><th>Categoria</th><th>Nota</th></tr></thead><tbody>${rows}</tbody></table>`:''}
+    ${errs?`<div class="fb-block"><h3>Erros e correções</h3>${errs}</div>`:''}
+    ${rew?`<div class="fb-block"><h3>Reescritas nível C2</h3>${rew}</div>`:''}
+    ${fb.diplomatic_note?`<div class="fb-block"><h3>Como um diplomata escreveria</h3><div class="fb-note">${esc(fb.diplomatic_note)}</div></div>`:''}`;
+}
+
+(async()=>{
+  const user = await DB.requireAuth();
+  const [profile, examDate] = await Promise.all([DB.getProfile(), DB.getExamDate()]);
+  const name = profile?.name || user.email || '';
+  const navUser = document.getElementById('navUser');
+  if(navUser) navUser.textContent = (name || '?').slice(0,2).toUpperCase();
+  const cd = document.getElementById('navCountdown');
+  if(cd && examDate) cd.textContent = Math.ceil((examDate - Date.now())/86400000)+'d';
+})();
+</script>
+
+<aside id="sidebar"></aside>
+<script src="_sidebar.js"></script>
+</body>
+</html>

@@ -19,6 +19,13 @@
       ]
     },
     {
+      label: 'IDIOMAS',
+      links: [
+        { href: '/ingles.html',   icon: 'lang',  name: 'Inglês' },
+        { href: '/espanhol.html', icon: 'flag',  name: 'Espanhol' },
+      ]
+    },
+    {
       label: 'GAMES',
       links: [
         { href: '/GAMES/index.html',                            icon: 'games',    name: 'Games Hub' },

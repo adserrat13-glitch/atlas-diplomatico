@@ -249,6 +249,38 @@ const DB = {
     return data || [];
   },
 
+  // ── IDIOMAS (Tutor de Idiomas CACD) ─────────────────────────────────
+
+  async addIdiomaSession(session) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await _sb.from('idiomas_sessions').insert({
+      user_id:  user.id,
+      lang:     session.lang,
+      mode:     session.mode,
+      prompt:   session.prompt   || {},
+      answer:   session.answer   || '',
+      score:    session.score != null ? session.score : null,
+      feedback: session.feedback || {},
+    }).select().single();
+    if (!error) {
+      await _sb.rpc('upsert_activity', { p_user_id: user.id, p_date: today });
+    }
+    return data;
+  },
+
+  async getIdiomaSessions(lang = null) {
+    const user = await this.getUser();
+    if (!user) return [];
+    let q = _sb.from('idiomas_sessions')
+      .select('*')
+      .eq('user_id', user.id);
+    if (lang) q = q.eq('lang', lang);
+    const { data } = await q.order('created_at', { ascending: false }).limit(200);
+    return data || [];
+  },
+
   // ── REVIEWED ITEMS ──────────────────────────────────────────────────
 
   async getReviewed() {
