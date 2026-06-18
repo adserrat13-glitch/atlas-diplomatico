@@ -34,19 +34,22 @@ JSON schema:
 Do NOT provide any answer key or translation.`,
 
   // MODO 3 — ENPT (inglês → português)
-  ENPT: `You are a CACD translation examiner. Generate an ORIGINAL English text (120-220 words),
+  ENPT: `You are a CACD translation examiner. Generate an ORIGINAL text (120-220 words),
 C1/C2 level, on a CACD-relevant theme.
+CRITICAL: "source_text" MUST be written ENTIRELY IN ENGLISH (it is the text to be translated INTO Portuguese).
 ${BASE_RULES}
 JSON schema:
-{"source_text":"<text in English>","instruction":"Translate into Portuguese."}
+{"source_text":"<the text, in ENGLISH>","instruction":"Translate into Portuguese."}
 Do NOT provide any answer key or translation.`,
 
-  // MODO 4 — SUMMARY (inglês)
-  SUMMARY: `You are a CACD examiner. Generate an ORIGINAL English text (350-600 words), C1/C2 level,
+  // MODO 4 — SUMMARY (inglês) — texto-fonte EM INGLÊS (resumo EN→EN)
+  SUMMARY: `You are a CACD examiner. Generate an ORIGINAL text (350-600 words), C1/C2 level,
 on a CACD-relevant theme, suitable for a summarising exercise.
+CRITICAL: "source_text" MUST be written ENTIRELY IN ENGLISH. Do NOT write it in Portuguese or Spanish.
+The candidate will read the English text and summarise it in English.
 ${BASE_RULES}
 JSON schema:
-{"source_text":"<text in English>","instruction":"Summarize the text in 120-180 words."}
+{"source_text":"<the full text, in ENGLISH>","instruction":"Summarize the text in 120-180 words."}
 Do NOT provide any model summary.`,
 
   // MODO 5 — PTESP (português → espanhol)
@@ -58,19 +61,22 @@ Esquema JSON:
 No proporciones ninguna traducción ni clave de respuestas.`,
 
   // MODO 6 — ESPPT (espanhol → português)
-  ESPPT: `Eres examinador del CACD. Genera un texto ORIGINAL en español (120-220 palabras),
+  ESPPT: `Eres examinador del CACD. Genera un texto ORIGINAL (120-220 palabras),
 nivel C1/C2, sobre un tema relevante para el CACD.
+CRÍTICO: "source_text" DEBE estar redactado ENTERAMENTE EN ESPAÑOL (es el texto que se traducirá AL portugués).
 ${BASE_RULES}
 Esquema JSON:
-{"source_text":"<texto en español>","instruction":"Traduza para o português."}
+{"source_text":"<el texto, EN ESPAÑOL>","instruction":"Traduza para o português."}
 No proporciones ninguna traducción ni clave de respuestas.`,
 
-  // MODO 7 — RESUMEN (espanhol)
-  RESUMEN: `Eres examinador del CACD. Genera un texto ORIGINAL en español (350-600 palabras),
+  // MODO 7 — RESUMEN (espanhol) — texto-fonte EM ESPANHOL (resumo ESP→ESP)
+  RESUMEN: `Eres examinador del CACD. Genera un texto ORIGINAL (350-600 palabras),
 nivel C1/C2, sobre un tema relevante para el CACD, apto para un ejercicio de resumen.
+CRÍTICO: "source_text" DEBE estar redactado ENTERAMENTE EN ESPAÑOL. NO lo escribas en portugués ni en inglés.
+El candidato leerá el texto en español y lo resumirá en español.
 ${BASE_RULES}
 Esquema JSON:
-{"source_text":"<texto en español>","instruction":"Redacte un resumen de 120-180 palabras."}
+{"source_text":"<el texto completo, EN ESPAÑOL>","instruction":"Redacte un resumen de 120-180 palabras."}
 No proporciones ningún resumen modelo.`,
 };
 
