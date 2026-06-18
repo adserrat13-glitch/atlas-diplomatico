@@ -51,7 +51,7 @@
     .page-header h1 { font-size:26px; font-weight:700; letter-spacing:2px; }
     .page-header p { font-size:13px; color:var(--muted); margin-top:8px; }
 
-    .hub-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+    .hub-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:24px; }
 
     .hub-card { background:var(--card); border:1px solid var(--border); border-radius:20px;
       padding:36px 32px; text-decoration:none; color:var(--text);
@@ -131,6 +131,22 @@
         <span class="hub-tag" style="color:#22d3ee;border-color:rgba(34,211,238,.3)">ESQUECIMENTO</span>
       </div>
       <div class="hub-card-arrow">Abrir Análise Games →</div>
+    </a>
+
+    <a href="analise-idiomas.html" class="hub-card" style="--card-accent:#60a5fa">
+      <div class="hub-card-icon">🌐</div>
+      <div class="hub-card-title">Análise Idiomas</div>
+      <div class="hub-card-desc">
+        Desempenho nos exercícios de inglês e espanhol: Composition, traduções,
+        Summary e Resumen. Evolução por modo, pontuação média e histórico completo.
+      </div>
+      <div class="hub-card-tags">
+        <span class="hub-tag" style="color:#60a5fa;border-color:rgba(96,165,250,.3)">INGLÊS</span>
+        <span class="hub-tag" style="color:#f59e0b;border-color:rgba(245,158,11,.3)">ESPANHOL</span>
+        <span class="hub-tag" style="color:#34d399;border-color:rgba(52,211,153,.3)">EVOLUÇÃO</span>
+        <span class="hub-tag" style="color:#a78bfa;border-color:rgba(167,139,250,.3)">HISTÓRICO</span>
+      </div>
+      <div class="hub-card-arrow">Abrir Análise Idiomas →</div>
     </a>
   </div>
 </main>

@@ -24,6 +24,7 @@
         { href: '/ingles.html',            icon: 'lang',  name: 'Inglês' },
         { href: '/espanhol.html',          icon: 'flag',  name: 'Espanhol' },
         { href: '/idiomas-historico.html', icon: 'chart', name: 'Histórico' },
+        { href: '/analise-idiomas.html',   icon: 'chart', name: 'Análise Idiomas' },
       ]
     },
     {
