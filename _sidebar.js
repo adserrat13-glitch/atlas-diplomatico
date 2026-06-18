@@ -21,8 +21,9 @@
     {
       label: 'IDIOMAS',
       links: [
-        { href: '/ingles.html',   icon: 'lang',  name: 'Inglês' },
-        { href: '/espanhol.html', icon: 'flag',  name: 'Espanhol' },
+        { href: '/ingles.html',            icon: 'lang',  name: 'Inglês' },
+        { href: '/espanhol.html',          icon: 'flag',  name: 'Espanhol' },
+        { href: '/idiomas-historico.html', icon: 'chart', name: 'Histórico' },
       ]
     },
     {
