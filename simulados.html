@@ -510,7 +510,24 @@
     function makeTpsPositionalClassifier(deckName, total) {
       const year = parseYearFromDeck(deckName);
       const order = tpsOrderForYear(year);
-      if (!order || !total) return null;
+      const dn = (deckName || '').toUpperCase();
+      if (!order || !total) {
+        // Arquivo temático sem ano: força matéria pelo nome
+        let forced = null;
+        if (dn.includes('POLITICA') || dn.includes('PI')) forced = { code:'PI', label:'Política Internacional' };
+        else if (dn.includes('HISTORIA') || dn.includes('HB')) forced = { code:'HB', label:'História do Brasil' };
+        else if (dn.includes('ECONOMIA') || dn.includes('ECO')) forced = { code:'ECO', label:'Economia' };
+        else if (dn.includes('DIREITO') || dn.includes('DIP')) forced = { code:'DIP', label:'Direito Internacional' };
+        else if (dn.includes('GEOGRAFIA') || dn.includes('GEO')) forced = { code:'GEO', label:'Geografia' };
+        if (forced) {
+          const rule = SUBJECT_RULES.find(r => r.code === forced.code);
+          return function(idx, text) {
+            const tags = rule ? [...new Set((text.match(rule.rx)||[]).map(m=>m.trim()))].slice(0,3) : [];
+            return { subjectCode: forced.code, subjectLabel: forced.label, tags };
+          };
+        }
+        return null;
+      }
       const blocks = scaleBlocks(order, total);
       const blockAt = idx => {
         for (const b of blocks) if (idx >= b.start && idx < b.end) return b;
