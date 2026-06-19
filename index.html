@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -7,11 +7,10 @@
   <link rel="stylesheet" href="theme.css" />
   <link rel="stylesheet" href="games-theme.css" />
   <script src="icons.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/dist/umd/supabase.js"></script>
   <script src="supabase.js"></script>
 
   <script>
-    // Detectar se está em página de GAMES e adicionar class ao html
     function detectGamesPage() {
       const isGamesPage = window.location.pathname.includes('/GAMES/');
       if (isGamesPage) {
@@ -20,12 +19,8 @@
         document.documentElement.classList.remove('is-games-page');
       }
     }
-
-    // Executar no load
     document.addEventListener('DOMContentLoaded', detectGamesPage);
     window.addEventListener('load', detectGamesPage);
-
-    // Detectar mudanças de navegação (SPA)
     window.addEventListener('popstate', detectGamesPage);
     const originalPushState = history.pushState;
     history.pushState = function() {
@@ -34,416 +29,666 @@
     };
   </script>
   <style>
-    body { font-family:'Inter',system-ui,sans-serif; min-height:100vh; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── NAV ── */
-    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
-      border-bottom:1px solid var(--border); display:flex; align-items:center;
-      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
-    nav::-webkit-scrollbar { display:none; }
-    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
-      white-space:nowrap; flex-shrink:0; color:#fff; }
-    .nav-logo span { color:var(--neon-green); }
-    nav a { color:var(--muted2); text-decoration:none; font-size:11px; font-weight:600;
-      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
-      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
-    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
-    nav a.active { color:var(--neon-green); border-bottom:2px solid var(--neon-green);
-      border-radius:0; padding-bottom:3px; }
-    .nav-spacer { flex:1; min-width:8px; }
-    .nav-cd { font-size:11px; font-weight:700; color:var(--neon-yellow);
-      background:rgba(245,230,66,.1); border:1px solid rgba(245,230,66,.25);
-      padding:3px 10px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
-    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
-      display:flex; align-items:center; justify-content:center; font-size:11px;
-      font-weight:700; flex-shrink:0; margin-left:6px; color:var(--muted2); }
+    /* ── LOCAL PALETTE (index only) ── */
+    :root {
+      --bg-page:    #f5f3f0;
+      --bg-card:    #ffffff;
+      --bg-sand:    #ece8e5;
+      --bg-dark:    #17182d;
+      --text-main:  #1e1e1e;
+      --text-muted: #6b6b6b;
+      --text-faint: #a0a0a0;
+      --border-cl:  #e0dbd3;
+      --gold:       #c8a84b;
+      --gold-lt:    #d4af37;
+      --red-dipl:   #B83A2D;
+      --green-ok:   #4a9e6b;
+      --blue-soft:  #4682B4;
+      --sh-sm:      0 2px 8px rgba(0,0,0,0.06);
+      --sh-md:      0 4px 16px rgba(0,0,0,0.09);
+      --r-sm: 10px; --r-md: 16px; --r-lg: 24px;
+    }
+
+    /* ── DARK MODE ── */
+    html.dark {
+      --bg-page:    #0f1115;
+      --bg-card:    #1a1b21;
+      --bg-sand:    #23242b;
+      --bg-dark:    #0a0b10;
+      --text-main:  #f0ece6;
+      --text-muted: #8a8078;
+      --text-faint: #5a5550;
+      --border-cl:  rgba(255,255,255,0.09);
+      --gold:       #d4af37;
+      --gold-lt:    #d4af37;
+      --red-dipl:   #c0443a;
+      --green-ok:   #34d399;
+      --blue-soft:  #60a5fa;
+      --sh-sm:      0 2px 8px rgba(0,0,0,0.3);
+      --sh-md:      0 4px 16px rgba(0,0,0,0.4);
+    }
+    html.dark body { background: var(--bg-page) !important; color: var(--text-main) !important; }
+    html.dark .site-header { background: #12131a; border-color: rgba(255,255,255,0.07); }
+    html.dark .area-card { background: var(--bg-card); border-color: var(--border-cl); }
+    html.dark .nav-link { background: var(--bg-sand); border-color: var(--border-cl); color: var(--text-main); }
+    html.dark .metric-chip { background: var(--bg-card); border-color: var(--border-cl); }
+    html.dark .heatmap-card { background: var(--bg-card); border-color: var(--border-cl); }
+    html.dark .accordion-card { background: var(--bg-card); border-color: var(--border-cl); }
+    html.dark .plan-chip { background: var(--bg-sand); border-color: var(--border-cl); color: var(--text-muted); }
+    html.dark .plan-item { border-color: var(--border-cl); }
+    html.dark .hm-cell { background: #2a2b33; }
+    html.dark .hm-leg-cell { background: #2a2b33; }
+    html.dark .perf-card { background: var(--bg-card); border-color: var(--border-cl); }
+    html.dark .perf-stat-val { color: var(--text-main); }
+    html.dark .mc-sub { color: var(--text-faint); }
+    html.dark .area-desc { color: var(--text-faint); }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif !important;
+      background: var(--bg-page) !important;
+      color: var(--text-main) !important;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    .site-header {
+      background: #fff;
+      border-bottom: 1px solid var(--border-cl);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .site-logo {
+      font-size: 14px; font-weight: 900; letter-spacing: 2px;
+      color: var(--text-main); text-decoration: none; white-space: nowrap;
+    }
+    .site-logo span { color: var(--red-dipl); }
+    .header-nav {
+      display: flex; align-items: center; gap: 2px;
+      overflow-x: auto; scrollbar-width: none; flex: 1;
+    }
+    .header-nav::-webkit-scrollbar { display: none; }
+    .header-nav a {
+      color: var(--text-faint); text-decoration: none;
+      font-size: 11px; font-weight: 600;
+      padding: 5px 9px; border-radius: 6px;
+      transition: .15s; white-space: nowrap;
+      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+    }
+    .header-nav a:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
+    .header-nav a.active {
+      color: var(--red-dipl);
+      border-bottom: 2px solid var(--red-dipl);
+      border-radius: 0; padding-bottom: 3px;
+    }
+    .header-spacer { flex-shrink: 0; }
+    .header-cacd {
+      font-size: 11px; font-weight: 700; color: var(--gold);
+      background: rgba(200,168,75,0.1); border: 1px solid rgba(200,168,75,0.25);
+      padding: 4px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+    }
+    .header-user {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--bg-sand); display: flex; align-items: center;
+      justify-content: center; font-size: 12px; font-weight: 700;
+      color: var(--text-muted); flex-shrink: 0;
+    }
+    #navAdmin { display: none; font-size: 11px; color: var(--text-faint); text-decoration: none; flex-shrink: 0; }
+    #navAdmin:hover { color: var(--red-dipl); }
+
+    /* dark mode toggle */
+    .dark-toggle {
+      width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-cl);
+      background: var(--bg-sand); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 15px; flex-shrink: 0; transition: background .15s;
+    }
+    .dark-toggle:hover { background: var(--border-cl); }
 
     /* ── MAIN ── */
-    main { padding:20px 20px; max-width:1400px; margin:0 auto;
-      display:flex; flex-direction:column; gap:16px; }
+    main {
+      max-width: 1200px; margin: 0 auto;
+      padding: 24px 20px 56px;
+      display: flex; flex-direction: column; gap: 18px;
+    }
 
-    /* ── HERO ── */
-    .hero { background:var(--surface);
-      border:1px solid var(--border);
-      border-radius:4px; display:flex; align-items:stretch; overflow:hidden; min-height:90px; }
-    .hero-bar { width:4px; flex-shrink:0; }
-    .hero-body { flex:1; padding:16px 20px; min-width:0; }
-    .hero-lbl { font-size:9px; font-weight:900; letter-spacing:2.5px; color:var(--muted2);
-      text-transform:uppercase; margin-bottom:5px; }
-    .hero-title { font-size:18px; font-weight:900; line-height:1.2; margin-bottom:4px;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .hero-meta { font-size:11px; color:var(--muted2); }
-    .hero-right { padding:16px 20px; display:flex; flex-direction:column;
-      align-items:flex-end; justify-content:center; gap:8px; flex-shrink:0; }
-    .hero-days { text-align:right; }
-    .hero-days strong { font-size:28px; font-weight:900; color:var(--neon-yellow);
-      display:block; line-height:1; }
-    .hero-days small { font-size:9px; color:var(--muted2); letter-spacing:.5px;
-      text-transform:uppercase; }
-    .hero-btn { display:inline-block; padding:8px 18px; background:#fff;
-      color:#000; font-size:11px; font-weight:700; border-radius:3px;
-      text-decoration:none; transition:.15s; letter-spacing:.3px; white-space:nowrap; }
-    .hero-btn:hover { background:#d4d4d4; color:#000; }
-    .hero-btn.empty { background:rgba(255,255,255,.07); color:var(--muted2); }
+    /* ── METRICS ROW ── */
+    .metrics-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .metric-chip {
+      background: var(--bg-card); border: 1px solid var(--border-cl);
+      border-radius: var(--r-md); padding: 16px 18px;
+      position: relative; overflow: hidden; box-shadow: var(--sh-sm);
+    }
+    .metric-chip::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      border-radius: var(--r-md) var(--r-md) 0 0;
+    }
+    .metric-chip.mc-green::before  { background: var(--green-ok); }
+    .metric-chip.mc-blue::before   { background: var(--blue-soft); }
+    .metric-chip.mc-yellow::before { background: var(--gold-lt); }
+    .metric-chip.mc-red::before    { background: var(--red-dipl); }
+    .mc-lbl { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; color: var(--text-faint); text-transform: uppercase; margin-bottom: 6px; }
+    .mc-val { font-size: 26px; font-weight: 900; line-height: 1; margin-bottom: 3px; }
+    .mc-val.green  { color: var(--green-ok); }
+    .mc-val.blue   { color: var(--blue-soft); }
+    .mc-val.yellow { color: var(--gold); }
+    .mc-val.red    { color: var(--red-dipl); }
+    .mc-sub { font-size: 10px; color: var(--text-faint); }
 
-    /* ── SECTION LABEL ── */
-    .sec-lbl { font-size:9px; font-weight:900; letter-spacing:2.5px;
-      color:var(--muted2); text-transform:uppercase; margin-bottom:10px; }
+    /* ── HERO (dark card) ── */
+    .hero-card {
+      background: var(--bg-dark); border-radius: var(--r-lg);
+      padding: 24px 28px; display: flex; align-items: center;
+      gap: 20px; box-shadow: var(--sh-md); min-height: 100px;
+    }
+    .hero-bar { width: 4px; align-self: stretch; border-radius: 4px; background: var(--gold-lt); flex-shrink: 0; }
+    .hero-body { flex: 1; min-width: 0; }
+    .hero-lbl { font-size: 8px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.3); margin-bottom: 5px; }
+    .hero-title { font-size: 18px; font-weight: 900; color: #fff; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hero-meta  { font-size: 11px; color: rgba(255,255,255,.4); }
+    .hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+    .hero-days strong { font-size: 32px; font-weight: 900; color: var(--gold-lt); display: block; line-height: 1; text-align: right; }
+    .hero-days small  { font-size: 9px; color: rgba(255,255,255,.3); letter-spacing: .5px; text-transform: uppercase; }
+    .hero-btn {
+      display: inline-block; padding: 8px 20px; background: #fff;
+      color: var(--bg-dark); font-size: 11px; font-weight: 700;
+      border-radius: 20px; text-decoration: none; transition: opacity .15s;
+      letter-spacing: .3px; white-space: nowrap;
+    }
+    .hero-btn:hover { opacity: .85; }
+    .hero-btn.empty { background: rgba(255,255,255,.12); color: rgba(255,255,255,.5); }
 
-    /* ── GAMES GRID ── */
-    .games-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:4px; }
-    .game-card { display:flex; align-items:center; gap:12px; padding:13px 14px;
-      background:var(--surface); border:1px solid var(--border);
-      border-radius:8px; text-decoration:none; color:inherit;
-      transition:border-color .15s, background .15s; }
-    .game-card:hover { border-color:rgba(255,255,255,.2); background:rgba(255,255,255,.04); }
-    .game-card-icon { width:20px; height:20px; flex-shrink:0; opacity:.55;
-      display:flex; align-items:center; justify-content:center; }
-    .game-card-icon svg { width:20px; height:20px; }
-    .game-card-body { flex:1; min-width:0; }
-    .game-card-name { font-size:12px; font-weight:700; }
-    .game-card-sub { font-size:10px; color:#444; }
-    .game-card-arr { font-size:11px; color:#2a2a2a; flex-shrink:0; }
+    /* ── TWO-COLUMN AREAS ── */
+    .areas-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .area-card {
+      background: var(--bg-card); border: 1px solid var(--border-cl);
+      border-radius: var(--r-md); padding: 22px; box-shadow: var(--sh-sm);
+    }
+    .area-title { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 3px; }
+    .area-desc  { font-size: 11px; color: #bbb; margin-bottom: 14px; }
+    .nav-links  { display: flex; flex-direction: column; gap: 5px; }
+    .nav-link {
+      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+      background: var(--bg-page); border: 1px solid var(--border-cl);
+      border-radius: var(--r-sm); text-decoration: none; color: var(--text-main);
+      font-size: 12px; font-weight: 600; transition: border-color .15s, background .15s, color .15s;
+    }
+    .nav-link:hover { border-color: var(--gold); background: rgba(200,168,75,.05); color: var(--gold); }
+    .nav-link-icon { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; }
+    .nav-link-body { flex: 1; min-width: 0; }
+    .nav-link-name { font-size: 12px; font-weight: 700; }
+    .nav-link-sub  { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
+    .nav-link-arr  { font-size: 12px; color: #ccc; flex-shrink: 0; }
+    .nav-link:hover .nav-link-arr { color: var(--gold); }
 
-    /* ── SKELETON ── */
-    .skeleton { background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
-      background-size:200%; animation:shimmer 1.5s infinite; border-radius:4px; }
-    @keyframes shimmer { 0%{background-position:200%}100%{background-position:-200%} }
+    /* games mini-grid */
+    .games-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 5px; margin-top: 6px; }
+    .game-card {
+      display: flex; align-items: center; gap: 8px; padding: 9px 11px;
+      background: var(--bg-page); border: 1px solid var(--border-cl);
+      border-radius: var(--r-sm); text-decoration: none; color: var(--text-main);
+      transition: border-color .15s, background .15s;
+    }
+    .game-card:hover { border-color: var(--gold); background: rgba(200,168,75,.05); color: var(--gold); }
+    .game-card-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: .45; display: flex; align-items: center; }
+    .game-card-icon svg { width: 16px; height: 16px; }
+    .game-card-body { flex: 1; min-width: 0; }
+    .game-card-name { font-size: 11px; font-weight: 700; }
+    .game-card-sub  { font-size: 9px; color: var(--text-faint); }
+    .game-card-arr  { font-size: 10px; color: #ccc; flex-shrink: 0; }
 
-    /* ── WIDGET ROW (streak / hours / next task) ── */
-    .widget-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-    .widget { background:var(--surface); border:1px solid var(--border);
-      border-radius:4px; padding:14px 16px; transition:box-shadow .2s; }
-    .widget:hover { box-shadow:0 0 0 1px rgba(255,255,255,0.2); }
-    .wgt-lbl { font-size:9px; font-weight:900; letter-spacing:2px; color:var(--muted2);
-      text-transform:uppercase; margin-bottom:6px; }
-    .wgt-val { font-size:26px; font-weight:900; line-height:1; margin-bottom:3px; }
-    .wgt-sub { font-size:10px; color:var(--muted2); }
-    .wgt-bar-wrap { height:5px; background:rgba(255,255,255,.07); border-radius:20px;
-      overflow:hidden; margin-top:8px; }
-    .wgt-bar { height:100%; border-radius:20px; background:var(--accent);
-      transition:width 1.2s cubic-bezier(.4,0,.2,1); width:0%; }
-    .daily-cycle{margin:28px 0}
-    .cycle-header{font-size:13px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
-    .cycle-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
-    .cycle-card{background:#111;border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
-    .cycle-card.done{border-color:rgba(34,197,94,.27);background:#0a1a0f}
-    .cycle-card-top{display:flex;justify-content:space-between;align-items:center}
-    .cycle-name{font-size:12px;font-weight:600;color:#e8e8e8}
-    .cycle-badge-done{font-size:11px;color:#22c55e;font-weight:600}
-    .cycle-badge-pend{font-size:11px;color:#555}
-    .cycle-count{font-size:11px;color:#666}
-    .cycle-btn{font-size:11px;background:rgba(255,255,255,.06);border:none;color:#aaa;border-radius:6px;padding:5px 10px;cursor:pointer;text-align:center;text-decoration:none;display:block;transition:.15s}
-    .cycle-btn:hover{background:rgba(255,255,255,.12);color:#fff}
-    .cycle-complete{background:#0a1a0f;border:1px solid rgba(34,197,94,.27);border-radius:10px;padding:12px 16px;color:#22c55e;font-size:13px;font-weight:600;text-align:center;margin-top:8px;display:none}
-    .cycle-tasks{display:flex;flex-direction:column;gap:4px;margin-top:4px}
-    .cycle-task{font-size:11px;color:#888;text-decoration:none;padding:4px 8px;border-radius:5px;background:rgba(255,255,255,.04);transition:.15s}
-    .cycle-task:hover{background:rgba(255,255,255,.09);color:#fff}
-    .cycle-task.done{color:#22c55e;background:rgba(34,197,94,.08)}
-    .cycle-prog{height:3px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:6px}
-    .cycle-prog-fill{height:100%;border-radius:99px;background:#22c55e;transition:width .6s}
-    .wgt-next-name { font-size:13px; font-weight:900; margin-bottom:4px; }
-    .wgt-next-meta { font-size:10px; color:var(--muted2); margin-bottom:10px; }
-    .wgt-next-btn { display:block; text-align:center; padding:8px;
-      background:#fff; color:#000; font-size:11px; font-weight:700;
-      border-radius:3px; text-decoration:none; transition:.15s; letter-spacing:.3px; }
-    .wgt-next-btn:hover { opacity:.85; }
+    /* TPS chips */
+    .tps-block { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-cl); }
+    .tps-block-lbl { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; color: var(--text-faint); text-transform: uppercase; margin-bottom: 8px; }
+    .tps-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tps-chip {
+      display: inline-flex; align-items: center; gap: 3px; padding: 4px 10px;
+      background: rgba(200,168,75,.07); border: 1px solid rgba(200,168,75,.22);
+      color: var(--gold); border-radius: 6px; font-size: 10px; font-weight: 600;
+      text-decoration: none; transition: background .15s;
+    }
+    .tps-chip:hover { background: rgba(200,168,75,.18); }
 
-    /* ── TPS ── */
-    .tps-section { background:var(--surface); border:1px solid var(--border);
-      border-radius:12px; padding:16px; }
-    .tps-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-    .tps-head h3 { font-size:11px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; }
-    .tps-head p { font-size:10px; color:var(--muted2); }
-    .tps-chips { display:flex; flex-wrap:wrap; gap:5px; }
-    .tps-chip { display:inline-flex; align-items:center; gap:4px; padding:5px 11px;
-      background:rgba(245,230,66,.06); border:1px solid rgba(245,230,66,.2);
-      color:var(--neon-yellow); border-radius:7px; font-size:10px; font-weight:700;
-      text-decoration:none; transition:.15s; letter-spacing:.3px; }
-    .tps-chip:hover { background:rgba(245,230,66,.15); }
+    /* ── PERF CARD (Análise de Desempenho) ── */
+    .perf-card {
+      background: var(--bg-card); border: 1px solid var(--border-cl);
+      border-radius: var(--r-md); padding: 22px; box-shadow: var(--sh-sm);
+    }
+    .perf-title { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 3px; }
+    .perf-desc  { font-size: 11px; color: var(--text-faint); margin-bottom: 14px; }
+    .perf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+    .perf-stat {
+      background: var(--bg-page); border: 1px solid var(--border-cl);
+      border-radius: var(--r-sm); padding: 12px 14px; text-align: center;
+    }
+    .perf-stat-val { font-size: 22px; font-weight: 900; line-height: 1; margin-bottom: 4px; color: var(--text-main); }
+    .perf-stat-val.green  { color: var(--green-ok); }
+    .perf-stat-val.blue   { color: var(--blue-soft); }
+    .perf-stat-val.yellow { color: var(--gold); }
+    .perf-stat-lbl { font-size: 9px; color: var(--text-faint); font-weight: 600; letter-spacing: .5px; }
+    .perf-links { display: flex; flex-direction: column; gap: 5px; }
 
-    /* ── SESSIONS ── */
-    .sessions-row { display:flex; gap:10px; flex-direction:column; }
-    .session-item { display:flex; align-items:center; gap:10px; padding:8px 0;
-      border-bottom:1px solid var(--border); }
-    .session-item:last-child { border-bottom:none; }
-    .session-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .session-info { flex:1; min-width:0; }
-    .session-name { font-size:11px; font-weight:700;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .session-date { font-size:10px; color:var(--muted2); }
-    .session-score { font-size:12px; font-weight:900; flex-shrink:0; }
+    /* ── HEATMAP ANUAL ── */
+    .heatmap-card {
+      background: var(--bg-card); border: 1px solid var(--border-cl);
+      border-radius: var(--r-lg); padding: 22px 24px 18px; box-shadow: var(--sh-sm);
+    }
+    .heatmap-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .heatmap-title { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); }
+    .heatmap-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .heatmap-stats-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .hm-stat { text-align: right; }
+    .hm-stat-val { font-size: 20px; font-weight: 900; color: var(--text-main); line-height: 1; }
+    .hm-stat-lbl { font-size: 9px; color: var(--text-faint); margin-top: 2px; }
 
-    /* ── ANNOUNCEMENTS ── */
-    .ann-item { padding:9px 0; border-bottom:1px solid var(--border); }
-    .ann-item:last-child { border-bottom:none; }
-    .ann-title { font-size:12px; font-weight:700; margin-bottom:3px; }
-    .ann-body  { font-size:11px; color:var(--muted2); line-height:1.5; }
-    .ann-date  { font-size:10px; color:var(--muted); margin-top:4px; }
+    /* 7-row × 53-col grid via auto-flow column */
+    .heatmap-grid-wrap { overflow-x: auto; padding-bottom: 4px; }
+    .heatmap-grid {
+      display: grid;
+      grid-template-rows: repeat(7, 13px);
+      grid-auto-flow: column;
+      grid-auto-columns: 13px;
+      gap: 3px;
+      width: max-content;
+      min-width: 100%;
+    }
+    .hm-cell {
+      width: 13px; height: 13px; border-radius: 3px;
+      background: #eae7e2; cursor: default; transition: opacity .1s;
+    }
+    .hm-cell:hover { opacity: .7; }
+    .hm-cell.lv1 { background: #e0d090; }
+    .hm-cell.lv2 { background: #c4a84f; }
+    .hm-cell.lv3 { background: #b8962e; }
+    .hm-cell.lv4 { background: #9a7a20; }
+    .hm-cell.lv5 { background: #7a5f10; }
+    .hm-cell.today { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .hm-cell.empty-pad { opacity: 0; pointer-events: none; }
 
-    .empty-msg { color:var(--muted2); font-size:11px; text-align:center; padding:14px 0; }
+    .heatmap-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-cl);
+      flex-wrap: wrap; gap: 8px;
+    }
+    .heatmap-footer-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+    .hm-foot-item { font-size: 11px; color: var(--text-muted); }
+    .hm-foot-item strong { color: var(--text-main); font-weight: 700; }
+    .heatmap-legend { display: flex; align-items: center; gap: 4px; }
+    .hm-leg-lbl { font-size: 9px; color: var(--text-faint); }
+    .hm-leg-cell { width: 11px; height: 11px; border-radius: 2px; background: #eae7e2; }
+    .hm-leg-cell.lv1 { background: #e0d090; }
+    .hm-leg-cell.lv2 { background: #c4a84f; }
+    .hm-leg-cell.lv3 { background: #b8962e; }
+    .hm-leg-cell.lv4 { background: #9a7a20; }
+    .hm-leg-cell.lv5 { background: #7a5f10; }
 
-    /* ── BOTTOM GRID ── */
-    .bottom-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-    .bottom-card { background:var(--surface); border:1px solid var(--border);
-      border-radius:12px; padding:16px; }
-    .bottom-card h3 { font-size:9px; font-weight:900; letter-spacing:2px;
-      color:var(--muted2); text-transform:uppercase; margin-bottom:12px; }
+    /* ── PLANO DO DIA — acordeão ── */
+    .accordion-card {
+      background: var(--bg-card); border: 1px solid var(--border-cl);
+      border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-sm);
+    }
+    .accordion-trigger {
+      width: 100%; display: flex; align-items: center; gap: 10px;
+      padding: 16px 20px; background: none; border: none;
+      cursor: pointer; text-align: left; transition: background .15s;
+    }
+    .accordion-trigger:hover { background: rgba(200,168,75,.04); }
+    .accordion-trigger-label {
+      flex: 1; font-size: 11px; font-weight: 800;
+      letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-main);
+    }
+    .accordion-trigger-date { font-size: 11px; color: var(--text-faint); font-weight: 400; }
+    .accordion-trigger-prog {
+      font-size: 11px; font-weight: 700; color: var(--green-ok);
+      background: rgba(74,158,107,.1); border-radius: 12px; padding: 2px 10px; flex-shrink: 0;
+    }
+    .accordion-arrow { font-size: 11px; color: #ccc; transition: transform .2s; flex-shrink: 0; }
+    .accordion-card.open .accordion-arrow { transform: rotate(90deg); }
+    .accordion-body { display: none; padding: 0 20px 18px; }
+    .accordion-card.open .accordion-body { display: block; }
 
-    /* ── QUICK ACTIONS ── */
-    .btn-action { display:flex; align-items:center; gap:8px; padding:9px 12px;
-      background:rgba(255,255,255,.03); border:1px solid var(--border);
-      border-radius:7px; color:#fff; text-decoration:none; font-size:11px;
-      font-weight:600; transition:.15s; margin-bottom:5px; letter-spacing:.2px; }
-    .btn-action:last-child { margin-bottom:0; }
-    .btn-action:hover { background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.15); }
-    .btn-action .arr { margin-left:auto; color:var(--muted); }
+    /* ── PLANO: LISTA COMPACTA ── */
+    .plan-list { display: flex; flex-direction: column; }
+    .plan-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--border-cl);
+    }
+    .plan-item:last-child { border-bottom: none; }
 
-    /* ── METRIC BAR ── */
-    .metric-bar { display:flex; gap:8px; padding:14px 20px 0; flex-wrap:wrap; }
-    .metric-chip { flex:1; min-width:110px; background:var(--surface);
-      border:1px solid var(--border); border-radius:10px; padding:10px 14px;
-      position:relative; overflow:hidden; }
-    .metric-chip::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
-    .metric-chip.mc-green::before  { background:var(--neon-green); }
-    .metric-chip.mc-blue::before   { background:var(--neon-blue); }
-    .metric-chip.mc-yellow::before { background:var(--neon-yellow); }
-    .metric-chip.mc-pink::before   { background:var(--neon-pink); }
-    .mc-lbl { font-size:8px; font-weight:900; letter-spacing:2px; color:var(--muted2);
-      text-transform:uppercase; margin-bottom:4px; }
-    .mc-val { font-size:24px; font-weight:900; line-height:1; margin-bottom:2px; }
-    .mc-sub { font-size:9px; color:var(--muted2); }
+    .plan-check {
+      width: 20px; height: 20px; border-radius: 6px;
+      border: 2px solid var(--border-cl); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: transparent;
+    }
+    .plan-item.done .plan-check {
+      background: var(--green-ok); border-color: var(--green-ok);
+      color: #fff;
+    }
+    .plan-item.done .plan-check::after { content: '✓'; }
 
-    /* ── ACTIVITY CHART ── */
-    .chart-wrap { background:var(--surface); border:1px solid var(--border);
-      border-radius:12px; padding:14px 16px; }
-    .chart-head { display:flex; align-items:center; justify-content:space-between;
-      margin-bottom:10px; }
-    .chart-lbl { font-size:9px; font-weight:900; letter-spacing:2px;
-      color:var(--muted2); text-transform:uppercase; }
-    .chart-live { font-size:9px; font-weight:700; color:var(--neon-green);
-      letter-spacing:1px; animation:blink 1.4s step-end infinite; }
-    @keyframes blink { 50% { opacity:0; } }
-    .chart-bars { display:flex; align-items:flex-end; gap:3px; height:52px; }
-    .chart-bar { flex:1; border-radius:3px 3px 0 0; min-height:3px;
-      transition:height .5s cubic-bezier(.4,0,.2,1), opacity .15s; cursor:pointer; }
-    .chart-bar:hover { opacity:1 !important; filter:brightness(1.3); }
-    .chart-days { display:flex; justify-content:space-between; margin-top:4px; }
-    .chart-day-lbl { flex:1; font-size:7px; color:var(--muted); text-align:center;
-      text-transform:uppercase; letter-spacing:.3px; }
+    .plan-icon { font-size: 14px; flex-shrink: 0; }
+    .plan-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 700; color: var(--text-main); }
+    .plan-item.done .plan-name { color: var(--text-faint); text-decoration: line-through; }
 
-    /* ── ISLAND: SIEM tweaks ── */
-    .island-code { font-family:'SF Mono',ui-monospace,'Cascadia Code',monospace; }
-    .island-fill { background:linear-gradient(90deg, var(--subject-color) 0%, var(--subject-color) 100%);
-      position:relative; }
-    .island-fill::after { content:''; position:absolute; inset:0;
-      background:repeating-linear-gradient(90deg,transparent 0,transparent 3px,rgba(0,0,0,0.15) 3px,rgba(0,0,0,0.15) 4px); }
+    .plan-chips { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+    .plan-chip {
+      display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px;
+      border-radius: 20px; font-size: 10px; font-weight: 600;
+      text-decoration: none; border: 1px solid var(--border-cl);
+      color: var(--text-muted); background: var(--bg-page);
+      transition: border-color .15s, color .15s, background .15s; white-space: nowrap;
+    }
+    .plan-chip:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,168,75,.07); }
+    .plan-chip.done { border-color: rgba(74,158,107,.3); color: var(--green-ok); background: rgba(74,158,107,.08); }
+    .plan-chip.done::before { content: '✓ '; }
+    .plan-prog-text { font-size: 10px; color: var(--text-faint); flex-shrink: 0; }
+    .plan-item.done .plan-prog-text { color: var(--green-ok); }
 
-    /* ── PLANO + GAMES lado a lado ── */
-    .plano-games-row { display:grid; grid-template-columns:1fr 340px; gap:16px; align-items:start; }
-    .plano-games-row .daily-cycle { margin:0; }
-    .games-col {}
+    .cycle-complete {
+      background: rgba(74,158,107,.07); border: 1px solid rgba(74,158,107,.25);
+      border-radius: 8px; padding: 10px 14px; color: var(--green-ok);
+      font-size: 12px; font-weight: 700; text-align: center; margin-top: 12px; display: none;
+    }
 
-    @media(max-width:1000px) { .widget-row{grid-template-columns:repeat(2,1fr);} .bottom-grid{grid-template-columns:1fr 1fr;} }
-    @media(max-width:900px)  { .plano-games-row{grid-template-columns:1fr;} }
-    @media(max-width:760px)  { .islands-grid{grid-template-columns:repeat(2,1fr);} .metric-bar{gap:5px;} }
-    @media(max-width:520px)  { .islands-grid{grid-template-columns:1fr;} .widget-row{grid-template-columns:1fr 1fr;} .bottom-grid{grid-template-columns:1fr;} .metric-chip{min-width:80px;} }
+    /* ── HIDDEN JS SINKS ── */
+    #heroCard, #heroBar, #heroTitle, #heroMeta, #heroBtn, #heroDays,
+    #streakVal, #weekHours, #weekSub, #weekFill,
+    #todayHours, #todaySub, #todayFill,
+    #nextTask, #nextMeta, #nextTaskBtn,
+    #activityChart, #activityDays, #chartLive,
+    #recentSessions, #announcementsCard, #announcementsList
+    { display: none !important; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) { .metrics-row { grid-template-columns: repeat(2,1fr); } .areas-row { grid-template-columns: 1fr; } }
+    @media (max-width: 520px)  { .mc-val { font-size: 20px; } .hero-card { flex-direction: column; align-items: flex-start; } .hero-right { align-items: flex-start; } }
   </style>
 </head>
 <body>
 
-  <nav>
-    <button class="nav-ham" onclick="openSidebar()">☰</button>
-    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
-    <a href="index.html" class="active">Início</a>
-    <a href="flashcards.html">Flashcards</a>
-    <a href="analise.html">Análise</a>
-    <a href="agenda.html">Agenda</a>
-    <a href="segunda-fase.html">2ª Fase</a>
-    <a href="gramatica-matching.html">Gramática</a>
-    <a href="ingles.html">Inglês</a>
-    <a href="espanhol.html">Espanhol</a>
-    <a href="idiomas-historico.html">Histórico Idiomas</a>
-    <a href="GAMES/index.html">Games</a>
-    <a href="analise-detector.html">Evolução</a>
-    <a href="detector/index.html">Detector</a>
-    <a href="admin.html" id="navAdmin" style="display:none">Admin</a>
-    <div class="nav-spacer"></div>
-    <div class="nav-cd" id="navCountdown"></div>
-    <div class="nav-user" id="navUser">?</div>
-  </nav>
+  <!-- HEADER -->
+  <header class="site-header">
+    <a href="index.html" class="site-logo">ATLAS <span>DIPL.</span></a>
+    <nav class="header-nav">
+      <a href="index.html" class="active">Início</a>
+      <a href="flashcards.html">Flashcards</a>
+      <a href="analise.html">Análise</a>
+      <a href="agenda.html">Agenda</a>
+      <a href="segunda-fase.html">2ª Fase</a>
+      <a href="gramatica-matching.html">Gramática</a>
+      <a href="ingles.html">Inglês</a>
+      <a href="espanhol.html">Espanhol</a>
+      <a href="idiomas-historico.html">Histórico Idiomas</a>
+      <a href="GAMES/index.html">Games</a>
+      <a href="analise-detector.html">Evolução</a>
+      <a href="detector/index.html">Detector</a>
+      <a href="admin.html" id="navAdmin">Admin</a>
+    </nav>
+    <div class="header-cacd" id="navCountdown">—d CACD</div>
+    <button class="dark-toggle" id="darkToggle" title="Modo noturno" onclick="toggleDark()">🌙</button>
+    <div class="header-user" id="navUser">?</div>
+  </header>
 
-  <!-- METRIC BAR -->
-  <div class="metric-bar">
-    <div class="metric-chip mc-green">
-      <div class="mc-lbl">FLASHCARDS_TOTAL</div>
-      <div class="mc-val" style="color:var(--neon-green)">3,012</div>
-      <div class="mc-sub">em 8 matérias</div>
-    </div>
-    <div class="metric-chip mc-blue">
-      <div class="mc-lbl">SESSÕES_HOJE</div>
-      <div class="mc-val" id="mcSessions" style="color:var(--neon-blue)">—</div>
-      <div class="mc-sub">sessões hoje</div>
-    </div>
-    <div class="metric-chip mc-yellow">
-      <div class="mc-lbl">SEQUÊNCIA_ATUAL</div>
-      <div class="mc-val" id="mcStreak" style="color:var(--neon-yellow)">—</div>
-      <div class="mc-sub">dias seguidos 🔥</div>
-    </div>
-    <div class="metric-chip mc-pink">
-      <div class="mc-lbl">DIAS_PARA_CACD</div>
-      <div class="mc-val" id="mcDays" style="color:var(--neon-pink)">—</div>
-      <div class="mc-sub">data do exame</div>
-    </div>
+  <!-- Hidden JS sink elements — keep for render function compat -->
+  <div style="display:none">
+    <div id="heroCard"><div id="heroBar"></div><div id="heroTitle"></div>
+      <div id="heroMeta"></div><strong id="heroDays"></strong><a id="heroBtn" href="flashcards.html"></a></div>
+    <div id="streakVal"></div>
+    <div id="weekHours"></div><div id="weekSub"></div><div id="weekFill"></div>
+    <div id="todayHours"></div><div id="todaySub"></div><div id="todayFill"></div>
+    <div id="nextTask"></div><div id="nextMeta"></div><a id="nextTaskBtn" href="flashcards.html"></a>
+    <div id="activityChart"></div><div id="activityDays"></div><div id="chartLive"></div>
+    <div id="recentSessions"></div>
+    <div id="announcementsCard"><div id="announcementsList"></div></div>
   </div>
 
   <main>
 
+    <!-- METRICS -->
+    <div class="metrics-row">
+      <div class="metric-chip mc-green">
+        <div class="mc-lbl">Flashcards Total</div>
+        <div class="mc-val green">3.012</div>
+        <div class="mc-sub">em 8 matérias</div>
+      </div>
+      <div class="metric-chip mc-blue">
+        <div class="mc-lbl">Sessões Hoje</div>
+        <div class="mc-val" id="mcSessions">—</div>
+        <div class="mc-sub">sessões registradas</div>
+      </div>
+      <div class="metric-chip mc-yellow">
+        <div class="mc-lbl">Sequência</div>
+        <div class="mc-val" id="mcStreak">—</div>
+        <div class="mc-sub">dias seguidos 🔥</div>
+      </div>
+      <div class="metric-chip mc-red">
+        <div class="mc-lbl">Dias para CACD</div>
+        <div class="mc-val red" id="mcDays">—</div>
+        <div class="mc-sub">data do exame</div>
+      </div>
+    </div>
+
     <!-- HERO -->
-    <div class="hero" id="heroCard">
-      <div class="hero-bar" id="heroBar" style="background:var(--neon-green)"></div>
+    <div class="hero-card">
+      <div class="hero-bar" id="heroBarV" style="background:var(--gold-lt)"></div>
       <div class="hero-body">
         <div class="hero-lbl">Continuar Estudando</div>
-        <div class="hero-title" id="heroTitle">Carregando...</div>
-        <div class="hero-meta" id="heroMeta"></div>
+        <div class="hero-title" id="heroTitleV">Carregando…</div>
+        <div class="hero-meta"  id="heroMetaV"></div>
       </div>
       <div class="hero-right">
         <div class="hero-days">
-          <strong id="heroDays">—</strong>
+          <strong id="heroDaysV">—</strong>
           <small>dias para o CACD</small>
         </div>
-        <a class="hero-btn empty" id="heroBtn" href="flashcards.html">Começar →</a>
+        <a class="hero-btn empty" id="heroBtnV" href="flashcards.html">Começar →</a>
       </div>
     </div>
 
-    <!-- PLANO DO DIA + GAMES lado a lado -->
-    <div class="plano-games-row">
-      <div class="daily-cycle" id="dailyCycleSection">
-        <div class="cycle-header">📅 PLANO_DO_DIA — <span id="cycleDate"></span></div>
-        <div class="cycle-grid" id="dailyCycleGrid"></div>
-        <div class="cycle-complete" id="cycleComplete">🎯 Plano do dia completo! Zerado!</div>
-      </div>
-      <div class="games-col">
-        <div class="sec-lbl">Games</div>
-        <div class="games-grid" id="gamesGrid"></div>
-      </div>
-    </div>
+    <!-- AREAS -->
+    <div class="areas-row">
 
-    <!-- WIDGET ROW -->
-    <div class="widget-row">
-      <div class="widget">
-        <div class="wgt-lbl">Sequência</div>
-        <div class="wgt-val" id="streakVal" style="color:var(--neon-yellow)">—</div>
-        <div class="wgt-sub">dias seguidos</div>
-      </div>
-      <div class="widget">
-        <div class="wgt-lbl">Esta Semana</div>
-        <div class="wgt-val" id="weekHours" style="color:var(--neon-blue)">—</div>
-        <div class="wgt-sub" id="weekSub">de 25h meta</div>
-        <div class="wgt-bar-wrap"><div class="wgt-bar" id="weekFill"></div></div>
-        <div style="border-top:1px solid rgba(255,255,255,.06);margin:10px 0 6px"></div>
-        <div class="wgt-lbl">Hoje</div>
-        <div class="wgt-val" id="todayHours" style="font-size:20px;color:var(--neon-yellow)">—</div>
-        <div class="wgt-sub" id="todaySub">de 2h meta diária</div>
-        <div class="wgt-bar-wrap"><div class="wgt-bar" id="todayFill" style="background:var(--neon-yellow)"></div></div>
-      </div>
-      <div class="widget">
-        <div class="wgt-lbl">Próxima Tarefa</div>
-        <div class="wgt-next-name" id="nextTask">—</div>
-        <div class="wgt-next-meta" id="nextMeta"></div>
-        <a class="wgt-next-btn" id="nextTaskBtn" href="flashcards.html">Iniciar →</a>
-      </div>
-      <div class="widget">
-        <div class="wgt-lbl">Ações Rápidas</div>
-        <a href="flashcards.html" class="btn-action" style="margin-bottom:4px">Flashcards <span class="arr">›</span></a>
-        <a href="simulados.html"  class="btn-action" style="margin-bottom:4px">Simulado <span class="arr">›</span></a>
-      </div>
-    </div>
-
-    <!-- ACTIVITY CHART -->
-    <div class="chart-wrap">
-      <div class="chart-head">
-        <div class="chart-lbl">ATIVIDADE_14_DIAS</div>
-        <div class="chart-live" id="chartLive">● LIVE</div>
-      </div>
-      <div class="chart-bars" id="activityChart"></div>
-      <div class="chart-days" id="activityDays"></div>
-    </div>
-
-    <!-- TPS -->
-    <div class="tps-section">
-      <div class="tps-head">
-        <span style="font-size:18px">📋</span>
-        <div>
-          <h3>Provas Anteriores — TPS</h3>
-          <p>Questões Certo/Errado · 2016–2026</p>
+      <!-- OBJETIVAS -->
+      <div class="area-card">
+        <div class="area-title">Área Objetivas</div>
+        <div class="area-desc">Games, flashcards e simulados de provas</div>
+        <div class="nav-links">
+          <a href="GAMES/index.html" class="nav-link">
+            <span class="nav-link-icon">🎮</span>
+            <div class="nav-link-body"><div class="nav-link-name">Games Hub</div><div class="nav-link-sub">15 jogos · +17.000 pares</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="flashcards.html" class="nav-link">
+            <span class="nav-link-icon">🃏</span>
+            <div class="nav-link-body"><div class="nav-link-name">Flashcards</div><div class="nav-link-sub">Estudo por matéria · SRS</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="simulados.html" class="nav-link">
+            <span class="nav-link-icon">📋</span>
+            <div class="nav-link-body"><div class="nav-link-name">Simulados / TPS</div><div class="nav-link-sub">Questões certo/errado</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="revisao.html" class="nav-link">
+            <span class="nav-link-icon">📚</span>
+            <div class="nav-link-body"><div class="nav-link-name">Revisão SRS</div><div class="nav-link-sub">Pares com erros pendentes</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="gramatica-matching.html" class="nav-link">
+            <span class="nav-link-icon">📖</span>
+            <div class="nav-link-body"><div class="nav-link-name">Gramática</div><div class="nav-link-sub">Matching · 142 pares</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+        </div>
+        <div class="tps-block">
+          <div class="tps-block-lbl">Provas Anteriores · TPS 2016–2026</div>
+          <div class="tps-chips" id="tpsChips"></div>
         </div>
       </div>
-      <div class="tps-chips" id="tpsChips"></div>
+
+      <!-- DISCURSIVAS -->
+      <div class="area-card">
+        <div class="area-title">Área Discursivas</div>
+        <div class="area-desc">Idiomas, redações e análise avançada</div>
+        <div class="nav-links">
+          <a href="ingles.html" class="nav-link">
+            <span class="nav-link-icon">🎧</span>
+            <div class="nav-link-body"><div class="nav-link-name">Inglês</div><div class="nav-link-sub">Flashcards + Grammar</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="espanhol.html" class="nav-link">
+            <span class="nav-link-icon">🇪🇸</span>
+            <div class="nav-link-body"><div class="nav-link-name">Espanhol</div><div class="nav-link-sub">Gramática + Vocabulário</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="segunda-fase.html" class="nav-link">
+            <span class="nav-link-icon">✍️</span>
+            <div class="nav-link-body"><div class="nav-link-name">2ª Fase</div><div class="nav-link-sub">Redações por tema · praticar</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="terceira-fase.html" class="nav-link">
+            <span class="nav-link-icon">🎓</span>
+            <div class="nav-link-body"><div class="nav-link-name">3ª Fase</div><div class="nav-link-sub">Produção oral e escrita</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="detector/index.html" class="nav-link">
+            <span class="nav-link-icon">🧭</span>
+            <div class="nav-link-body"><div class="nav-link-name">Detector</div><div class="nav-link-sub">Análise avançada de tendências</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="analise-detector.html" class="nav-link">
+            <span class="nav-link-icon">🔍</span>
+            <div class="nav-link-body"><div class="nav-link-name">Evolução</div><div class="nav-link-sub">Detector de tendências</div></div>
+            <span class="nav-link-arr">›</span>
+          </a>
+        </div>
+      </div>
     </div>
 
-    <!-- BOTTOM ROW -->
-    <div class="bottom-grid">
-      <div class="bottom-card">
-        <h3>Sessões Recentes</h3>
-        <div id="recentSessions"><div class="empty-msg">Nenhuma sessão ainda.</div></div>
+    <!-- ANÁLISE DE DESEMPENHO -->
+    <div class="perf-card">
+      <div class="perf-title">Análise de Desempenho</div>
+      <div class="perf-desc">Estatísticas gerais · últimas sessões e evolução por matéria</div>
+      <div class="perf-stats-grid">
+        <div class="perf-stat">
+          <div class="perf-stat-val green" id="perfAccerto">—</div>
+          <div class="perf-stat-lbl">% Acerto Geral</div>
+        </div>
+        <div class="perf-stat">
+          <div class="perf-stat-val blue" id="perfSessoes">—</div>
+          <div class="perf-stat-lbl">Sessões no Mês</div>
+        </div>
+        <div class="perf-stat">
+          <div class="perf-stat-val yellow" id="perfCards">—</div>
+          <div class="perf-stat-lbl">Cards Estudados</div>
+        </div>
       </div>
-      <div class="bottom-card" id="announcementsCard" style="display:none">
-        <h3>Avisos</h3>
-        <div id="announcementsList"></div>
+      <div class="perf-links">
+        <a href="analise.html" class="nav-link">
+          <span class="nav-link-icon">📊</span>
+          <div class="nav-link-body"><div class="nav-link-name">Análise Completa</div><div class="nav-link-sub">Estatísticas detalhadas por matéria</div></div>
+          <span class="nav-link-arr">›</span>
+        </a>
+        <a href="idiomas-historico.html" class="nav-link">
+          <span class="nav-link-icon">🗂️</span>
+          <div class="nav-link-body"><div class="nav-link-name">Histórico de Idiomas</div><div class="nav-link-sub">Sessões de inglês e espanhol</div></div>
+          <span class="nav-link-arr">›</span>
+        </a>
+        <a href="agenda.html" class="nav-link">
+          <span class="nav-link-icon">📅</span>
+          <div class="nav-link-body"><div class="nav-link-name">Agenda</div><div class="nav-link-sub">Planejamento semanal</div></div>
+          <span class="nav-link-arr">›</span>
+        </a>
       </div>
-      <div class="bottom-card">
-        <h3>Mais Ações</h3>
-        <a href="agenda.html"      class="btn-action">📅 Agenda <span class="arr">›</span></a>
-        <a href="segunda-fase.html"class="btn-action">✍️ 2ª Fase <span class="arr">›</span></a>
-        
-        <a href="analise.html"     class="btn-action">📊 Análise <span class="arr">›</span></a>
+    </div>
+
+    <!-- HEATMAP ANUAL -->
+    <div class="heatmap-card">
+      <div class="heatmap-head">
+        <div>
+          <div class="heatmap-title">Atividade · 365 Dias</div>
+          <div class="heatmap-subtitle" id="heatmapSubtitle">carregando…</div>
+        </div>
+        <div class="heatmap-stats-row">
+          <div class="hm-stat">
+            <div class="hm-stat-val" id="hmStreak">—</div>
+            <div class="hm-stat-lbl">dias seguidos</div>
+          </div>
+          <div class="hm-stat">
+            <div class="hm-stat-val" id="hmDaysLearned">—</div>
+            <div class="hm-stat-lbl">dias estudados</div>
+          </div>
+          <div class="hm-stat">
+            <div class="hm-stat-val" id="hmAvgDaily">—</div>
+            <div class="hm-stat-lbl">média diária</div>
+          </div>
+        </div>
+      </div>
+      <div class="heatmap-grid-wrap">
+        <div class="heatmap-grid" id="heatmapGrid"></div>
+      </div>
+      <div class="heatmap-footer">
+        <div class="heatmap-footer-stats">
+          <div class="hm-foot-item">Sequência atual: <strong id="hmStreakFoot">—</strong> dias</div>
+          <div class="hm-foot-item">Maior sequência: <strong id="hmLongest">—</strong> dias</div>
+        </div>
+        <div class="heatmap-legend">
+          <div class="hm-leg-lbl">menos</div>
+          <div class="hm-leg-cell"></div>
+          <div class="hm-leg-cell lv1"></div>
+          <div class="hm-leg-cell lv2"></div>
+          <div class="hm-leg-cell lv3"></div>
+          <div class="hm-leg-cell lv4"></div>
+          <div class="hm-leg-cell lv5"></div>
+          <div class="hm-leg-lbl">mais</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANO DO DIA -->
+    <div class="accordion-card" id="planoAccordion">
+      <button class="accordion-trigger" onclick="document.getElementById('planoAccordion').classList.toggle('open')">
+        <span>📅</span>
+        <span class="accordion-trigger-label">Plano do Dia</span>
+        <span class="accordion-trigger-date" id="cycleDate"></span>
+        <span class="accordion-trigger-prog" id="cycleProg" style="display:none"></span>
+        <span class="accordion-arrow">›</span>
+      </button>
+      <div class="accordion-body">
+        <div class="plan-list" id="dailyCycleGrid"></div>
+        <div class="cycle-complete" id="cycleComplete">🎯 Plano completo! Dia zerado!</div>
       </div>
     </div>
 
   </main>
 
   <script>
+    /* ── DATA ─────────────────────────────────────────────── */
     const SUBJECTS = [
-      { id:'LP',   name:'Língua Portuguesa',     color:'#ffffff', icon:'📝', cssVar:'--lp',
-        files:[
-          {name:'Literatura',      path:'FLASHCARDS/PORTUGUÊS/LITERATURA port.csv',         type:'fc'},
-          {name:'Literatura Bosi', path:'FLASHCARDS/PORTUGUÊS/LITERATURA BOSI port.csv',    type:'fc'},
-          {name:'Lessa PI (PT)',   path:'FLASHCARDS/PORTUGUÊS/LESSA PI  p.i.csv',           type:'fc'},
-          {name:'Sintaxe',         path:'FLASHCARDS/PORTUGUÊS/PORTUGUES SINTAXE.csv',       type:'fc'},
-        ] },
-      { id:'ING',  name:'Língua Inglesa',         color:'#cccccc', icon:'🇬🇧', cssVar:'--ing',
-        files:[
-          {name:'Grammar',         path:'FLASHCARDS/INGLÊS/GRAMMAR ING ing.csv',            type:'fc'},
-          {name:'Dict. Diplomacy', path:'FLASHCARDS/INGLÊS/DICTIONARY OF DIPLOMACY  ing.csv',type:'fc'},
-        ] },
-      { id:'HB',   name:'História do Brasil',     color:'#ffffff', icon:'🏛️', cssVar:'--hb',
-        files:[
-          {name:'História do Brasil',path:'FLASHCARDS/BRASIL/HISTORIA DO BRASIL .csv',      type:'fc'},
-        ] },
-      { id:'HM',   name:'História Mundial',       color:'#cccccc', icon:'🌍', cssVar:'--hm',
-        files:[
-          {name:'História Mundial', path:'FLASHCARDS/HISTORIA/HISTORIA MUNDIAL .csv',       type:'fc'},
-        ] },
-      { id:'GEO',  name:'Geografia',              color:'#eeeeee', icon:'🗺️', cssVar:'--geo',
-        files:[
-          {name:'Geografia',        path:'FLASHCARDS/GEOGRAFIA/GEOGRAFIA .csv',             type:'fc'},
-        ] },
-      { id:'PI',   name:'Política Internacional', color:'#dddddd', icon:'🌐', cssVar:'--pi',
-        files:[
-          {name:'Pol. Internacional',path:'FLASHCARDS/INTERNACIONAL/POLITICA INTERNACIONAL .csv', type:'fc'},
-        ] },
-      { id:'ECO',  name:'Economia',               color:'#eeeeee', icon:'📊', cssVar:'--eco',
-        files:[
-          {name:'Economia',         path:'FLASHCARDS/ECONOMIA/ECONOMIA .csv',               type:'fc'},
-        ] },
-      { id:'DIR',  name:'Direito',                color:'#cccccc', icon:'⚖️', cssVar:'--dir',
-        files:[
-          {name:'Constitucional',   path:'FLASHCARDS/DIREITO/CONTITUCIONAL .csv',           type:'fc'},
-          {name:'DIP',              path:'FLASHCARDS/DIREITO/DIP.csv',                      type:'fc'},
-        ] },
+      { id:'LP',  name:'Língua Portuguesa',     color:'#a78bfa', icon:'📝',
+        files:[{name:'Literatura',path:'FLASHCARDS/PORTUGUÊS/LITERATURA port.csv',type:'fc'},{name:'Literatura Bosi',path:'FLASHCARDS/PORTUGUÊS/LITERATURA BOSI port.csv',type:'fc'},{name:'Lessa PI (PT)',path:'FLASHCARDS/PORTUGUÊS/LESSA PI  p.i.csv',type:'fc'},{name:'Sintaxe',path:'FLASHCARDS/PORTUGUÊS/PORTUGUES SINTAXE.csv',type:'fc'}] },
+      { id:'ING', name:'Língua Inglesa',         color:'#60a5fa', icon:'🇬🇧',
+        files:[{name:'Grammar',path:'FLASHCARDS/INGLÊS/GRAMMAR ING ing.csv',type:'fc'},{name:'Dict. Diplomacy',path:'FLASHCARDS/INGLÊS/DICTIONARY OF DIPLOMACY  ing.csv',type:'fc'}] },
+      { id:'HB',  name:'História do Brasil',     color:'#fbbf24', icon:'🏛️',
+        files:[{name:'História do Brasil',path:'FLASHCARDS/BRASIL/HISTORIA DO BRASIL .csv',type:'fc'}] },
+      { id:'HM',  name:'História Mundial',       color:'#f97316', icon:'🌍',
+        files:[{name:'História Mundial',path:'FLASHCARDS/HISTORIA/HISTORIA MUNDIAL .csv',type:'fc'}] },
+      { id:'GEO', name:'Geografia',              color:'#34d399', icon:'🗺️',
+        files:[{name:'Geografia',path:'FLASHCARDS/GEOGRAFIA/GEOGRAFIA .csv',type:'fc'}] },
+      { id:'PI',  name:'Política Internacional', color:'#22d3ee', icon:'🌐',
+        files:[{name:'Pol. Internacional',path:'FLASHCARDS/INTERNACIONAL/POLITICA INTERNACIONAL .csv',type:'fc'}] },
+      { id:'ECO', name:'Economia',               color:'#facc15', icon:'📊',
+        files:[{name:'Economia',path:'FLASHCARDS/ECONOMIA/ECONOMIA .csv',type:'fc'}] },
+      { id:'DIR', name:'Direito',                color:'#f87171', icon:'⚖️',
+        files:[{name:'Constitucional',path:'FLASHCARDS/DIREITO/CONTITUCIONAL .csv',type:'fc'},{name:'DIP',path:'FLASHCARDS/DIREITO/DIP.csv',type:'fc'}] },
     ];
-
     const TPS_FILES = [
       {name:'TPS 2016',path:'TPS/TPS 2016.csv'},{name:'TPS 2017',path:'TPS/TPS 2017.csv'},
       {name:'TPS 2018',path:'TPS/TPS 2018.csv'},{name:'TPS 2019',path:'TPS/TPS 2019.csv'},
@@ -451,364 +696,314 @@
       {name:'TPS 2023',path:'TPS/TPS 2023.csv'},{name:'TPS 2024',path:'TPS/TPS 2024.csv'},
       {name:'TPS 2025',path:'TPS/TPS 2025.csv'},{name:'TPS 2026',path:'TPS/TPS 2026.csv'},
     ];
-
     const PAGE_FOR = { fc:'flashcards.html', sim:'simulados.html', rep:'repositorio.html' };
     let _sessions = [], _activity = {};
 
-    function computeStreak(activity) {
-      const today = new Date();
-      let streak = 0;
+    /* ── HELPERS ──────────────────────────────────────────── */
+    function setEl(id, val) { const e = document.getElementById(id); if (e) e.textContent = val; }
+
+    function computeStreak(act) {
+      let s = 0;
       for (let i = 0; i < 365; i++) {
-        const d = new Date(today); d.setDate(d.getDate() - i);
-        const key = d.toISOString().split('T')[0];
-        if ((activity[key] || 0) > 0) streak++;
-        else if (i > 0) break;
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const k = d.toISOString().split('T')[0];
+        if ((act[k]||0) > 0) s++; else if (i > 0) break;
       }
-      return streak;
+      return s;
     }
-
-    function computeWeekHours(sessions) {
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
-      const cutStr = cutoff.toISOString().split('T')[0];
-      return sessions.filter(s => s.date >= cutStr)
-        .reduce((a, s) => a + (s.time_seconds || 0), 0) / 3600;
-    }
-
-    function computeTodayHours(sessions) {
-      const today = new Date().toISOString().split('T')[0];
-      return sessions.filter(s => s.date === today)
-        .reduce((a, s) => a + (s.time_seconds || 0), 0) / 3600;
-    }
-
-    function relativeDate(dateStr) {
-      if (!dateStr) return '';
-      const diff = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
-      if (diff === 0) return 'hoje';
-      if (diff === 1) return 'ontem';
-      return `${diff}d atrás`;
-    }
-
-    function subjectStreak(subjectId) {
-      const today = new Date();
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(today); d.setDate(d.getDate() - i);
-        const key = d.toISOString().split('T')[0];
-        const found = _sessions.find(s => s.date === key && s.subject === subjectId);
-        if (!found && i > 0) return i;
-        if (!found && i === 0) return 0;
+    function computeLongestStreak(act) {
+      const keys = Object.keys(act).filter(k => (act[k]||0) > 0).sort();
+      if (!keys.length) return 0;
+      let longest = 1, cur = 1;
+      for (let i = 1; i < keys.length; i++) {
+        const diff = (new Date(keys[i]) - new Date(keys[i-1])) / 86400000;
+        if (diff === 1) { cur++; if (cur > longest) longest = cur; } else cur = 1;
       }
-      return 30;
+      return longest;
     }
-
+    function computeWeekHours(s) {
+      const cut = new Date(); cut.setDate(cut.getDate()-7);
+      const cutS = cut.toISOString().split('T')[0];
+      return s.filter(x => x.date >= cutS).reduce((a,x) => a+(x.time_seconds||0),0)/3600;
+    }
+    function computeTodayHours(s) {
+      const t = new Date().toISOString().split('T')[0];
+      return s.filter(x => x.date===t).reduce((a,x) => a+(x.time_seconds||0),0)/3600;
+    }
+    function relativeDate(d) {
+      if (!d) return '';
+      const diff = Math.floor((Date.now()-new Date(d))/86400000);
+      return diff===0?'hoje':diff===1?'ontem':`${diff}d atrás`;
+    }
     function getSubjectStats(id) {
-      const ss = _sessions.filter(s => s.subject === id);
-      if (!ss.length) return { pct:0, total:0, sessions:0, lastDate:null };
-      const pct = Math.round(ss.reduce((a,s) => a + (s.correct/s.total*100), 0) / ss.length);
-      const lastDate = ss[0]?.date || null;
-      return { pct, total: ss.reduce((a,s)=>a+s.total,0), sessions:ss.length, lastDate };
+      const ss = _sessions.filter(s => s.subject===id);
+      if (!ss.length) return {pct:0};
+      return {pct: Math.round(ss.reduce((a,s)=>a+(s.correct/s.total*100),0)/ss.length)};
     }
 
-    // ── RENDER ────────────────────────────────────────────────────────────
-    function renderGamesGrid() {
-      const GAMES_LIST = [
-        { href:'GAMES/DIP/index.html',                       icon:'dip',      name:'DIP',            sub:'Direito Internacional' },
-        { href:'GAMES/ECONOMIA/index.html',                  icon:'economy',  name:'Economia',       sub:'Matching de termos' },
-        { href:'GAMES/POLITICA INTERNACIONAL/index.html',    icon:'globe',    name:'Política Int.',  sub:'Termos de RI' },
-        { href:'GAMES/BRASIL/BANDEIRAS/index.html',          icon:'flag',     name:'Bandeiras',      sub:'Países do mundo' },
-        { href:'GAMES/BRASIL/COMERCIO/index.html',           icon:'exchange', name:'Comércio',       sub:'Exportações brasileiras' },
-        { href:'matching.html',                              icon:'words',    name:'Vocabulário EN', sub:'Inglês diplomático' },
-      ];
-      const grid = document.getElementById('gamesGrid');
-      if (!grid) return;
-      grid.innerHTML = GAMES_LIST.map(g => {
-        const svgIcon = (typeof ICONS !== 'undefined' && ICONS[g.icon]) ? ICONS[g.icon] : '';
-        return `<a class="game-card" href="${g.href}">
-          <div class="game-card-icon">${svgIcon}</div>
-          <div class="game-card-body">
-            <div class="game-card-name">${g.name}</div>
-            <div class="game-card-sub">${g.sub}</div>
-          </div>
-          <div class="game-card-arr">→</div>
-        </a>`;
-      }).join('');
-    }
+    /* ── RENDER GAMES ─────────────────────────────────────── */
+    function renderGamesGrid() { /* grid removido — no-op */ }
 
+    /* ── RENDER TPS ───────────────────────────────────────── */
     function renderTPS() {
       document.getElementById('tpsChips').innerHTML = TPS_FILES.map(f =>
         `<a href="simulados.html?file=${encodeURIComponent(f.path)}" class="tps-chip">📋 ${f.name}</a>`
       ).join('');
     }
 
-    function renderHero(examDate) {
+    /* ── RENDER HERO (visible card) ───────────────────────── */
+    function renderHeroVisible(examDate) {
       const last = _sessions[0];
-      const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      nowBSB.setHours(0, 0, 0, 0); examBSB.setHours(0, 0, 0, 0);
-      const days = Math.ceil((examBSB - nowBSB) / 86400000);
-      document.getElementById('heroDays').textContent = days;
-      const mcDays = document.getElementById('mcDays');
-      if (mcDays) mcDays.textContent = days > 0 ? days : '—';
-      const heroBar   = document.getElementById('heroBar');
-      const heroTitle = document.getElementById('heroTitle');
-      const heroMeta  = document.getElementById('heroMeta');
-      const heroBtn   = document.getElementById('heroBtn');
-      heroTitle.classList.remove('skeleton');
+      const now  = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+      const exam = new Date(examDate.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+      now.setHours(0,0,0,0); exam.setHours(0,0,0,0);
+      const days = Math.ceil((exam-now)/86400000);
+      setEl('heroDaysV', days>0?days:'—');
+      setEl('mcDays', days>0?days:'—');
+      setEl('navCountdown', `${days}d CACD`);
+
+      const bar = document.getElementById('heroBarV');
+      const tit = document.getElementById('heroTitleV');
+      const met = document.getElementById('heroMetaV');
+      const btn = document.getElementById('heroBtnV');
+
       if (last) {
-        const subj = SUBJECTS.find(s => s.id === last.subject);
-        heroBar.style.background = subj?.color || 'var(--neon-green)';
-        heroTitle.textContent = subj ? subj.name : last.deck;
-        const pct = Math.round(last.correct / last.total * 100);
-        heroMeta.textContent = `Última sessão: ${relativeDate(last.date)} · ${last.total} itens · ${pct}% de acerto`;
+        const subj = SUBJECTS.find(s=>s.id===last.subject);
+        if (bar) bar.style.background = subj?.color||'#d4af37';
+        if (tit) tit.textContent = subj?subj.name:last.deck;
+        const pct = Math.round(last.correct/last.total*100);
+        if (met) met.textContent = `Última sessão: ${relativeDate(last.date)} · ${last.total} itens · ${pct}% de acerto`;
         const href = last.type==='flashcard'
-          ? `flashcards.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`
-          : `simulados.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`;
-        heroBtn.href = href;
-        heroBtn.textContent = 'Retomar →';
-        heroBtn.className = 'hero-btn';
+          ?`flashcards.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`
+          :`simulados.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`;
+        if (btn) { btn.href=href; btn.textContent='Retomar →'; btn.className='hero-btn'; }
       } else {
-        heroTitle.textContent = 'Bem-vindo ao Atlas Diplomático';
-        heroMeta.textContent  = 'Selecione uma ilha para começar seus estudos';
-        heroBtn.textContent   = 'Começar →';
-        heroBtn.className     = 'hero-btn empty';
+        if (tit) tit.textContent='Bem-vindo ao Atlas Diplomático';
+        if (met) met.textContent='Selecione uma área para começar seus estudos';
+        if (btn) { btn.textContent='Começar →'; btn.className='hero-btn empty'; }
       }
     }
 
+    /* kept for compat — populates hidden sinks only */
+    function renderHero(examDate) {
+      const now  = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+      const exam = new Date(examDate.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+      now.setHours(0,0,0,0); exam.setHours(0,0,0,0);
+      setEl('heroDays', Math.ceil((exam-now)/86400000));
+    }
     function renderMotivation(examDate) {
-      const streak  = computeStreak(_activity);
-      const weekH   = computeWeekHours(_sessions);
-      const target  = 25;
-      const fillPct = Math.min(100, (weekH / target) * 100);
-      document.getElementById('streakVal').textContent = streak;
-      document.getElementById('weekHours').textContent = weekH.toFixed(1) + 'h';
-      document.getElementById('weekSub').textContent   = `de ${target}h meta`;
-      document.getElementById('weekFill').style.width  = fillPct + '%';
-
-      const todayH    = computeTodayHours(_sessions);
-      const dailyGoal = 2;
-      const todayPct  = Math.min(100, (todayH / dailyGoal) * 100);
-      document.getElementById('todayHours').textContent = todayH < 0.017
-        ? '0min'
-        : todayH < 0.1
-          ? Math.round(todayH * 60) + 'min'
-          : todayH.toFixed(1) + 'h';
-      document.getElementById('todaySub').textContent  = `de ${dailyGoal}h meta diária`;
-      document.getElementById('todayFill').style.width = todayPct + '%';
-
-      const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      nowBSB.setHours(0, 0, 0, 0); examBSB.setHours(0, 0, 0, 0);
-      const days = Math.ceil((examBSB - nowBSB) / 86400000);
-      const el = document.getElementById('navCountdown');
-      if (el) el.textContent = `${days}d CACD`;
-      const mcStreak = document.getElementById('mcStreak');
-      if (mcStreak) mcStreak.textContent = streak;
-      const mcSessions = document.getElementById('mcSessions');
-      if (mcSessions) {
-        const todayKey = new Date().toISOString().split('T')[0];
-        const todayCount = _sessions.filter(s => s.date === todayKey).length;
-        mcSessions.textContent = todayCount;
-      }
+      const streak = computeStreak(_activity);
+      const weekH  = computeWeekHours(_sessions);
+      const todayH = computeTodayHours(_sessions);
+      setEl('mcStreak', streak);
+      const todayKey = new Date().toISOString().split('T')[0];
+      setEl('mcSessions', _sessions.filter(s=>s.date===todayKey).length);
+      const elS = document.getElementById('mcSessions'); if(elS) elS.className='mc-val blue';
+      const elK = document.getElementById('mcStreak');   if(elK) elK.className='mc-val yellow';
+      setEl('weekHours', weekH.toFixed(1)+'h'); setEl('weekSub','de 25h meta');
+      const wf=document.getElementById('weekFill'); if(wf) wf.style.width=Math.min(100,weekH/25*100)+'%';
+      setEl('todayHours', todayH<0.017?'0min':todayH<0.1?Math.round(todayH*60)+'min':todayH.toFixed(1)+'h');
+      setEl('todaySub','de 2h meta diária');
+      const tf=document.getElementById('todayFill'); if(tf) tf.style.width=Math.min(100,todayH/2*100)+'%';
     }
-
     function renderNextTask() {
-      const today = new Date().toISOString().split('T')[0];
-      const studiedToday = new Set(_sessions.filter(s => s.date === today).map(s => s.subject));
-      const notStudied = SUBJECTS.filter(s => !studiedToday.has(s.id));
-      const candidates = notStudied.length ? notStudied : SUBJECTS;
-      const sorted = candidates.map(s => ({ ...s, pct: getSubjectStats(s.id).pct }))
-        .sort((a,b) => a.pct - b.pct);
-      const pick = sorted[0];
-      if (pick) {
-        const firstFile = pick.files.find(f => f.type === 'fc') || pick.files[0];
-        const href = firstFile
-          ? `${PAGE_FOR[firstFile.type]}?file=${encodeURIComponent(firstFile.path)}&subject=${pick.id}`
-          : `flashcards.html?subject=${pick.id}`;
-        document.getElementById('nextTask').textContent = pick.name;
-        document.getElementById('nextMeta').textContent = `${pick.pct}% acerto`;
-        document.getElementById('nextTaskBtn').href = href;
+      const today=new Date().toISOString().split('T')[0];
+      const studied=new Set(_sessions.filter(s=>s.date===today).map(s=>s.subject));
+      const cands=(SUBJECTS.filter(s=>!studied.has(s.id)).length?SUBJECTS.filter(s=>!studied.has(s.id)):SUBJECTS)
+        .map(s=>({...s,pct:getSubjectStats(s.id).pct})).sort((a,b)=>a.pct-b.pct);
+      const pick=cands[0]; if(!pick) return;
+      const ff=pick.files.find(f=>f.type==='fc')||pick.files[0];
+      const href=ff?`${PAGE_FOR[ff.type]}?file=${encodeURIComponent(ff.path)}&subject=${pick.id}`:`flashcards.html?subject=${pick.id}`;
+      setEl('nextTask',pick.name); setEl('nextMeta',`${pick.pct}% acerto`);
+      const nb=document.getElementById('nextTaskBtn'); if(nb) nb.href=href;
+    }
+    function renderRecentSessions() { /* hidden — no-op */ }
+    function renderActivityChart()  { /* replaced by heatmap — no-op */ }
+    function renderAnnouncements()  { /* hidden — no-op */ }
+
+    /* ── RENDER HEATMAP ANUAL ─────────────────────────────── */
+    function renderHeatmap() {
+      const grid = document.getElementById('heatmapGrid'); if (!grid) return;
+      const todayStr = new Date().toISOString().split('T')[0];
+      const YEAR = 365;
+      const start = new Date(); start.setDate(start.getDate()-(YEAR-1));
+
+      let maxVal = 1;
+      for (let i=0;i<YEAR;i++) {
+        const d=new Date(start); d.setDate(d.getDate()+i);
+        const v=_activity[d.toISOString().split('T')[0]]||0;
+        if(v>maxVal) maxVal=v;
       }
+      const lvl = v => {
+        if(v<=0) return 0;
+        if(v<=maxVal*.15) return 1;
+        if(v<=maxVal*.35) return 2;
+        if(v<=maxVal*.60) return 3;
+        if(v<=maxVal*.80) return 4;
+        return 5;
+      };
+
+      const cells=[];
+      /* pad leading empty cells so first day aligns with correct weekday row */
+      const firstDow = start.getDay();
+      for(let i=0;i<firstDow;i++) cells.push(`<div class="hm-cell empty-pad"></div>`);
+
+      for(let i=0;i<YEAR;i++) {
+        const d=new Date(start); d.setDate(d.getDate()+i);
+        const k=d.toISOString().split('T')[0];
+        const v=_activity[k]||0;
+        const lv=lvl(v);
+        const isToday=k===todayStr;
+        const lbl=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+        const cls=['hm-cell', lv>0?`lv${lv}`:'', isToday?'today':''].filter(Boolean).join(' ');
+        cells.push(`<div class="${cls}" title="${lbl}: ${v} cards"></div>`);
+      }
+      grid.innerHTML = cells.join('');
+
+      /* stats */
+      const streak  = computeStreak(_activity);
+      const longest = computeLongestStreak(_activity);
+      const daysLearned = Object.values(_activity).filter(v=>v>0).length;
+      const total = Object.values(_activity).reduce((a,v)=>a+v,0);
+      const avg   = daysLearned>0 ? Math.round(total/daysLearned) : 0;
+
+      setEl('hmStreak',    streak);
+      setEl('hmDaysLearned', daysLearned);
+      setEl('hmAvgDaily',  avg);
+      setEl('hmStreakFoot', streak);
+      setEl('hmLongest',   longest);
+      setEl('heatmapSubtitle', `${daysLearned} dias com estudo · ${total.toLocaleString('pt-BR')} cards no total`);
     }
 
-    function renderRecentSessions() {
-      const recent = _sessions.slice(0,5);
-      const el = document.getElementById('recentSessions');
-      if (!recent.length) { el.innerHTML = '<div class="empty-msg">Nenhuma sessão ainda.</div>'; return; }
-      const subMap = Object.fromEntries(SUBJECTS.map(s => [s.id, s]));
-      el.innerHTML = recent.map(s => {
-        const subj = subMap[s.subject] || { color:'var(--neon-blue)', name: s.subject||s.deck };
-        const pct  = Math.round((s.correct/s.total)*100);
-        const scoreColor = pct>=70 ? 'var(--neon-green)' : pct>=50 ? 'var(--neon-yellow)' : 'var(--neon-pink)';
-        return `<div class="session-item">
-          <div class="session-dot" style="background:${subj.color}"></div>
-          <div class="session-info">
-            <div class="session-name">${s.type==='flashcard'?'🃏':'📝'} ${s.deck||subj.name}</div>
-            <div class="session-date">${relativeDate(s.date)} · ${s.total} itens</div>
-          </div>
-          <div class="session-score" style="color:${scoreColor}">${pct}%</div>
-        </div>`;
-      }).join('');
-    }
-
+    /* ── RENDER PLANO DO DIA ──────────────────────────────── */
     function renderDailyCycle() {
-      const DAILY_ALWAYS = [
-        { id:'HB',  name:'História do Brasil',     icon:'🇧🇷', gameUrl:'GAMES/HISTORIA DO BRASIL/index.html', bolsoId:'hb' },
-        { id:'PI',  name:'Política Internacional', icon:'🌐',  gameUrl:'GAMES/POLITICA INTERNACIONAL/index.html', bolsoId:'pi' },
-        { id:'GEO', name:'Geografia',              icon:'🗺️', gameUrl:'GAMES/BRASIL/BANDEIRAS/index.html', bolsoId:'geo' },
-        { id:'LP',  name:'Português',              icon:'📝',  gameUrl:'gramatica-matching.html', bolsoId:null },
-        { id:'ING', name:'Inglês',                 icon:'🇬🇧', gameUrl:'matching.html', bolsoId:null },
+      const ALWAYS = [
+        {id:'HB', name:'História do Brasil',     icon:'🇧🇷', gameUrl:'GAMES/HISTORIA DO BRASIL/index.html', bolsoId:'hb'},
+        {id:'PI', name:'Política Internacional', icon:'🌐',  gameUrl:'GAMES/POLITICA INTERNACIONAL/index.html', bolsoId:'pi'},
+        {id:'GEO',name:'Geografia',              icon:'🗺️', gameUrl:'GAMES/BRASIL/BANDEIRAS/index.html', bolsoId:'geo'},
+        {id:'LP', name:'Português',              icon:'📝',  gameUrl:'gramatica-matching.html', bolsoId:null},
+        {id:'ING',name:'Inglês',                 icon:'🇬🇧', gameUrl:'matching.html', bolsoId:null},
       ];
-      const DAILY_ROTATE = [
-        { id:'DIP', name:'Dir. Internacional',   icon:'⚖️', gameUrl:'GAMES/DIP/index.html', bolsoId:'dip' },
-        { id:'ECO', name:'Economia',             icon:'📊', gameUrl:'GAMES/ECONOMIA/index.html', bolsoId:'eco' },
-        { id:'DIR', name:'Dir. Constitucional',  icon:'📋', gameUrl:'GAMES/CACD BOLSO/index.html', bolsoId:'direito' },
+      const ROTATE = [
+        {id:'DIP',name:'Dir. Internacional',  icon:'⚖️', gameUrl:'GAMES/DIP/index.html', bolsoId:'dip'},
+        {id:'ECO',name:'Economia',            icon:'📊', gameUrl:'GAMES/ECONOMIA/index.html', bolsoId:'eco'},
+        {id:'DIR',name:'Dir. Constitucional', icon:'📋', gameUrl:'GAMES/CACD BOLSO/index.html', bolsoId:'direito'},
       ];
-      const nowBSBForRot = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const todayMs = Math.floor(nowBSBForRot.getTime() / 86400000);
-      const rotIdx = todayMs % 3;
-      const todayRotate = [DAILY_ROTATE[rotIdx % 3], DAILY_ROTATE[(rotIdx + 1) % 3]];
-      const todaySubjects = [...DAILY_ALWAYS, ...todayRotate];
 
-      const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-      const today = nowBSB.toISOString().split('T')[0];
-      document.getElementById('cycleDate').textContent = nowBSB.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+      const nowBSB = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+      const today  = nowBSB.toISOString().split('T')[0];
+      const rotIdx = Math.floor(nowBSB.getTime()/86400000) % 3;
+      const subs   = [...ALWAYS, ROTATE[rotIdx%3], ROTATE[(rotIdx+1)%3]];
 
-      const todaySessions = _sessions.filter(s => (s.date||s.created_at||'').startsWith(today));
+      setEl('cycleDate', nowBSB.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}));
 
-      let doneCount = 0;
-      const cards = todaySubjects.map(sub => {
-        const gameDone = todaySessions.some(s => s.subject === sub.id && (!s.deck || !s.deck.startsWith('cacd-bolso-')));
-        const bolsoDone = sub.bolsoId ? todaySessions.some(s => s.deck && s.deck.startsWith('cacd-bolso-' + sub.bolsoId)) : true;
-        const done = gameDone && bolsoDone;
-        if (done) doneCount++;
-        return `<div class="cycle-card${done?' done':''}">
-          <div class="cycle-card-top">
-            <span class="cycle-name">${sub.icon} ${sub.name}</span>
-            <span class="${done?'cycle-badge-done':'cycle-badge-pend'}">${done?'✅':'⏳'}</span>
-          </div>
-          <div class="cycle-tasks">
-            <a class="cycle-task${gameDone?' done':''}" href="${sub.gameUrl}">🎮 Game${gameDone?' ✓':''}</a>
-            ${sub.bolsoId ? `<a class="cycle-task${bolsoDone?' done':''}" href="GAMES/CACD BOLSO/index.html">📱 Bolso${bolsoDone?' ✓':''}</a>` : ''}
-          </div>
+      const sess = _sessions.filter(s=>(s.date||s.created_at||'').startsWith(today));
+      let done = 0;
+      const total = subs.length + 2;
+
+      const items = subs.map(sub => {
+        const gameDone  = sess.some(s=>s.subject===sub.id&&(!s.deck||!s.deck.startsWith('cacd-bolso-')));
+        const bolsoDone = sub.bolsoId ? sess.some(s=>s.deck&&s.deck.startsWith('cacd-bolso-'+sub.bolsoId)) : true;
+        const allDone   = gameDone && bolsoDone;
+        if (allDone) done++;
+        const chips = [`<a class="plan-chip${gameDone?' done':''}" href="${sub.gameUrl}">🎮 Game</a>`];
+        if (sub.bolsoId) chips.push(`<a class="plan-chip${bolsoDone?' done':''}" href="GAMES/CACD BOLSO/index.html">📱 Bolso</a>`);
+        return `<div class="plan-item${allDone?' done':''}">
+          <div class="plan-check"></div>
+          <div class="plan-icon">${sub.icon}</div>
+          <div class="plan-name">${sub.name}</div>
+          <div class="plan-chips">${chips.join('')}</div>
         </div>`;
       }).join('');
 
-      const redCount = parseInt(localStorage.getItem('sf2_daily_' + today) || '0');
-      const redDone = redCount >= 3;
-      if (redDone) doneCount++;
-      const redCard = `<div class="cycle-card${redDone?' done':''}">
-        <div class="cycle-card-top">
-          <span class="cycle-name">✍️ Redações</span>
-          <span class="${redDone?'cycle-badge-done':'cycle-badge-pend'}">${redDone?'✅':'⏳'}</span>
-        </div>
-        <div class="cycle-count" style="color:${redDone?'#22c55e':'#666'}">${redCount}/3 hoje</div>
-        <div class="cycle-prog"><div class="cycle-prog-fill" style="width:${Math.min(100, redCount/3*100)}%"></div></div>
-        <div class="cycle-tasks"><a class="cycle-task${redDone?' done':''}" href="segunda-fase.html">✍️ Praticar por Tema${redDone?' ✓':''}</a></div>
+      const redCount = parseInt(localStorage.getItem('sf2_daily_'+today)||'0');
+      const redDone  = redCount>=3; if(redDone) done++;
+      const redItem  = `<div class="plan-item${redDone?' done':''}">
+        <div class="plan-check"></div><div class="plan-icon">✍️</div>
+        <div class="plan-name">Redações</div>
+        <div class="plan-chips"><a class="plan-chip${redDone?' done':''}" href="segunda-fase.html">✍️ Praticar</a></div>
+        <div class="plan-prog-text">${redCount}/3</div>
       </div>`;
 
-      // Revisão SRS card
-      const SRS_LS_KEYS = [
-        'economia_micro_progress','economia_macro_progress','economia_inter_progress',
-        'hb_provas_progress','hb_hpeb_progress',
-        'cacd_bolso_pi','cacd_bolso_dip','cacd_bolso_direito','cacd_bolso_eco',
-        'cacd_bolso_geo','cacd_bolso_hb','cacd_bolso_hm','cacd_bolso_atual',
-      ];
-      const _srsToday = today;
-      const _srsDone  = !!localStorage.getItem('srs_reviewed_'+_srsToday);
-      let _srsDue = 0;
-      if(!_srsDone){
-        const _isDue = p => { if(!p.firstSeen) return true; const d=Math.floor((Date.now()-new Date(p.lastReview||p.firstSeen).getTime())/86400000); return d>=(p.interval||1); };
-        SRS_LS_KEYS.forEach(k=>{ try{ const prog=JSON.parse(localStorage.getItem(k)||'{}'); (prog.wrongPairs||[]).forEach(p=>{ if(_isDue(p)) _srsDue++; }); }catch(e){} });
-        try{ const gp=JSON.parse(localStorage.getItem('grammar_match_progress_v1')||'{}'); Object.values(gp._errors||{}).forEach(arr=>{ if(Array.isArray(arr)) arr.forEach(p=>{ if(_isDue(p)) _srsDue++; }); }); }catch(e){}
+      const SRS_KEYS=['economia_micro_progress','economia_macro_progress','economia_inter_progress','hb_provas_progress','hb_hpeb_progress','cacd_bolso_pi','cacd_bolso_dip','cacd_bolso_direito','cacd_bolso_eco','cacd_bolso_geo','cacd_bolso_hb','cacd_bolso_hm','cacd_bolso_atual'];
+      const srsDone=!!localStorage.getItem('srs_reviewed_'+today);
+      let srsDue=0;
+      if(!srsDone){
+        const isDue=p=>{if(!p.firstSeen)return true;const d=Math.floor((Date.now()-new Date(p.lastReview||p.firstSeen).getTime())/86400000);return d>=(p.interval||1);};
+        SRS_KEYS.forEach(k=>{try{const pr=JSON.parse(localStorage.getItem(k)||'{}');(pr.wrongPairs||[]).forEach(p=>{if(isDue(p))srsDue++;});}catch(e){}});
+        try{const gp=JSON.parse(localStorage.getItem('grammar_match_progress_v1')||'{}');Object.values(gp._errors||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(p=>{if(isDue(p))srsDue++;});});}catch(e){}
       }
-      if(_srsDone) doneCount++;
-      const srsCard = `<div class="cycle-card${_srsDone?' done':''}">
-        <div class="cycle-card-top">
-          <span class="cycle-name">📚 Revisão SRS</span>
-          <span class="${_srsDone?'cycle-badge-done':'cycle-badge-pend'}">${_srsDone?'✅':'⏳'}</span>
-        </div>
-        <div class="cycle-count" style="color:${_srsDone?'#22c55e':_srsDue>0?'#f87171':'#666'}">${_srsDone?'Concluída':_srsDue>0?_srsDue+' pares devidos':'0 pares devidos'}</div>
-        <div class="cycle-tasks"><a class="cycle-task${_srsDone?' done':''}" href="revisao.html">📚 Revisar${_srsDone?' ✓':''}</a></div>
+      if(srsDone) done++;
+      const srsLbl = srsDone?'Concluída':srsDue>0?`${srsDue} devidos`:'0 devidos';
+      const srsItem = `<div class="plan-item${srsDone?' done':''}">
+        <div class="plan-check"></div><div class="plan-icon">📚</div>
+        <div class="plan-name">Revisão SRS</div>
+        <div class="plan-chips"><a class="plan-chip${srsDone?' done':''}" href="revisao.html">📚 Revisar</a></div>
+        <div class="plan-prog-text">${srsLbl}</div>
       </div>`;
 
-      document.getElementById('dailyCycleGrid').innerHTML = cards + redCard + srsCard;
-      document.getElementById('cycleComplete').style.display = doneCount === todaySubjects.length + 2 ? 'block' : 'none';
+      document.getElementById('dailyCycleGrid').innerHTML = items + redItem + srsItem;
+      document.getElementById('cycleComplete').style.display = done===total?'block':'none';
+
+      const prog=document.getElementById('cycleProg');
+      if(prog){ prog.textContent=`${done}/${total}`; prog.style.display=''; }
     }
 
-    function renderActivityChart() {
-      const barsEl = document.getElementById('activityChart');
-      const daysEl = document.getElementById('activityDays');
-      if (!barsEl) return;
-      const today = new Date().toISOString().split('T')[0];
-      const days = Array.from({length:14}, (_,i) => {
-        const d = new Date(); d.setDate(d.getDate() - (13-i));
-        return { key: d.toISOString().split('T')[0], d };
-      });
-      const vals = days.map(({key}) => _activity[key] || 0);
-      const maxVal = Math.max(1, ...vals);
-      barsEl.innerHTML = days.map(({key}, i) => {
-        const v = vals[i];
-        const pct = Math.max(4, Math.round((v / maxVal) * 100));
-        const isToday = key === today;
-        const col = isToday ? 'var(--accent)' : v > 0 ? 'var(--accent2)' : 'rgba(255,255,255,0.06)';
-        const op = isToday ? 1 : v > 0 ? 0.6 : 1;
-        const label = days[i].d.toLocaleDateString('pt-BR', {weekday:'short'}).replace('.','');
-        return `<div class="chart-bar" style="height:${pct}%;background:${col};opacity:${op}" title="${label}: ${v} cards estudados"></div>`;
-      }).join('');
-      if (daysEl) {
-        const show = [0, 2, 4, 6, 8, 10, 12, 13];
-        daysEl.innerHTML = days.map(({d}, i) => {
-          const lbl = show.includes(i) ? d.toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) : '';
-          return `<div class="chart-day-lbl">${lbl}</div>`;
-        }).join('');
-      }
+    /* ── DARK MODE ───────────────────────────────────────── */
+    function applyDark(on) {
+      document.documentElement.classList.toggle('dark', on);
+      const btn = document.getElementById('darkToggle');
+      if (btn) btn.textContent = on ? '☀️' : '🌙';
+    }
+    function toggleDark() {
+      const next = !document.documentElement.classList.contains('dark');
+      localStorage.setItem('atlas_dark', next ? '1' : '0');
+      applyDark(next);
+    }
+    /* apply saved preference before first paint */
+    applyDark(localStorage.getItem('atlas_dark') === '1');
+
+    /* ── RENDER PERF ─────────────────────────────────────── */
+    function renderPerf() {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const monthly = _sessions.filter(s => (s.date||'') >= monthStart);
+      const totalCards = monthly.reduce((a,s) => a+(s.total||0), 0);
+      const totalRight = monthly.reduce((a,s) => a+(s.correct||0), 0);
+      const pct = totalCards > 0 ? Math.round(totalRight/totalCards*100) : 0;
+      setEl('perfAccerto', pct + '%');
+      setEl('perfSessoes', monthly.length);
+      setEl('perfCards', totalCards.toLocaleString('pt-BR'));
     }
 
-    function renderAnnouncements(list) {
-      if (!list.length) return;
-      document.getElementById('announcementsCard').style.display = '';
-      document.getElementById('announcementsList').innerHTML = list.map(a => `
-        <div class="ann-item">
-          <div class="ann-title">${a.title}</div>
-          <div class="ann-body">${a.body||''}</div>
-          <div class="ann-date">${new Date(a.created_at).toLocaleDateString('pt-BR')}</div>
-        </div>`).join('');
-    }
-
-    // ── INIT ─────────────────────────────────────────────────────────────
+    /* ── INIT ─────────────────────────────────────────────── */
     renderGamesGrid();
     renderTPS();
 
     (async () => {
-      const user = await DB.requireAuth();
+      const user    = await DB.requireAuth();
       const profile = await DB.getProfile();
-      const initials = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
-      document.getElementById('navUser').textContent = initials;
+      setEl('navUser', (profile?.name||user.email||'?').slice(0,2).toUpperCase());
       const isAdm = await DB.isAdmin();
-      if (isAdm) document.getElementById('navAdmin').style.display = '';
+      if (isAdm) document.getElementById('navAdmin').style.display='';
 
       const [sessions, activity, announcements, examDate, subjectFilesArr] = await Promise.all([
-        DB.getSessions(user.id),
-        DB.getActivity(user.id),
-        DB.getAnnouncements(),
-        DB.getExamDate(),
-        DB.getSubjectFiles()
+        DB.getSessions(user.id), DB.getActivity(user.id),
+        DB.getAnnouncements(), DB.getExamDate(), DB.getSubjectFiles()
       ]);
       _sessions = sessions;
       _activity = activity;
 
-      // Build filesMap from DB
-      const filesMap = new Map();
-      subjectFilesArr.forEach(f => {
-        if (!filesMap.has(f.subject_id)) filesMap.set(f.subject_id, []);
-        filesMap.get(f.subject_id).push(f);
-      });
       renderHero(examDate);
+      renderHeroVisible(examDate);
       renderMotivation(examDate);
       renderNextTask();
       renderRecentSessions();
       renderDailyCycle();
       renderActivityChart();
       renderAnnouncements(announcements);
+      renderHeatmap();
+      renderPerf();
     })();
   </script>
 <aside id="sidebar"></aside>

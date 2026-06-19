@@ -20,3 +20,5 @@ desktop.ini
 
 .vercel
 .env*.local
+
+.netlify/
