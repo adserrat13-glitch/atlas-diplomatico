@@ -186,7 +186,28 @@ main{padding:32px;max-width:860px;margin:0 auto}
       <span id="loadingMsg">Gerando questões no padrão CESPE...</span>
     </div>
 
+    <div id="praticaProgress" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:12px;color:var(--muted2)" id="praticaProgressLabel">Questão 1 de 5</span>
+        <span style="font-size:12px;color:var(--gold)" id="praticaScore">0 acertos</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="praticaProgressBar" style="width:0%"></div></div>
+    </div>
+
     <div id="questionsContainer"></div>
+
+    <div id="praticaResult" style="display:none">
+      <div class="config-card" style="text-align:center">
+        <h3 style="color:var(--gold);font-size:18px;margin-bottom:8px">Prática Concluída</h3>
+        <div class="stats-grid" style="margin-top:16px">
+          <div class="stat-card"><div class="stat-value" id="praticaResTotal">0</div><div class="stat-label">Questões</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--green)" id="praticaResCorrect">0</div><div class="stat-label">Acertos</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--red)" id="praticaResWrong">0</div><div class="stat-label">Erros</div></div>
+          <div class="stat-card"><div class="stat-value" id="praticaResAcc">0%</div><div class="stat-label">Aproveitamento</div></div>
+        </div>
+        <button class="btn btn-ghost" onclick="resetPratica()" style="margin-top:16px">Nova Prática</button>
+      </div>
+    </div>
 
     <div id="emptyPraticar" class="empty-state">
       <h3>Nenhuma questão gerada</h3>
@@ -330,7 +351,8 @@ main{padding:32px;max-width:860px;margin:0 auto}
 let currentUser = null;
 let currentSession = null;
 let currentQuestions = [];
-let answeredSet = new Set();
+let praticaIndex = 0;
+let praticaCorrect = 0;
 let simQuestions = [];
 let simIndex = 0;
 let simCorrect = 0;
@@ -409,8 +431,10 @@ async function generateQuestions() {
     if (!res.ok) { showToast(data.error || 'Erro ao gerar questões', 'error'); document.getElementById('emptyPraticar').style.display = ''; return; }
 
     currentQuestions = data.questions || [];
-    answeredSet.clear();
-    renderQuestions(currentQuestions);
+    praticaIndex = 0; praticaCorrect = 0;
+    document.getElementById('praticaResult').style.display = 'none';
+    document.getElementById('praticaProgress').style.display = 'block';
+    renderPraticaQuestion();
     showToast(`${currentQuestions.length} questões geradas!`, 'success');
   } catch (e) {
     clearInterval(msgInterval);
@@ -421,59 +445,80 @@ async function generateQuestions() {
   }
 }
 
-function renderQuestions(questions) {
+function renderPraticaQuestion() {
   const container = document.getElementById('questionsContainer');
-  if (!questions.length) { document.getElementById('emptyPraticar').style.display = ''; return; }
-
-  container.innerHTML = questions.map((q, i) => `
-    <div class="question-card" id="qcard-${q.id}">
+  if (praticaIndex >= currentQuestions.length) { finishPratica(); return; }
+  const q = currentQuestions[praticaIndex];
+  const total = currentQuestions.length;
+  document.getElementById('praticaProgressLabel').textContent = `Questão ${praticaIndex + 1} de ${total}`;
+  document.getElementById('praticaProgressBar').style.width = `${(praticaIndex / total) * 100}%`;
+  document.getElementById('praticaScore').textContent = `${praticaCorrect} acerto${praticaCorrect !== 1 ? 's' : ''}`;
+  container.innerHTML = `
+    <div class="question-card">
       <div class="q-meta">
         <span class="badge badge-topic">${q.topic_name}</span>
         <span class="badge badge-diff-${q.difficulty}">${diffLabel(q.difficulty)}</span>
         ${q.is_trap ? '<span class="badge badge-trap">PEGADINHA</span>' : ''}
         ${q.recurrence_degree >= 4 ? '<span class="badge" style="background:rgba(212,175,55,.1);color:var(--gold);border:1px solid rgba(212,175,55,.25)">ALTA INCIDÊNCIA</span>' : ''}
       </div>
-      <div class="q-num">Questão ${i + 1} de ${questions.length}</div>
+      <div class="q-num">Questão ${praticaIndex + 1} de ${total}</div>
       <div class="q-statement">${escHtml(q.statement)}</div>
-      <div class="q-actions" id="qactions-${q.id}">
-        <button class="btn btn-green" onclick="submitAnswer('${q.id}', true, '${q.id}')">CERTO</button>
-        <button class="btn btn-red" onclick="submitAnswer('${q.id}', false, '${q.id}')">ERRADO</button>
+      <div class="q-actions" id="praticaActions">
+        <button class="btn btn-green" onclick="submitAnswer(true)">CERTO</button>
+        <button class="btn btn-red" onclick="submitAnswer(false)">ERRADO</button>
       </div>
-      <div class="q-feedback" id="qfeedback-${q.id}"></div>
+      <div class="q-feedback" id="praticaFeedback"></div>
     </div>
-  `).join('');
+  `;
 }
 
-async function submitAnswer(questionId, userAnswer, cardId) {
-  if (!currentUser || answeredSet.has(questionId)) return;
-  answeredSet.add(questionId);
-
-  // Desabilitar botões
-  const actions = document.getElementById('qactions-' + cardId);
-  if (actions) actions.querySelectorAll('button').forEach(b => b.disabled = true);
+async function submitAnswer(userAnswer) {
+  if (!currentUser) return;
+  const q = currentQuestions[praticaIndex];
+  document.getElementById('praticaActions').querySelectorAll('button').forEach(b => b.disabled = true);
 
   try {
     const res = await fetch('/api/lp?action=answers-submit', {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ question_id: questionId, user_answer: userAnswer }),
+      body: JSON.stringify({ question_id: q.id, user_answer: userAnswer }),
     });
     const data = await res.json();
-    if (!res.ok) { showToast(data.error || 'Erro', 'error'); return; }
-    showFeedback(cardId, data);
+    if (data.is_correct) praticaCorrect++;
+
+    const fb = document.getElementById('praticaFeedback');
+    const cls = data.is_correct ? 'correct' : 'wrong';
+    fb.innerHTML = `
+      <div class="feedback-header ${cls}">${data.is_correct ? '✓ CERTO' : `✗ ERRADO — A resposta correta é ${data.correct_answer_label}`}</div>
+      <div class="feedback-explanation">${escHtml(data.explanation)}</div>
+      <div class="feedback-grammar"><strong>Justificativa:</strong> ${escHtml(data.grammar_justification)}</div>
+      <div style="margin-top:12px"><button class="btn btn-ghost" onclick="nextPraticaQuestion()">Próxima →</button></div>
+    `;
+    fb.className = 'q-feedback show ' + cls;
   } catch { showToast('Erro de conexão', 'error'); }
 }
 
-function showFeedback(cardId, data) {
-  const fb = document.getElementById('qfeedback-' + cardId);
-  const cls = data.is_correct ? 'correct' : 'wrong';
-  const label = data.is_correct ? '✓ CERTO — Resposta correta!' : `✗ ERRADO — A resposta correta é ${data.correct_answer_label}`;
-  fb.innerHTML = `
-    <div class="feedback-header ${cls}">${label}</div>
-    <div class="feedback-explanation">${escHtml(data.explanation)}</div>
-    <div class="feedback-grammar"><strong>Justificativa:</strong> ${escHtml(data.grammar_justification)}</div>
-  `;
-  fb.className = 'q-feedback show ' + cls;
+function nextPraticaQuestion() { praticaIndex++; renderPraticaQuestion(); }
+
+function finishPratica() {
+  document.getElementById('questionsContainer').innerHTML = '';
+  document.getElementById('praticaProgress').style.display = 'none';
+  const total = currentQuestions.length;
+  const wrong = total - praticaCorrect;
+  const acc = total > 0 ? Math.round((praticaCorrect / total) * 100) : 0;
+  document.getElementById('praticaResTotal').textContent   = total;
+  document.getElementById('praticaResCorrect').textContent = praticaCorrect;
+  document.getElementById('praticaResWrong').textContent   = wrong;
+  document.getElementById('praticaResAcc').textContent     = acc + '%';
+  document.getElementById('praticaResult').style.display   = 'block';
+}
+
+function resetPratica() {
+  currentQuestions = []; praticaIndex = 0; praticaCorrect = 0;
+  document.getElementById('praticaResult').style.display = 'none';
+  document.getElementById('praticaProgress').style.display = 'none';
+  document.getElementById('questionsContainer').innerHTML = '';
+  document.getElementById('emptyPraticar').style.display = '';
 }
 
 // ─── Simulado ─────────────────────────────────────────────────────────────────
@@ -644,8 +689,10 @@ async function generateTargeted() {
     if (!res.ok) { showToast(data.error || 'Erro', 'error'); return; }
     switchTab('praticar');
     currentQuestions = data.questions || [];
-    answeredSet.clear();
-    renderQuestions(currentQuestions);
+    praticaIndex = 0; praticaCorrect = 0;
+    document.getElementById('praticaResult').style.display = 'none';
+    document.getElementById('praticaProgress').style.display = 'block';
+    renderPraticaQuestion();
     showToast(`${currentQuestions.length} questões focadas nos seus pontos fracos!`, 'success');
   } catch { showToast('Erro de conexão', 'error'); }
 }
