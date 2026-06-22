@@ -115,6 +115,38 @@ textarea:focus{outline:none;border-color:var(--blue)}
     <button class="mode-btn" data-mode="PTEN" onclick="selectMode(this)">PT → EN<small>Tradução p/ inglês</small></button>
     <button class="mode-btn" data-mode="ENPT" onclick="selectMode(this)">EN → PT<small>Tradução p/ português</small></button>
     <button class="mode-btn" data-mode="SUMMARY" onclick="selectMode(this)">SUMMARY<small>Resumo em inglês</small></button>
+    <button class="mode-btn" data-mode="QUESTOES" onclick="selectMode(this)" style="border-color:var(--gold);color:var(--gold)">QUESTÕES CESPE<small>Certo ou Errado</small></button>
+  </div>
+
+  <!-- Painel de Questões Objetivas -->
+  <div id="questoesPanel" class="panel hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <h2 style="margin:0">Questões CESPE/CEBRASPE — Inglês CACD</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="qMode" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
+          <option value="isolated">Afirmações isoladas</option>
+          <option value="text-based">Com texto-base</option>
+        </select>
+        <select id="qDifficulty" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
+          <option value="cacd">CACD (avançado)</option>
+          <option value="hard">Difícil</option>
+          <option value="medium">Médio</option>
+          <option value="easy">Fácil</option>
+        </select>
+        <select id="qQty" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
+          <option value="3">3 questões</option>
+          <option value="5">5 questões</option>
+          <option value="1">1 questão</option>
+        </select>
+        <button class="btn btn-primary" onclick="gerarQuestoes()" style="padding:6px 14px;font-size:11px">Gerar</button>
+      </div>
+    </div>
+    <div id="qSourceText" style="display:none;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Texto-base</div>
+      <div id="qSourceTextContent" style="font-size:14px;line-height:1.75;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;white-space:pre-wrap"></div>
+    </div>
+    <div id="qList"></div>
+    <div id="qScore" style="display:none;margin-top:16px;padding:14px;background:rgba(52,211,153,.08);border:1px solid var(--green);border-radius:10px;font-size:14px;font-weight:700;color:var(--green)"></div>
   </div>
 
   <div id="exercisePanel" class="panel hidden">
@@ -149,7 +181,17 @@ function selectMode(btn){
   document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   CURRENT_MODE = btn.dataset.mode;
-  generate();
+  if(CURRENT_MODE === 'QUESTOES'){
+    document.getElementById('exercisePanel').classList.add('hidden');
+    document.getElementById('answerPanel').classList.add('hidden');
+    document.getElementById('feedbackPanel').classList.add('hidden');
+    document.getElementById('questoesPanel').classList.remove('hidden');
+    setStatus('');
+    gerarQuestoes();
+  } else {
+    document.getElementById('questoesPanel').classList.add('hidden');
+    generate();
+  }
 }
 
 function setStatus(html){ document.getElementById('statusArea').innerHTML = html; }
@@ -255,6 +297,115 @@ function renderFeedback(fb){
     ${rew?`<div class="fb-block"><h3>Reescritas nível C2</h3>${rew}</div>`:''}
     ${fb.diplomatic_note?`<div class="fb-block"><h3>Como um diplomata escreveria</h3><div class="fb-note">${esc(fb.diplomatic_note)}</div></div>`:''}`;
 }
+
+// ── Questões CESPE ──────────────────────────────────────────────────────────
+let QUESTOES_ATUAL = [];
+let RESPOSTAS = {};
+
+async function gerarQuestoes(){
+  const mode = document.getElementById('qMode').value;
+  const difficulty = document.getElementById('qDifficulty').value;
+  const quantity = parseInt(document.getElementById('qQty').value);
+
+  QUESTOES_ATUAL = [];
+  RESPOSTAS = {};
+  document.getElementById('qList').innerHTML = '';
+  document.getElementById('qScore').style.display = 'none';
+  document.getElementById('qSourceText').style.display = 'none';
+  setStatus(loadingHTML('Gerando questões no padrão CESPE/CEBRASPE...'));
+
+  try{
+    const data = await postJSON('/api/ingles/generate-questions', {mode, difficulty, quantity});
+    setStatus('');
+    QUESTOES_ATUAL = data.questions || [];
+
+    if(mode === 'text-based' && data.source_text){
+      document.getElementById('qSourceTextContent').textContent = data.source_text;
+      document.getElementById('qSourceText').style.display = 'block';
+    }
+
+    renderQuestoes(QUESTOES_ATUAL);
+  }catch(e){
+    setStatus(errHTML('Não foi possível gerar questões: '+e.message));
+  }
+}
+
+function renderQuestoes(qs){
+  const list = document.getElementById('qList');
+  list.innerHTML = qs.map((q,i) => `
+    <div class="q-card" id="qcard-${i}" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <span style="font-size:11px;font-weight:700;color:var(--muted2);min-width:22px;padding-top:2px">${i+1}.</span>
+        <div style="flex:1">
+          <p style="font-size:14px;line-height:1.65;margin-bottom:12px">${esc(q.statement)}</p>
+          <div style="display:flex;gap:8px">
+            <button onclick="responder(${i}, true)"  class="q-btn" id="qbtn-${i}-true"
+              style="padding:7px 18px;border-radius:8px;border:1px solid var(--green);background:rgba(52,211,153,.08);color:var(--green);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s">
+              CERTO
+            </button>
+            <button onclick="responder(${i}, false)" class="q-btn" id="qbtn-${i}-false"
+              style="padding:7px 18px;border-radius:8px;border:1px solid var(--red);background:rgba(248,113,113,.08);color:var(--red);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s">
+              ERRADO
+            </button>
+          </div>
+          <div id="qfeedback-${i}" style="display:none;margin-top:12px"></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function responder(idx, escolha){
+  if(RESPOSTAS[idx] !== undefined) return;
+  RESPOSTAS[idx] = escolha;
+
+  const q = QUESTOES_ATUAL[idx];
+  const acertou = escolha === q.answer;
+  const corBorda = acertou ? 'var(--green)' : 'var(--red)';
+  const icone = acertou ? '✓' : '✗';
+
+  const card = document.getElementById('qcard-'+idx);
+  card.style.borderColor = corBorda;
+
+  ['true','false'].forEach(v => {
+    const btn = document.getElementById(`qbtn-${idx}-${v}`);
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+    btn.style.cursor = 'default';
+  });
+  const chosenBtn = document.getElementById(`qbtn-${idx}-${escolha}`);
+  chosenBtn.style.opacity = '1';
+  chosenBtn.style.filter = acertou ? 'brightness(1.3)' : 'brightness(1.3)';
+  chosenBtn.style.borderWidth = '2px';
+
+  const gabarito = q.answer ? 'CERTO' : 'ERRADO';
+  const fb = document.getElementById('qfeedback-'+idx);
+  fb.style.display = 'block';
+  fb.innerHTML = `
+    <div style="padding:12px;border-radius:8px;background:${acertou?'rgba(52,211,153,.08)':'rgba(248,113,113,.08)'};border:1px solid ${corBorda}">
+      <div style="font-size:13px;font-weight:800;color:${corBorda};margin-bottom:6px">${icone} ${acertou?'CORRETO':'INCORRETO'} — Gabarito: ${gabarito}${q.is_trap?' 🪤 PEGADINHA':''}</div>
+      <div style="font-size:13px;line-height:1.6;color:var(--text)">${esc(q.explanation)}</div>
+      ${q.linguistic_justification?`<div style="font-size:12px;color:var(--muted2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">📐 ${esc(q.linguistic_justification)}</div>`:''}
+    </div>`;
+
+  if(Object.keys(RESPOSTAS).length === QUESTOES_ATUAL.length) mostrarPlacar();
+}
+
+function mostrarPlacar(){
+  const acertos = QUESTOES_ATUAL.filter((q,i) => RESPOSTAS[i] === q.answer).length;
+  const total = QUESTOES_ATUAL.length;
+  const pct = Math.round(acertos/total*100);
+  const scoreEl = document.getElementById('qScore');
+  scoreEl.style.display = 'block';
+  scoreEl.style.borderColor = pct>=70?'var(--green)':'var(--red)';
+  scoreEl.style.color = pct>=70?'var(--green)':'var(--red)';
+  scoreEl.style.background = pct>=70?'rgba(52,211,153,.08)':'rgba(248,113,113,.08)';
+  scoreEl.innerHTML = `${iconeScore(pct)} ${acertos}/${total} corretas (${pct}%) — ${pct>=70?'Aprovado!':'Continue praticando'}
+    <button onclick="gerarQuestoes()" style="margin-left:14px;padding:5px 14px;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Nova rodada</button>`;
+  scoreEl.scrollIntoView({behavior:'smooth'});
+}
+
+function iconeScore(p){ if(p>=90) return '🏆'; if(p>=70) return '✅'; if(p>=50) return '⚠️'; return '❌'; }
+// ── fim Questões CESPE ───────────────────────────────────────────────────────
 
 (async()=>{
   const user = await DB.requireAuth();
