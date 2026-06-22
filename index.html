@@ -301,7 +301,7 @@
     }
     .hm-cell {
       width: 13px; height: 13px; border-radius: 3px;
-      background: #eae7e2; cursor: default; transition: opacity .1s;
+      background: var(--hm-empty, #eae7e2); cursor: default; transition: opacity .1s;
     }
     .hm-cell:hover { opacity: .7; }
     .hm-cell.lv1 { background: #e0d090; }
@@ -311,6 +311,13 @@
     .hm-cell.lv5 { background: #7a5f10; }
     .hm-cell.today { outline: 2px solid var(--gold); outline-offset: 1px; }
     .hm-cell.empty-pad { opacity: 0; pointer-events: none; }
+    .hm-cell.before-study { opacity: 0.3; }
+    html.dark { --hm-empty: #2a2d36; }
+    html.dark .hm-cell.lv1 { background: #4a4a20; }
+    html.dark .hm-cell.lv2 { background: #7a6a20; }
+    html.dark .hm-cell.lv3 { background: #b8962e; }
+    html.dark .hm-cell.lv4 { background: #c4a84f; }
+    html.dark .hm-cell.lv5 { background: #d4af37; }
 
     .heatmap-footer {
       display: flex; justify-content: space-between; align-items: center;
@@ -832,11 +839,16 @@
       const grid = document.getElementById('heatmapGrid'); if (!grid) return;
       const todayStr = new Date().toISOString().split('T')[0];
 
-      /* Dia 1 fixo: 19/06/2026 */
-      const start = new Date('2026-06-19');
+      /* Dia 1 fixo: 19/06/2026 — mostra mínimo de 26 semanas (182 dias) de grade */
+      const STUDY_START = '2026-06-19';
+      const studyStartDate = new Date(STUDY_START);
       const today = new Date(todayStr);
-      const diffDays = Math.floor((today - start) / 86400000) + 1;
-      const YEAR = Math.max(diffDays, 1);
+      const daysElapsed = Math.floor((today - studyStartDate) / 86400000) + 1;
+      const MIN_DAYS = 182; // 26 semanas sempre visíveis
+      const YEAR = Math.max(daysElapsed, MIN_DAYS);
+      /* O grid começa MIN_DAYS antes de hoje ou em STUDY_START, o que for mais cedo */
+      const start = new Date(today);
+      start.setDate(start.getDate() - (YEAR - 1));
 
       /* Mescla activity (cards) com sessões de simulado/TP */
       const combined = Object.assign({}, _activity);
@@ -869,12 +881,14 @@
       for(let i=0;i<YEAR;i++) {
         const d=new Date(start); d.setDate(d.getDate()+i);
         const k=d.toISOString().split('T')[0];
-        const v=combined[k]||0;
-        const lv=lvl(v);
+        const beforeStudy = k < STUDY_START;
+        const v = beforeStudy ? 0 : (combined[k]||0);
+        const lv = beforeStudy ? 0 : lvl(v);
         const isToday=k===todayStr;
         const lbl=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
-        const cls=['hm-cell', lv>0?`lv${lv}`:'', isToday?'today':''].filter(Boolean).join(' ');
-        cells.push(`<div class="${cls}" title="${lbl}: ${v} itens"></div>`);
+        const cls=['hm-cell', lv>0?`lv${lv}`:'', isToday?'today':'', beforeStudy?'before-study':''].filter(Boolean).join(' ');
+        const tip = beforeStudy ? `${lbl}: antes do início` : `${lbl}: ${v} itens`;
+        cells.push(`<div class="${cls}" title="${tip}"></div>`);
       }
       grid.innerHTML = cells.join('');
 
