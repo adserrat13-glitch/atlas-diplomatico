@@ -338,15 +338,10 @@ let simId = null;
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function initAuth() {
-  try {
-    const { data: { session } } = await window._supabase.auth.getSession();
-    if (!session) { window.location.href = 'login.html'; return; }
-    currentUser = session.user;
-    currentSession = session;
-    document.getElementById('navUser').textContent = (currentUser.email || 'USER').split('@')[0].toUpperCase().slice(0,6);
-  } catch {
-    window.location.href = 'login.html';
-  }
+  currentUser = await DB.requireAuth(); // redireciona para login.html se não autenticado
+  const token = await DB.getAccessToken();
+  currentSession = { access_token: token };
+  document.getElementById('navUser').textContent = (currentUser.email || 'USER').split('@')[0].toUpperCase().slice(0,6);
 }
 
 // Retorna headers com JWT — nunca envia user_id no body
