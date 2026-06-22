@@ -189,7 +189,6 @@ main{padding:32px;max-width:860px;margin:0 auto}
     <div id="praticaProgress" style="display:none">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:12px;color:var(--muted2)" id="praticaProgressLabel">Questão 1 de 5</span>
-        <span style="font-size:12px;color:var(--gold)" id="praticaScore">0 acertos</span>
       </div>
       <div class="progress-bar-wrap"><div class="progress-bar" id="praticaProgressBar" style="width:0%"></div></div>
     </div>
@@ -353,6 +352,7 @@ let currentSession = null;
 let currentQuestions = [];
 let praticaIndex = 0;
 let praticaCorrect = 0;
+let praticaAnswers = [];
 let simQuestions = [];
 let simIndex = 0;
 let simCorrect = 0;
@@ -431,7 +431,7 @@ async function generateQuestions() {
     if (!res.ok) { showToast(data.error || 'Erro ao gerar questões', 'error'); document.getElementById('emptyPraticar').style.display = ''; return; }
 
     currentQuestions = data.questions || [];
-    praticaIndex = 0; praticaCorrect = 0;
+    praticaIndex = 0; praticaCorrect = 0; praticaAnswers = [];
     document.getElementById('praticaResult').style.display = 'none';
     document.getElementById('praticaProgress').style.display = 'block';
     renderPraticaQuestion();
@@ -452,7 +452,6 @@ function renderPraticaQuestion() {
   const total = currentQuestions.length;
   document.getElementById('praticaProgressLabel').textContent = `Questão ${praticaIndex + 1} de ${total}`;
   document.getElementById('praticaProgressBar').style.width = `${(praticaIndex / total) * 100}%`;
-  document.getElementById('praticaScore').textContent = `${praticaCorrect} acerto${praticaCorrect !== 1 ? 's' : ''}`;
   container.innerHTML = `
     <div class="question-card">
       <div class="q-meta">
@@ -467,7 +466,6 @@ function renderPraticaQuestion() {
         <button class="btn btn-green" onclick="submitAnswer(true)">CERTO</button>
         <button class="btn btn-red" onclick="submitAnswer(false)">ERRADO</button>
       </div>
-      <div class="q-feedback" id="praticaFeedback"></div>
     </div>
   `;
 }
@@ -485,23 +483,13 @@ async function submitAnswer(userAnswer) {
     });
     const data = await res.json();
     if (data.is_correct) praticaCorrect++;
-
-    const fb = document.getElementById('praticaFeedback');
-    const cls = data.is_correct ? 'correct' : 'wrong';
-    fb.innerHTML = `
-      <div class="feedback-header ${cls}">${data.is_correct ? '✓ CERTO' : `✗ ERRADO — A resposta correta é ${data.correct_answer_label}`}</div>
-      <div class="feedback-explanation">${escHtml(data.explanation)}</div>
-      <div class="feedback-grammar"><strong>Justificativa:</strong> ${escHtml(data.grammar_justification)}</div>
-      <div style="margin-top:12px"><button class="btn btn-ghost" onclick="nextPraticaQuestion()">Próxima →</button></div>
-    `;
-    fb.className = 'q-feedback show ' + cls;
+    praticaAnswers.push({ q, data, userAnswer });
+    praticaIndex++;
+    renderPraticaQuestion();
   } catch { showToast('Erro de conexão', 'error'); }
 }
 
-function nextPraticaQuestion() { praticaIndex++; renderPraticaQuestion(); }
-
 function finishPratica() {
-  document.getElementById('questionsContainer').innerHTML = '';
   document.getElementById('praticaProgress').style.display = 'none';
   const total = currentQuestions.length;
   const wrong = total - praticaCorrect;
@@ -510,11 +498,34 @@ function finishPratica() {
   document.getElementById('praticaResCorrect').textContent = praticaCorrect;
   document.getElementById('praticaResWrong').textContent   = wrong;
   document.getElementById('praticaResAcc').textContent     = acc + '%';
-  document.getElementById('praticaResult').style.display   = 'block';
+
+  // Exibir gabarito com feedback de cada questão
+  document.getElementById('questionsContainer').innerHTML = praticaAnswers.map((item, i) => {
+    const { q, data, userAnswer } = item;
+    const cls = data.is_correct ? 'correct' : 'wrong';
+    return `
+      <div class="question-card">
+        <div class="q-meta">
+          <span class="badge badge-topic">${q.topic_name}</span>
+          <span class="badge badge-diff-${q.difficulty}">${diffLabel(q.difficulty)}</span>
+          ${q.is_trap ? '<span class="badge badge-trap">PEGADINHA</span>' : ''}
+        </div>
+        <div class="q-num">Questão ${i + 1} de ${total}</div>
+        <div class="q-statement">${escHtml(q.statement)}</div>
+        <div class="q-feedback show ${cls}" style="margin-top:12px">
+          <div class="feedback-header ${cls}">${data.is_correct ? '✓ CERTO' : `✗ ERRADO — A resposta correta é ${data.correct_answer_label}`}</div>
+          <div class="feedback-explanation">${escHtml(data.explanation)}</div>
+          <div class="feedback-grammar"><strong>Justificativa:</strong> ${escHtml(data.grammar_justification)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('praticaResult').style.display = 'block';
 }
 
 function resetPratica() {
-  currentQuestions = []; praticaIndex = 0; praticaCorrect = 0;
+  currentQuestions = []; praticaIndex = 0; praticaCorrect = 0; praticaAnswers = [];
   document.getElementById('praticaResult').style.display = 'none';
   document.getElementById('praticaProgress').style.display = 'none';
   document.getElementById('questionsContainer').innerHTML = '';
@@ -689,7 +700,7 @@ async function generateTargeted() {
     if (!res.ok) { showToast(data.error || 'Erro', 'error'); return; }
     switchTab('praticar');
     currentQuestions = data.questions || [];
-    praticaIndex = 0; praticaCorrect = 0;
+    praticaIndex = 0; praticaCorrect = 0; praticaAnswers = [];
     document.getElementById('praticaResult').style.display = 'none';
     document.getElementById('praticaProgress').style.display = 'block';
     renderPraticaQuestion();
