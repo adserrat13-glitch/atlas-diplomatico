@@ -7,6 +7,75 @@ const DIFFICULTY_INSTRUCTIONS = {
   cacd:   'Advanced CACD level: long period with elaborate subordinate structures, controlled ambiguity, nuanced vocabulary — equivalent to real CESPE/CEBRASPE questions for the CACD (Concurso de Admissão à Carreira Diplomática).',
 };
 
+// Tópicos baseados no edital oficial CACD — Língua Inglesa
+const GRAMMAR_TOPICS = [
+  // Adjetivos
+  'use of adjectives (attributive vs predicative position)',
+  'comparative and superlative adjectives',
+  'opposite adjectives and antonyms',
+  // Advérbios e conjunções
+  'position of adverbs in English sentences',
+  'adverbs of place, manner, time and frequency',
+  'adverbs of degree, purpose and contrast',
+  // Artigos
+  'use of definite and indefinite articles (a, an, the)',
+  // Determinantes e quantificadores
+  'determiners and quantifiers (some, any, much, many, few, little)',
+  // Substantivos
+  'countable and uncountable nouns',
+  'plural of nouns (regular and irregular)',
+  // Números
+  'cardinal and ordinal numbers in context',
+  // Preposições
+  'prepositions of time, place and movement',
+  'prepositional phrases in academic English',
+  // Pronomes
+  'objective pronouns in formal written English',
+  'possessive adjectives and possessive pronouns',
+  'reflexive pronouns',
+  'demonstrative pronouns',
+  'relative clauses (defining and non-defining)',
+  'question words and indirect questions',
+  'subjective pronouns and subject-verb agreement',
+  'indefinite pronouns (someone, anyone, everyone, no one)',
+  // Palavras conectivas
+  'connective words and cohesive devices in academic texts',
+  // Tag questions
+  'tag questions (formation and intonation)',
+  // Verbos — tempos
+  'simple present tense in formal English',
+  'present continuous tense',
+  'present perfect tense (since, for, already, yet)',
+  'present perfect continuous tense',
+  'simple past tense',
+  'past continuous tense',
+  'past perfect tense',
+  'past perfect continuous tense',
+  'simple future (will vs going to)',
+  'future perfect tense',
+  'future perfect continuous tense',
+  'infinitive and gerund (verb patterns)',
+  'imperative mood in formal English',
+  'modal verbs (can, could, may, might, must, shall, should, will, would, ought to)',
+  'phrasal verbs in academic and diplomatic contexts',
+  // Voz
+  'passive voice in formal and diplomatic texts',
+  'active vs passive voice transformation',
+  // Condicionais e discurso
+  'conditional clauses (zero, first, second, third and mixed)',
+  'reported speech (statements, questions and commands)',
+  // Vocabulário e formação
+  'false cognates between English and Portuguese',
+  'synonyms in academic and diplomatic English',
+  'word formation: prefixes and suffixes in English',
+  'genitive case (possessive \'s and of-construction)',
+  // Análise e compreensão
+  'syntactic parsing and sentence structure',
+  'linguistic aspects of academic written English',
+  'reading comprehension and text interpretation',
+  'translation of diplomatic and academic texts',
+];
+
 const DIPLOMATIC_TOPICS = [
   'international trade agreements and WTO disputes',
   'United Nations Security Council reform',
@@ -22,6 +91,8 @@ const DIPLOMATIC_TOPICS = [
   'migration, refugees, and international protection',
 ];
 
+const ALL_TOPICS = [...GRAMMAR_TOPICS, ...DIPLOMATIC_TOPICS];
+
 const SYSTEM_PROMPT_ISOLATED = `You are a senior CESPE/CEBRASPE question writer specializing in the English Language exam for the CACD (Concurso de Admissão à Carreira Diplomática), administered by Instituto Rio Branco (Brazil).
 
 MANDATORY RULES:
@@ -29,7 +100,7 @@ MANDATORY RULES:
 2. The statement must be a single, complete, self-sufficient sentence — no external text required.
 3. When True (answer: true): the statement must be linguistically correct and factually/semantically accurate.
 4. When False (answer: false): the error must be technically precise and non-obvious — a classic CESPE "trap": false cognate, subtle grammar error, wrong collocation, misleading cohesive device, or inaccurate paraphrase.
-5. Focus areas: reading comprehension inference, diplomatic/academic vocabulary, grammar (conditionals, modals, reported speech, cohesion, verb tenses), false friends.
+5. Focus areas must align with the official CACD English syllabus: grammar (all verb tenses, modal verbs, conditional clauses, passive voice, reported speech, relative clauses, phrasal verbs, gerund/infinitive), vocabulary (false cognates, synonyms, word formation, collocations), reading comprehension and text interpretation, translation of diplomatic/academic texts.
 6. The explanation (in Portuguese) must be didactic, complete, and self-sufficient — minimum 80 words.
 7. The linguistic justification must cite the specific grammar rule or vocabulary principle.
 8. Respond ONLY in valid JSON, no markdown, no text outside the JSON.
@@ -86,18 +157,23 @@ Where:
 - "category": one of "reading-comprehension", "vocabulary", "grammar"
 - "is_trap": true if the question contains an intentional CESPE trap`;
 
+function randomTopic(override) {
+  if (override) return override;
+  return ALL_TOPICS[Math.floor(Math.random() * ALL_TOPICS.length)];
+}
+
 function buildIsolatedUserPrompt({ topic, difficulty, category, isTrap }) {
   const diffInstruction = DIFFICULTY_INSTRUCTIONS[difficulty] || DIFFICULTY_INSTRUCTIONS.cacd;
-  const randomTopic = topic || DIPLOMATIC_TOPICS[Math.floor(Math.random() * DIPLOMATIC_TOPICS.length)];
+  const chosenTopic = randomTopic(topic);
   const trapInstruction = isTrap
     ? 'IMPORTANT: This question MUST be False (answer: false) and contain a classic CESPE trap — a subtle false cognate, wrong collocation, misleading cohesive device, or inaccurate grammar structure that passes unnoticed on quick reading.'
     : 'The statement may be True or False according to your technical judgment.';
   const categoryInstruction = category
-    ? `Focus category: ${category} (reading-comprehension = inference from text; vocabulary = diplomatic/academic terms, false friends, collocations; grammar = conditionals, modals, reported speech, cohesion devices, tenses).`
+    ? `Focus category: ${category} (reading-comprehension = inference from text; vocabulary = diplomatic/academic terms, false cognates, collocations, synonyms, word formation; grammar = any item from the official CACD syllabus).`
     : 'Choose the most appropriate category from: reading-comprehension, vocabulary, grammar.';
 
   return [
-    `Diplomatic topic: ${randomTopic}`,
+    `CACD syllabus topic to base this question on: "${chosenTopic}"`,
     `Difficulty: ${diffInstruction}`,
     categoryInstruction,
     trapInstruction,
@@ -107,12 +183,13 @@ function buildIsolatedUserPrompt({ topic, difficulty, category, isTrap }) {
 
 function buildTextBasedUserPrompt({ topic, difficulty, quantity }) {
   const diffInstruction = DIFFICULTY_INSTRUCTIONS[difficulty] || DIFFICULTY_INSTRUCTIONS.cacd;
-  const randomTopic = topic || DIPLOMATIC_TOPICS[Math.floor(Math.random() * DIPLOMATIC_TOPICS.length)];
+  const chosenTopic = randomTopic(topic);
 
   return [
-    `Text topic: ${randomTopic}`,
+    `Write a C1/C2 academic text on this topic (diplomatic or linguistic): "${chosenTopic}"`,
     `Difficulty: ${diffInstruction}`,
-    `Number of questions to generate: ${quantity}`,
+    `Number of True/False questions to generate from the text: ${quantity}`,
+    `Questions must cover a mix of: reading comprehension, vocabulary in context, and grammar structures present in the text — aligned with the CACD English syllabus.`,
     `Originality token: ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   ].join('\n');
 }
