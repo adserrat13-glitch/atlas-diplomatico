@@ -357,6 +357,7 @@ let simQuestions = [];
 let simIndex = 0;
 let simCorrect = 0;
 let simId = null;
+let simAnswers = [];
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 async function initAuth() {
@@ -556,7 +557,7 @@ async function startSimulado() {
     if (!res.ok) { showToast(data.error || 'Erro', 'error'); document.getElementById('emptySimulado').style.display = ''; return; }
 
     simQuestions = data.questions || [];
-    simIndex = 0; simCorrect = 0; simId = data.simulado_id;
+    simIndex = 0; simCorrect = 0; simId = data.simulado_id; simAnswers = [];
     document.getElementById('simResult').style.display = 'none';
     document.getElementById('simuladoProgress').style.display = 'block';
     renderSimQuestion();
@@ -575,7 +576,7 @@ function renderSimQuestion() {
   const total = simQuestions.length;
   document.getElementById('simProgressLabel').textContent = `Questão ${simIndex + 1} de ${total}`;
   document.getElementById('simProgressBar').style.width = `${(simIndex / total) * 100}%`;
-  document.getElementById('simScore').textContent = `${simCorrect} acerto${simCorrect !== 1 ? 's' : ''}`;
+  document.getElementById('simScore').textContent = `${simIndex} respondida${simIndex !== 1 ? 's' : ''}`;
   document.getElementById('simuladoContainer').innerHTML = `
     <div class="question-card" id="simcard">
       <div class="q-meta">
@@ -589,7 +590,6 @@ function renderSimQuestion() {
         <button class="btn btn-green" onclick="submitSimAnswer(true)">CERTO</button>
         <button class="btn btn-red" onclick="submitSimAnswer(false)">ERRADO</button>
       </div>
-      <div class="q-feedback" id="simfeedback"></div>
     </div>
   `;
 }
@@ -606,23 +606,13 @@ async function submitSimAnswer(userAnswer) {
     });
     const data = await res.json();
     if (data.is_correct) simCorrect++;
-
-    const fb = document.getElementById('simfeedback');
-    const cls = data.is_correct ? 'correct' : 'wrong';
-    fb.innerHTML = `
-      <div class="feedback-header ${cls}">${data.is_correct ? '✓ CERTO' : `✗ ERRADO — ${data.correct_answer_label}`}</div>
-      <div class="feedback-explanation">${escHtml(data.explanation)}</div>
-      <div class="feedback-grammar"><strong>Justificativa:</strong> ${escHtml(data.grammar_justification)}</div>
-      <div style="margin-top:12px"><button class="btn btn-ghost" onclick="nextSimQuestion()">Próxima →</button></div>
-    `;
-    fb.className = 'q-feedback show ' + cls;
+    simAnswers.push({ q, data, userAnswer });
+    simIndex++;
+    renderSimQuestion();
   } catch { showToast('Erro', 'error'); }
 }
 
-function nextSimQuestion() { simIndex++; renderSimQuestion(); }
-
 function finishSimulado() {
-  document.getElementById('simuladoContainer').innerHTML = '';
   document.getElementById('simuladoProgress').style.display = 'none';
   const total = simQuestions.length;
   const wrong = total - simCorrect;
@@ -631,11 +621,33 @@ function finishSimulado() {
   document.getElementById('simResCorrect').textContent = simCorrect;
   document.getElementById('simResWrong').textContent   = wrong;
   document.getElementById('simResAcc').textContent     = acc + '%';
-  document.getElementById('simResult').style.display   = 'block';
+
+  document.getElementById('simuladoContainer').innerHTML = simAnswers.map((item, i) => {
+    const { q, data } = item;
+    const cls = data.is_correct ? 'correct' : 'wrong';
+    return `
+      <div class="question-card">
+        <div class="q-meta">
+          <span class="badge badge-topic">${q.topic_name}</span>
+          <span class="badge badge-diff-${q.difficulty}">${diffLabel(q.difficulty)}</span>
+          ${q.is_trap ? '<span class="badge badge-trap">PEGADINHA</span>' : ''}
+        </div>
+        <div class="q-num">Questão ${i + 1} de ${total}</div>
+        <div class="q-statement">${escHtml(q.statement)}</div>
+        <div class="q-feedback show ${cls}" style="margin-top:12px">
+          <div class="feedback-header ${cls}">${data.is_correct ? '✓ CERTO' : `✗ ERRADO — A resposta correta é ${data.correct_answer_label}`}</div>
+          <div class="feedback-explanation">${escHtml(data.explanation)}</div>
+          <div class="feedback-grammar"><strong>Justificativa:</strong> ${escHtml(data.grammar_justification)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('simResult').style.display = 'block';
 }
 
 function resetSimulado() {
-  simQuestions = []; simIndex = 0; simCorrect = 0; simId = null;
+  simQuestions = []; simIndex = 0; simCorrect = 0; simId = null; simAnswers = [];
   document.getElementById('simResult').style.display = 'none';
   document.getElementById('simuladoContainer').innerHTML = '';
   document.getElementById('emptySimulado').style.display = '';
