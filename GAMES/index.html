@@ -55,10 +55,11 @@
 
     body {
       font-family: 'Inter', system-ui, sans-serif !important;
-      background: #f5f3f0 !important;
-      color: #1e1e1e !important;
+      background: var(--bg-page) !important;
+      color: var(--text-main) !important;
       min-height: 100vh;
     }
+    html.dark body { background: var(--bg-page) !important; color: var(--text-main) !important; }
 
     /* ── HEADER ── */
     .site-header {
