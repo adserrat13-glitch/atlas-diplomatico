@@ -176,6 +176,10 @@ async function answersSubmit(req, res, user_id) {
   const { error: insErr } = await supabase.from('lp_answers').insert({ user_id, question_id, simulado_id: simulado_id || null, user_answer, is_correct });
   if (insErr) return res.status(500).json({ error: insErr.message });
 
+  // Registra no heatmap de atividade (mesma RPC usada por flashcards/simulados)
+  const today = new Date().toISOString().split('T')[0];
+  await supabase.rpc('upsert_activity', { p_user_id: user_id, p_date: today });
+
   return res.status(200).json({
     is_correct, correct_answer: q.answer,
     correct_answer_label: q.answer ? 'CERTO' : 'ERRADO',
