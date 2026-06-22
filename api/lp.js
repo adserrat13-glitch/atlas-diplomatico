@@ -368,28 +368,36 @@ function buildQueue(dist, total, trapCount) {
   return queue;
 }
 
+async function generateOne(slot, difficulty, userId, hashSet, supabase, apiKey) {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const raw = await generateQuestion({ topicName: slot.name, subtopic: slot.subtopic, area: slot.area, difficulty, isTrap: slot.isTrap, apiKey });
+      const { valid, errors: ve } = validateQuestion(raw, slot.name);
+      if (!valid) { if (attempt === MAX_RETRIES) return { ok: false, topic: slot.name, errors: ve }; continue; }
+
+      const record = prepareRecord(raw, { topicName: slot.name, subtopic: slot.subtopic, area: slot.area, difficulty, userId });
+      if (hashSet.has(record.content_hash)) { if (attempt === MAX_RETRIES) return { ok: false, topic: slot.name, errors: ['Duplicata'] }; continue; }
+      hashSet.add(record.content_hash);
+
+      const { data: inserted, error: dbErr } = await supabase.from('lp_questions').insert(record).select().single();
+      if (dbErr?.code === '23505') { if (attempt === MAX_RETRIES) return { ok: false, topic: slot.name, errors: ['Hash duplicado'] }; continue; }
+      if (dbErr) throw new Error(dbErr.message);
+
+      return { ok: true, question: inserted };
+    } catch (err) { if (attempt === MAX_RETRIES) return { ok: false, topic: slot.name, errors: [err.message] }; }
+  }
+  return { ok: false, topic: slot.name, errors: ['Falha'] };
+}
+
 async function runGeneration(queue, difficulty, userId, hashSet, supabase, apiKey) {
+  const results = await Promise.allSettled(
+    queue.map(slot => generateOne(slot, difficulty, userId, hashSet, supabase, apiKey))
+  );
   const questions = [], errors = [];
-  for (const slot of queue) {
-    let ok = false;
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const raw = await generateQuestion({ topicName: slot.name, subtopic: slot.subtopic, area: slot.area, difficulty, isTrap: slot.isTrap, apiKey });
-        const { valid, errors: ve } = validateQuestion(raw, slot.name);
-        if (!valid) { if (attempt === MAX_RETRIES) errors.push({ topic: slot.name, errors: ve }); continue; }
-
-        const record = prepareRecord(raw, { topicName: slot.name, subtopic: slot.subtopic, area: slot.area, difficulty, userId });
-        if (hashSet.has(record.content_hash)) { if (attempt === MAX_RETRIES) errors.push({ topic: slot.name, errors: ['Duplicata'] }); continue; }
-        hashSet.add(record.content_hash);
-
-        const { data: inserted, error: dbErr } = await supabase.from('lp_questions').insert(record).select().single();
-        if (dbErr?.code === '23505') { if (attempt === MAX_RETRIES) errors.push({ topic: slot.name, errors: ['Hash duplicado'] }); continue; }
-        if (dbErr) throw new Error(dbErr.message);
-
-        questions.push(inserted); ok = true; break;
-      } catch (err) { if (attempt === MAX_RETRIES) errors.push({ topic: slot.name, errors: [err.message] }); }
-    }
-    if (!ok && !errors.find(e => e.topic === slot.name)) errors.push({ topic: slot.name, errors: ['Falha'] });
+  for (const r of results) {
+    const val = r.status === 'fulfilled' ? r.value : { ok: false, topic: '?', errors: [r.reason?.message || 'Falha'] };
+    if (val.ok) questions.push(val.question);
+    else errors.push({ topic: val.topic, errors: val.errors });
   }
   return { questions, errors };
 }
