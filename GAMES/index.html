@@ -436,6 +436,14 @@
     html.dark .site-header { background: #12131a; border-color: rgba(255,255,255,.07); }
     html.dark .header-cacd { background: rgba(212,175,55,.08); border-color: rgba(212,175,55,.2); }
 
+    /* ── DARK TOGGLE ── */
+    .dark-toggle {
+      width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-cl);
+      background: var(--bg-sand); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 15px; flex-shrink: 0; transition: background .15s;
+    }
+    .dark-toggle:hover { background: var(--border-cl); }
+
   </style>
 </head>
 <body>
@@ -445,6 +453,7 @@
     <div class="header-spacer"></div>
     <a href="../admin.html" id="navAdmin">Admin</a>
     <div class="header-cacd" id="navCountdown">—d CACD</div>
+    <button class="dark-toggle" id="darkToggle" title="Modo noturno" onclick="toggleDark()">🌙</button>
     <div class="header-user" id="navUser">?</div>
   </header>
 
@@ -713,8 +722,17 @@
 
   <script>
     /* ── DARK MODE ── */
-    document.documentElement.classList.remove('dark');
-    localStorage.removeItem('atlas_dark');
+    function applyDark(on) {
+      document.documentElement.classList.toggle('dark', on);
+      const btn = document.getElementById('darkToggle');
+      if (btn) btn.textContent = on ? '☀️' : '🌙';
+    }
+    function toggleDark() {
+      const next = !document.documentElement.classList.contains('dark');
+      localStorage.setItem('atlas_dark', next ? '1' : '0');
+      applyDark(next);
+    }
+    applyDark(localStorage.getItem('atlas_dark') === '1');
 
     /* ── PROGRESS ── */
     const GAME_TOTALS = { dip: 1558, economia: 2518, politica: 2291 };
