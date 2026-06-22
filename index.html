@@ -825,13 +825,25 @@
     function renderHeatmap() {
       const grid = document.getElementById('heatmapGrid'); if (!grid) return;
       const todayStr = new Date().toISOString().split('T')[0];
-      const YEAR = 365;
-      const start = new Date(); start.setDate(start.getDate()-(YEAR-1));
+
+      /* Dia 1 fixo: 19/06/2026 */
+      const start = new Date('2026-06-19');
+      const today = new Date(todayStr);
+      const diffDays = Math.floor((today - start) / 86400000) + 1;
+      const YEAR = Math.max(diffDays, 1);
+
+      /* Mescla activity (cards) com sessões de simulado/TP */
+      const combined = Object.assign({}, _activity);
+      for (const s of (_sessions || [])) {
+        const day = (s.date || (s.created_at||'').slice(0,10));
+        if (!day) continue;
+        combined[day] = (combined[day] || 0) + (s.total || 1);
+      }
 
       let maxVal = 1;
       for (let i=0;i<YEAR;i++) {
         const d=new Date(start); d.setDate(d.getDate()+i);
-        const v=_activity[d.toISOString().split('T')[0]]||0;
+        const v=combined[d.toISOString().split('T')[0]]||0;
         if(v>maxVal) maxVal=v;
       }
       const lvl = v => {
@@ -851,20 +863,20 @@
       for(let i=0;i<YEAR;i++) {
         const d=new Date(start); d.setDate(d.getDate()+i);
         const k=d.toISOString().split('T')[0];
-        const v=_activity[k]||0;
+        const v=combined[k]||0;
         const lv=lvl(v);
         const isToday=k===todayStr;
         const lbl=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
         const cls=['hm-cell', lv>0?`lv${lv}`:'', isToday?'today':''].filter(Boolean).join(' ');
-        cells.push(`<div class="${cls}" title="${lbl}: ${v} cards"></div>`);
+        cells.push(`<div class="${cls}" title="${lbl}: ${v} itens"></div>`);
       }
       grid.innerHTML = cells.join('');
 
       /* stats */
-      const streak  = computeStreak(_activity);
-      const longest = computeLongestStreak(_activity);
-      const daysLearned = Object.values(_activity).filter(v=>v>0).length;
-      const total = Object.values(_activity).reduce((a,v)=>a+v,0);
+      const streak  = computeStreak(combined);
+      const longest = computeLongestStreak(combined);
+      const daysLearned = Object.values(combined).filter(v=>v>0).length;
+      const total = Object.values(combined).reduce((a,v)=>a+v,0);
       const avg   = daysLearned>0 ? Math.round(total/daysLearned) : 0;
 
       setEl('hmStreak',    streak);
@@ -872,7 +884,7 @@
       setEl('hmAvgDaily',  avg);
       setEl('hmStreakFoot', streak);
       setEl('hmLongest',   longest);
-      setEl('heatmapSubtitle', `${daysLearned} dias com estudo · ${total.toLocaleString('pt-BR')} cards no total`);
+      setEl('heatmapSubtitle', `${daysLearned} dias com estudo · ${total.toLocaleString('pt-BR')} itens no total`);
     }
 
     /* ── RENDER PLANO DO DIA ──────────────────────────────── */
