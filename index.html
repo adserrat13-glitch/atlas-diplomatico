@@ -31,59 +31,28 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── LOCAL PALETTE (index only) ── */
+    /* ── LOCAL PALETTE (index only — does not affect other pages) ── */
     :root {
       --bg-page:    #f5f3f0;
       --bg-card:    #ffffff;
       --bg-sand:    #ece8e5;
+      --bg-cream:   #efd7ca;
       --bg-dark:    #17182d;
       --text-main:  #1e1e1e;
       --text-muted: #6b6b6b;
       --text-faint: #a0a0a0;
       --border-cl:  #e0dbd3;
       --gold:       #c8a84b;
-      --gold-lt:    #d4af37;
+      --gold-light: #d4af37;
       --red-dipl:   #B83A2D;
       --green-ok:   #4a9e6b;
       --blue-soft:  #4682B4;
-      --sh-sm:      0 2px 8px rgba(0,0,0,0.06);
-      --sh-md:      0 4px 16px rgba(0,0,0,0.09);
-      --r-sm: 10px; --r-md: 16px; --r-lg: 24px;
+      --shadow-sm:  0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md:  0 4px 16px rgba(0,0,0,0.08);
+      --radius-sm:  10px;
+      --radius-md:  16px;
+      --radius-lg:  24px;
     }
-
-    /* ── DARK MODE ── */
-    html.dark {
-      --bg-page:    #0f1115;
-      --bg-card:    #1a1b21;
-      --bg-sand:    #23242b;
-      --bg-dark:    #0a0b10;
-      --text-main:  #f0ece6;
-      --text-muted: #8a8078;
-      --text-faint: #5a5550;
-      --border-cl:  rgba(255,255,255,0.09);
-      --gold:       #d4af37;
-      --gold-lt:    #d4af37;
-      --red-dipl:   #c0443a;
-      --green-ok:   #34d399;
-      --blue-soft:  #60a5fa;
-      --sh-sm:      0 2px 8px rgba(0,0,0,0.3);
-      --sh-md:      0 4px 16px rgba(0,0,0,0.4);
-    }
-    html.dark body { background: var(--bg-page) !important; color: var(--text-main) !important; }
-    html.dark .site-header { background: #12131a; border-color: rgba(255,255,255,0.07); }
-    html.dark .area-card { background: var(--bg-card); border-color: var(--border-cl); }
-    html.dark .nav-link { background: var(--bg-sand); border-color: var(--border-cl); color: var(--text-main); }
-    html.dark .metric-chip { background: var(--bg-card); border-color: var(--border-cl); }
-    html.dark .heatmap-card { background: var(--bg-card); border-color: var(--border-cl); }
-    html.dark .accordion-card { background: var(--bg-card); border-color: var(--border-cl); }
-    html.dark .plan-chip { background: var(--bg-sand); border-color: var(--border-cl); color: var(--text-muted); }
-    html.dark .plan-item { border-color: var(--border-cl); }
-    html.dark .hm-cell { background: #2a2b33; }
-    html.dark .hm-leg-cell { background: #2a2b33; }
-    html.dark .perf-card { background: var(--bg-card); border-color: var(--border-cl); }
-    html.dark .perf-stat-val { color: var(--text-main); }
-    html.dark .mc-sub { color: var(--text-faint); }
-    html.dark .area-desc { color: var(--text-faint); }
 
     body {
       font-family: 'Inter', system-ui, sans-serif !important;
@@ -103,124 +72,232 @@
       gap: 16px;
       position: sticky;
       top: 0;
-      z-index: 200;
+      z-index: 100;
       box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
     .site-logo {
-      font-size: 14px; font-weight: 900; letter-spacing: 2px;
-      color: var(--text-main); text-decoration: none; white-space: nowrap;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: var(--text-main);
+      text-decoration: none;
+      white-space: nowrap;
     }
     .site-logo span { color: var(--red-dipl); }
-    .header-nav {
-      display: flex; align-items: center; gap: 2px;
-      overflow-x: auto; scrollbar-width: none; flex: 1;
-    }
-    .header-nav::-webkit-scrollbar { display: none; }
-    .header-nav a {
-      color: var(--text-faint); text-decoration: none;
-      font-size: 11px; font-weight: 600;
-      padding: 5px 9px; border-radius: 6px;
-      transition: .15s; white-space: nowrap;
-      display: flex; align-items: center; gap: 4px; flex-shrink: 0;
-    }
-    .header-nav a:hover { color: var(--text-main); background: rgba(0,0,0,0.05); }
-    .header-nav a.active {
-      color: var(--red-dipl);
-      border-bottom: 2px solid var(--red-dipl);
-      border-radius: 0; padding-bottom: 3px;
-    }
-    .header-spacer { flex-shrink: 0; }
+    .header-spacer { flex: 1; }
     .header-cacd {
-      font-size: 11px; font-weight: 700; color: var(--gold);
-      background: rgba(200,168,75,0.1); border: 1px solid rgba(200,168,75,0.25);
-      padding: 4px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gold);
+      background: rgba(200,168,75,0.1);
+      border: 1px solid rgba(200,168,75,0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      white-space: nowrap;
     }
     .header-user {
-      width: 32px; height: 32px; border-radius: 50%;
-      background: var(--bg-sand); display: flex; align-items: center;
-      justify-content: center; font-size: 12px; font-weight: 700;
-      color: var(--text-muted); flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-sand);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      flex-shrink: 0;
     }
-    #navAdmin { display: none; font-size: 11px; color: var(--text-faint); text-decoration: none; flex-shrink: 0; }
+    #navAdmin { display: none; font-size: 11px; color: var(--text-faint); text-decoration: none; }
     #navAdmin:hover { color: var(--red-dipl); }
-
-    /* dark mode toggle */
-    .dark-toggle {
-      width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-cl);
-      background: var(--bg-sand); display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 15px; flex-shrink: 0; transition: background .15s;
-    }
-    .dark-toggle:hover { background: var(--border-cl); }
 
     /* ── MAIN ── */
     main {
-      max-width: 1200px; margin: 0 auto;
-      padding: 24px 20px 56px;
-      display: flex; flex-direction: column; gap: 18px;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── SECTION LABEL ── */
+    .sec-lbl {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 10px;
     }
 
     /* ── METRICS ROW ── */
-    .metrics-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
     .metric-chip {
-      background: var(--bg-card); border: 1px solid var(--border-cl);
-      border-radius: var(--r-md); padding: 16px 18px;
-      position: relative; overflow: hidden; box-shadow: var(--sh-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-cl);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
     .metric-chip::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      border-radius: var(--r-md) var(--r-md) 0 0;
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
     .metric-chip.mc-green::before  { background: var(--green-ok); }
     .metric-chip.mc-blue::before   { background: var(--blue-soft); }
-    .metric-chip.mc-yellow::before { background: var(--gold-lt); }
+    .metric-chip.mc-yellow::before { background: var(--gold-light); }
     .metric-chip.mc-red::before    { background: var(--red-dipl); }
-    .mc-lbl { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; color: var(--text-faint); text-transform: uppercase; margin-bottom: 6px; }
-    .mc-val { font-size: 26px; font-weight: 900; line-height: 1; margin-bottom: 3px; }
+    .mc-lbl {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .mc-val {
+      font-size: 26px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 3px;
+      color: var(--text-main);
+    }
     .mc-val.green  { color: var(--green-ok); }
     .mc-val.blue   { color: var(--blue-soft); }
     .mc-val.yellow { color: var(--gold); }
     .mc-val.red    { color: var(--red-dipl); }
     .mc-sub { font-size: 10px; color: var(--text-faint); }
 
-    /* ── HERO (dark card) ── */
+    /* ── HERO CARD (dark, focal) ── */
     .hero-card {
-      background: var(--bg-dark); border-radius: var(--r-lg);
-      padding: 24px 28px; display: flex; align-items: center;
-      gap: 20px; box-shadow: var(--sh-md); min-height: 100px;
+      background: var(--bg-dark);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: var(--shadow-md);
+      min-height: 100px;
     }
-    .hero-bar { width: 4px; align-self: stretch; border-radius: 4px; background: var(--gold-lt); flex-shrink: 0; }
+    .hero-bar {
+      width: 4px;
+      align-self: stretch;
+      border-radius: 4px;
+      background: var(--gold-light);
+      flex-shrink: 0;
+    }
     .hero-body { flex: 1; min-width: 0; }
-    .hero-lbl { font-size: 8px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.3); margin-bottom: 5px; }
-    .hero-title { font-size: 18px; font-weight: 900; color: #fff; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .hero-meta  { font-size: 11px; color: rgba(255,255,255,.4); }
-    .hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
-    .hero-days strong { font-size: 32px; font-weight: 900; color: var(--gold-lt); display: block; line-height: 1; text-align: right; }
-    .hero-days small  { font-size: 9px; color: rgba(255,255,255,.3); letter-spacing: .5px; text-transform: uppercase; }
+    .hero-lbl {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 5px;
+    }
+    .hero-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hero-meta { font-size: 11px; color: rgba(255,255,255,0.45); }
+    .hero-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .hero-days strong {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--gold-light);
+      display: block;
+      line-height: 1;
+      text-align: right;
+    }
+    .hero-days small {
+      font-size: 9px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
     .hero-btn {
-      display: inline-block; padding: 8px 20px; background: #fff;
-      color: var(--bg-dark); font-size: 11px; font-weight: 700;
-      border-radius: 20px; text-decoration: none; transition: opacity .15s;
-      letter-spacing: .3px; white-space: nowrap;
+      display: inline-block;
+      padding: 8px 20px;
+      background: #fff;
+      color: var(--bg-dark);
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 20px;
+      text-decoration: none;
+      transition: opacity .15s;
+      letter-spacing: .3px;
+      white-space: nowrap;
     }
     .hero-btn:hover { opacity: .85; }
     .hero-btn.empty { background: rgba(255,255,255,.12); color: rgba(255,255,255,.5); }
 
-    /* ── TWO-COLUMN AREAS ── */
-    .areas-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    /* ── TWO-COLUMN AREA ── */
+    .areas-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
     .area-card {
-      background: var(--bg-card); border: 1px solid var(--border-cl);
-      border-radius: var(--r-md); padding: 22px; box-shadow: var(--sh-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-cl);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
     }
-    .area-title { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 3px; }
-    .area-desc  { font-size: 11px; color: #bbb; margin-bottom: 14px; }
-    .nav-links  { display: flex; flex-direction: column; gap: 5px; }
+    .area-title {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 3px;
+    }
+    .area-desc {
+      font-size: 11px;
+      color: #c0bbb5;
+      margin-bottom: 14px;
+    }
+    .nav-links { display: flex; flex-direction: column; gap: 5px; }
     .nav-link {
-      display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-      background: var(--bg-page); border: 1px solid var(--border-cl);
-      border-radius: var(--r-sm); text-decoration: none; color: var(--text-main);
-      font-size: 12px; font-weight: 600; transition: border-color .15s, background .15s, color .15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-cl);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--text-main);
+      font-size: 12px;
+      font-weight: 600;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
     }
-    .nav-link:hover { border-color: var(--gold); background: rgba(200,168,75,.05); color: var(--gold); }
+    .nav-link:hover {
+      border-color: var(--gold);
+      background: rgba(200,168,75,0.05);
+      color: var(--gold);
+    }
     .nav-link-icon { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; }
     .nav-link-body { flex: 1; min-width: 0; }
     .nav-link-name { font-size: 12px; font-weight: 700; }
@@ -228,16 +305,37 @@
     .nav-link-arr  { font-size: 12px; color: #ccc; flex-shrink: 0; }
     .nav-link:hover .nav-link-arr { color: var(--gold); }
 
-    /* games mini-grid */
-    .games-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 5px; margin-top: 6px; }
-    .game-card {
-      display: flex; align-items: center; gap: 8px; padding: 9px 11px;
-      background: var(--bg-page); border: 1px solid var(--border-cl);
-      border-radius: var(--r-sm); text-decoration: none; color: var(--text-main);
-      transition: border-color .15s, background .15s;
+    /* Games grid */
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+      margin-top: 6px;
     }
-    .game-card:hover { border-color: var(--gold); background: rgba(200,168,75,.05); color: var(--gold); }
-    .game-card-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: .45; display: flex; align-items: center; }
+    .game-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 11px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-cl);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      color: var(--text-main);
+      font-size: 11px;
+      font-weight: 600;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .game-card:hover {
+      border-color: var(--gold);
+      background: rgba(200,168,75,0.05);
+      color: var(--gold);
+    }
+    .game-card-icon {
+      width: 16px; height: 16px;
+      flex-shrink: 0; opacity: 0.45;
+      display: flex; align-items: center; justify-content: center;
+    }
     .game-card-icon svg { width: 16px; height: 16px; }
     .game-card-body { flex: 1; min-width: 0; }
     .game-card-name { font-size: 11px; font-weight: 700; }
@@ -246,161 +344,237 @@
 
     /* TPS chips */
     .tps-block { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-cl); }
-    .tps-block-lbl { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; color: var(--text-faint); text-transform: uppercase; margin-bottom: 8px; }
+    .tps-block-lbl {
+      font-size: 8px; font-weight: 700; letter-spacing: 1.5px;
+      color: var(--text-faint); text-transform: uppercase; margin-bottom: 8px;
+    }
     .tps-chips { display: flex; flex-wrap: wrap; gap: 5px; }
     .tps-chip {
-      display: inline-flex; align-items: center; gap: 3px; padding: 4px 10px;
-      background: rgba(200,168,75,.07); border: 1px solid rgba(200,168,75,.22);
-      color: var(--gold); border-radius: 6px; font-size: 10px; font-weight: 600;
-      text-decoration: none; transition: background .15s;
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 4px 10px;
+      background: rgba(200,168,75,0.07);
+      border: 1px solid rgba(200,168,75,0.2);
+      color: var(--gold);
+      border-radius: 6px;
+      font-size: 10px; font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s;
     }
-    .tps-chip:hover { background: rgba(200,168,75,.18); }
+    .tps-chip:hover { background: rgba(200,168,75,0.18); }
 
-    /* ── PERF CARD (Análise de Desempenho) ── */
-    .perf-card {
-      background: var(--bg-card); border: 1px solid var(--border-cl);
-      border-radius: var(--r-md); padding: 22px; box-shadow: var(--sh-sm);
-    }
-    .perf-title { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 3px; }
-    .perf-desc  { font-size: 11px; color: var(--text-faint); margin-bottom: 14px; }
-    .perf-stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
-    .perf-stat {
-      background: var(--bg-page); border: 1px solid var(--border-cl);
-      border-radius: var(--r-sm); padding: 12px 14px; text-align: center;
-    }
-    .perf-stat-val { font-size: 22px; font-weight: 900; line-height: 1; margin-bottom: 4px; color: var(--text-main); }
-    .perf-stat-val.green  { color: var(--green-ok); }
-    .perf-stat-val.blue   { color: var(--blue-soft); }
-    .perf-stat-val.yellow { color: var(--gold); }
-    .perf-stat-lbl { font-size: 9px; color: var(--text-faint); font-weight: 600; letter-spacing: .5px; }
-    .perf-links { display: flex; flex-direction: column; gap: 5px; }
-
-    /* ── HEATMAP ANUAL ── */
+    /* ── HEATMAP ANUAL (365 dias, estilo GitHub) ── */
     .heatmap-card {
-      background: var(--bg-card); border: 1px solid var(--border-cl);
-      border-radius: var(--r-lg); padding: 22px 24px 18px; box-shadow: var(--sh-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-cl);
+      border-radius: var(--radius-lg);
+      padding: 22px 24px 18px;
+      box-shadow: var(--shadow-sm);
     }
-    .heatmap-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-    .heatmap-title { font-size: 9px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--text-faint); }
-    .heatmap-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
-    .heatmap-stats-row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .heatmap-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .heatmap-title-group {}
+    .heatmap-title {
+      font-size: 9px; font-weight: 800; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--text-faint);
+    }
+    .heatmap-subtitle {
+      font-size: 11px; color: var(--text-muted); margin-top: 3px;
+    }
+    .heatmap-stats-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
     .hm-stat { text-align: right; }
-    .hm-stat-val { font-size: 20px; font-weight: 900; color: var(--text-main); line-height: 1; }
+    .hm-stat-val {
+      font-size: 20px; font-weight: 900; color: var(--text-main);
+      line-height: 1;
+    }
     .hm-stat-lbl { font-size: 9px; color: var(--text-faint); margin-top: 2px; }
 
-    /* 7-row × 53-col grid via auto-flow column */
-    .heatmap-grid-wrap { overflow-x: auto; padding-bottom: 4px; }
+    /* grid 7 rows × 53 cols via CSS grid */
+    .heatmap-grid-wrap {
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
     .heatmap-grid {
       display: grid;
-      grid-template-rows: repeat(7, 13px);
+      grid-template-rows: repeat(7, 1fr);
       grid-auto-flow: column;
-      grid-auto-columns: 13px;
       gap: 3px;
       width: max-content;
       min-width: 100%;
     }
     .hm-cell {
-      width: 13px; height: 13px; border-radius: 3px;
-      background: #eae7e2; cursor: default; transition: opacity .1s;
+      width: 13px; height: 13px;
+      border-radius: 3px;
+      background: #eae7e2;
+      cursor: default;
+      transition: opacity 0.1s;
     }
-    .hm-cell:hover { opacity: .7; }
+    .hm-cell:hover { opacity: 0.75; }
     .hm-cell.lv1 { background: #e0d090; }
     .hm-cell.lv2 { background: #c4a84f; }
     .hm-cell.lv3 { background: #b8962e; }
     .hm-cell.lv4 { background: #9a7a20; }
     .hm-cell.lv5 { background: #7a5f10; }
     .hm-cell.today { outline: 2px solid var(--gold); outline-offset: 1px; }
-    .hm-cell.empty-pad { opacity: 0; pointer-events: none; }
 
     .heatmap-footer {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-cl);
-      flex-wrap: wrap; gap: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-cl);
+      flex-wrap: wrap;
+      gap: 8px;
     }
-    .heatmap-footer-stats { display: flex; gap: 20px; flex-wrap: wrap; }
+    .heatmap-footer-stats {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
     .hm-foot-item { font-size: 11px; color: var(--text-muted); }
     .hm-foot-item strong { color: var(--text-main); font-weight: 700; }
-    .heatmap-legend { display: flex; align-items: center; gap: 4px; }
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
     .hm-leg-lbl { font-size: 9px; color: var(--text-faint); }
-    .hm-leg-cell { width: 11px; height: 11px; border-radius: 2px; background: #eae7e2; }
+    .hm-leg-cell {
+      width: 11px; height: 11px; border-radius: 2px;
+      background: #eae7e2;
+    }
     .hm-leg-cell.lv1 { background: #e0d090; }
     .hm-leg-cell.lv2 { background: #c4a84f; }
     .hm-leg-cell.lv3 { background: #b8962e; }
     .hm-leg-cell.lv4 { background: #9a7a20; }
     .hm-leg-cell.lv5 { background: #7a5f10; }
 
-    /* ── PLANO DO DIA — acordeão ── */
+    /* ── PLANO DO DIA — acordeão com lista compacta ── */
     .accordion-card {
-      background: var(--bg-card); border: 1px solid var(--border-cl);
-      border-radius: var(--r-md); overflow: hidden; box-shadow: var(--sh-sm);
+      background: var(--bg-card);
+      border: 1px solid var(--border-cl);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
     }
     .accordion-trigger {
-      width: 100%; display: flex; align-items: center; gap: 10px;
-      padding: 16px 20px; background: none; border: none;
-      cursor: pointer; text-align: left; transition: background .15s;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 20px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
     }
-    .accordion-trigger:hover { background: rgba(200,168,75,.04); }
+    .accordion-trigger:hover { background: rgba(200,168,75,0.04); }
     .accordion-trigger-label {
-      flex: 1; font-size: 11px; font-weight: 800;
-      letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-main);
+      flex: 1;
+      font-size: 11px; font-weight: 800;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text-main);
     }
     .accordion-trigger-date { font-size: 11px; color: var(--text-faint); font-weight: 400; }
     .accordion-trigger-prog {
       font-size: 11px; font-weight: 700; color: var(--green-ok);
-      background: rgba(74,158,107,.1); border-radius: 12px; padding: 2px 10px; flex-shrink: 0;
+      background: rgba(74,158,107,0.1); border-radius: 12px; padding: 2px 10px;
+      flex-shrink: 0;
     }
-    .accordion-arrow { font-size: 11px; color: #ccc; transition: transform .2s; flex-shrink: 0; }
+    .accordion-arrow { font-size: 11px; color: #ccc; transition: transform 0.2s; flex-shrink: 0; }
     .accordion-card.open .accordion-arrow { transform: rotate(90deg); }
     .accordion-body { display: none; padding: 0 20px 18px; }
     .accordion-card.open .accordion-body { display: block; }
 
     /* ── PLANO: LISTA COMPACTA ── */
-    .plan-list { display: flex; flex-direction: column; }
+    .plan-list { display: flex; flex-direction: column; gap: 0; }
     .plan-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 0; border-bottom: 1px solid var(--border-cl);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-cl);
     }
     .plan-item:last-child { border-bottom: none; }
 
+    /* checkbox visual */
     .plan-check {
-      width: 20px; height: 20px; border-radius: 6px;
-      border: 2px solid var(--border-cl); flex-shrink: 0;
+      width: 20px; height: 20px;
+      border-radius: 6px;
+      border: 2px solid var(--border-cl);
+      flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; color: transparent;
+      font-size: 11px;
+      transition: border-color 0.15s, background 0.15s;
     }
     .plan-item.done .plan-check {
-      background: var(--green-ok); border-color: var(--green-ok);
+      background: var(--green-ok);
+      border-color: var(--green-ok);
       color: #fff;
     }
     .plan-item.done .plan-check::after { content: '✓'; }
 
     .plan-icon { font-size: 14px; flex-shrink: 0; }
-    .plan-name { flex: 1; min-width: 0; font-size: 12px; font-weight: 700; color: var(--text-main); }
+    .plan-name {
+      flex: 1; min-width: 0;
+      font-size: 12px; font-weight: 700;
+      color: var(--text-main);
+    }
     .plan-item.done .plan-name { color: var(--text-faint); text-decoration: line-through; }
 
+    /* action chips */
     .plan-chips { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
     .plan-chip {
-      display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px;
-      border-radius: 20px; font-size: 10px; font-weight: 600;
-      text-decoration: none; border: 1px solid var(--border-cl);
-      color: var(--text-muted); background: var(--bg-page);
-      transition: border-color .15s, color .15s, background .15s; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 10px; font-weight: 600;
+      text-decoration: none;
+      border: 1px solid var(--border-cl);
+      color: var(--text-muted);
+      background: var(--bg-page);
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      white-space: nowrap;
     }
-    .plan-chip:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,168,75,.07); }
-    .plan-chip.done { border-color: rgba(74,158,107,.3); color: var(--green-ok); background: rgba(74,158,107,.08); }
+    .plan-chip:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,168,75,0.07); }
+    .plan-chip.done {
+      border-color: rgba(74,158,107,0.3);
+      color: var(--green-ok);
+      background: rgba(74,158,107,0.08);
+    }
     .plan-chip.done::before { content: '✓ '; }
+
+    /* progress card sub-text */
     .plan-prog-text { font-size: 10px; color: var(--text-faint); flex-shrink: 0; }
     .plan-item.done .plan-prog-text { color: var(--green-ok); }
 
+    /* completion banner */
     .cycle-complete {
-      background: rgba(74,158,107,.07); border: 1px solid rgba(74,158,107,.25);
-      border-radius: 8px; padding: 10px 14px; color: var(--green-ok);
-      font-size: 12px; font-weight: 700; text-align: center; margin-top: 12px; display: none;
+      background: rgba(74,158,107,0.07);
+      border: 1px solid rgba(74,158,107,0.25);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--green-ok);
+      font-size: 12px; font-weight: 700;
+      text-align: center;
+      margin-top: 12px;
+      display: none;
     }
 
-    /* ── HIDDEN JS SINKS ── */
-    #heroCard, #heroBar, #heroTitle, #heroMeta, #heroBtn, #heroDays,
-    #streakVal, #weekHours, #weekSub, #weekFill,
+    /* Hidden JS sink elements */
+    #heroCard, #heroBar, #heroTitle, #heroMeta, #heroBtn,
+    #heroDays, #weekHours, #weekSub, #weekFill,
     #todayHours, #todaySub, #todayFill,
     #nextTask, #nextMeta, #nextTaskBtn,
     #activityChart, #activityDays, #chartLive,
@@ -408,8 +582,16 @@
     { display: none !important; }
 
     /* ── RESPONSIVE ── */
-    @media (max-width: 900px) { .metrics-row { grid-template-columns: repeat(2,1fr); } .areas-row { grid-template-columns: 1fr; } }
-    @media (max-width: 520px)  { .mc-val { font-size: 20px; } .hero-card { flex-direction: column; align-items: flex-start; } .hero-right { align-items: flex-start; } }
+    @media (max-width: 900px) {
+      .metrics-row { grid-template-columns: repeat(2, 1fr); }
+      .areas-row   { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 520px) {
+      .metrics-row { grid-template-columns: repeat(2, 1fr); }
+      .mc-val      { font-size: 20px; }
+      .hero-card   { flex-direction: column; align-items: flex-start; }
+      .hero-right  { align-items: flex-start; }
+    }
   </style>
 </head>
 <body>
@@ -417,37 +599,28 @@
   <!-- HEADER -->
   <header class="site-header">
     <a href="index.html" class="site-logo">ATLAS <span>DIPL.</span></a>
-    <nav class="header-nav">
-      <a href="index.html" class="active">Início</a>
-      <a href="flashcards.html">Flashcards</a>
-      <a href="analise.html">Análise</a>
-      <a href="agenda.html">Agenda</a>
-      <a href="segunda-fase.html">2ª Fase</a>
-      <a href="gramatica-matching.html">Gramática</a>
-      <a href="ingles.html">Inglês</a>
-      <a href="espanhol.html">Espanhol</a>
-      <a href="idiomas-historico.html">Histórico Idiomas</a>
-      <a href="GAMES/index.html">Games</a>
-      <a href="analise-detector.html">Evolução</a>
-      <a href="detector/index.html">Detector</a>
-      <a href="admin.html" id="navAdmin">Admin</a>
-    </nav>
+    <div class="header-spacer"></div>
+    <a href="admin.html" id="navAdmin">Admin</a>
     <div class="header-cacd" id="navCountdown">—d CACD</div>
-    <button class="dark-toggle" id="darkToggle" title="Modo noturno" onclick="toggleDark()">🌙</button>
     <div class="header-user" id="navUser">?</div>
   </header>
 
-  <!-- Hidden JS sink elements — keep for render function compat -->
+  <!-- Hidden elements to keep JS render functions happy -->
+  <div id="heroCard" style="display:none">
+    <div id="heroBar"></div>
+    <div id="heroTitle"></div>
+    <div id="heroMeta"></div>
+    <strong id="heroDays"></strong>
+    <a id="heroBtn" href="flashcards.html"></a>
+  </div>
   <div style="display:none">
-    <div id="heroCard"><div id="heroBar"></div><div id="heroTitle"></div>
-      <div id="heroMeta"></div><strong id="heroDays"></strong><a id="heroBtn" href="flashcards.html"></a></div>
-    <div id="streakVal"></div>
     <div id="weekHours"></div><div id="weekSub"></div><div id="weekFill"></div>
     <div id="todayHours"></div><div id="todaySub"></div><div id="todayFill"></div>
     <div id="nextTask"></div><div id="nextMeta"></div><a id="nextTaskBtn" href="flashcards.html"></a>
     <div id="activityChart"></div><div id="activityDays"></div><div id="chartLive"></div>
     <div id="recentSessions"></div>
     <div id="announcementsCard"><div id="announcementsList"></div></div>
+    <div id="streakVal-hidden"></div>
   </div>
 
   <main>
@@ -461,12 +634,12 @@
       </div>
       <div class="metric-chip mc-blue">
         <div class="mc-lbl">Sessões Hoje</div>
-        <div class="mc-val" id="mcSessions">—</div>
+        <div class="mc-val blue" id="mcSessions">—</div>
         <div class="mc-sub">sessões registradas</div>
       </div>
       <div class="metric-chip mc-yellow">
         <div class="mc-lbl">Sequência</div>
-        <div class="mc-val" id="mcStreak">—</div>
+        <div class="mc-val yellow" id="mcStreak">—</div>
         <div class="mc-sub">dias seguidos 🔥</div>
       </div>
       <div class="metric-chip mc-red">
@@ -477,56 +650,95 @@
     </div>
 
     <!-- HERO -->
-    <div class="hero-card">
-      <div class="hero-bar" id="heroBarV" style="background:var(--gold-lt)"></div>
+    <div class="hero-card" id="heroCardVisible">
+      <div class="hero-bar" id="heroBarVisible" style="background:var(--gold-light)"></div>
       <div class="hero-body">
         <div class="hero-lbl">Continuar Estudando</div>
-        <div class="hero-title" id="heroTitleV">Carregando…</div>
-        <div class="hero-meta"  id="heroMetaV"></div>
+        <div class="hero-title" id="heroTitleVisible">Carregando…</div>
+        <div class="hero-meta" id="heroMetaVisible"></div>
       </div>
       <div class="hero-right">
         <div class="hero-days">
-          <strong id="heroDaysV">—</strong>
+          <strong id="heroDaysVisible">—</strong>
           <small>dias para o CACD</small>
         </div>
-        <a class="hero-btn empty" id="heroBtnV" href="flashcards.html">Começar →</a>
+        <a class="hero-btn empty" id="heroBtnVisible" href="flashcards.html">Começar →</a>
       </div>
     </div>
 
-    <!-- AREAS -->
+    <!-- AREAS OBJETIVAS + DISCURSIVAS -->
     <div class="areas-row">
 
       <!-- OBJETIVAS -->
       <div class="area-card">
         <div class="area-title">Área Objetivas</div>
-        <div class="area-desc">Games, flashcards e simulados de provas</div>
+        <div class="area-desc">Flashcards, simulados e matching games</div>
         <div class="nav-links">
-          <a href="GAMES/index.html" class="nav-link">
-            <span class="nav-link-icon">🎮</span>
-            <div class="nav-link-body"><div class="nav-link-name">Games Hub</div><div class="nav-link-sub">15 jogos · +17.000 pares</div></div>
-            <span class="nav-link-arr">›</span>
-          </a>
           <a href="flashcards.html" class="nav-link">
             <span class="nav-link-icon">🃏</span>
-            <div class="nav-link-body"><div class="nav-link-name">Flashcards</div><div class="nav-link-sub">Estudo por matéria · SRS</div></div>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Flashcards</div>
+              <div class="nav-link-sub">Estudo por matéria · SRS</div>
+            </div>
             <span class="nav-link-arr">›</span>
           </a>
           <a href="simulados.html" class="nav-link">
-            <span class="nav-link-icon">📋</span>
-            <div class="nav-link-body"><div class="nav-link-name">Simulados / TPS</div><div class="nav-link-sub">Questões certo/errado</div></div>
-            <span class="nav-link-arr">›</span>
-          </a>
-          <a href="revisao.html" class="nav-link">
-            <span class="nav-link-icon">📚</span>
-            <div class="nav-link-body"><div class="nav-link-name">Revisão SRS</div><div class="nav-link-sub">Pares com erros pendentes</div></div>
+            <span class="nav-link-icon">📝</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Simulados / TPS</div>
+              <div class="nav-link-sub">Questões certo/errado</div>
+            </div>
             <span class="nav-link-arr">›</span>
           </a>
           <a href="gramatica-matching.html" class="nav-link">
             <span class="nav-link-icon">📖</span>
-            <div class="nav-link-body"><div class="nav-link-name">Gramática</div><div class="nav-link-sub">Matching · 142 pares</div></div>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Gramática</div>
+              <div class="nav-link-sub">Matching · 142 pares</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="matching.html" class="nav-link">
+            <span class="nav-link-icon">🇬🇧</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Vocabulário Inglês</div>
+              <div class="nav-link-sub">Inglês diplomático · EN–PT</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="espanhol.html" class="nav-link">
+            <span class="nav-link-icon">🇪🇸</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Espanhol</div>
+              <div class="nav-link-sub">Gramática + Vocabulário</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="GAMES/index.html" class="nav-link">
+            <span class="nav-link-icon">🎮</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Games Hub</div>
+              <div class="nav-link-sub">15 jogos · +17.000 pares</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="revisao.html" class="nav-link">
+            <span class="nav-link-icon">📚</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Revisão SRS</div>
+              <div class="nav-link-sub">Pares com erros pendentes</div>
+            </div>
             <span class="nav-link-arr">›</span>
           </a>
         </div>
+
+        <!-- Games grid -->
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border-cl)">
+          <div class="tps-block-lbl">Acesso Rápido · Games</div>
+          <div class="games-grid" id="gamesGrid"></div>
+        </div>
+
+        <!-- TPS -->
         <div class="tps-block">
           <div class="tps-block-lbl">Provas Anteriores · TPS 2016–2026</div>
           <div class="tps-chips" id="tpsChips"></div>
@@ -536,89 +748,78 @@
       <!-- DISCURSIVAS -->
       <div class="area-card">
         <div class="area-title">Área Discursivas</div>
-        <div class="area-desc">Idiomas, redações e análise avançada</div>
+        <div class="area-desc">Redações, análise e planejamento</div>
         <div class="nav-links">
-          <a href="ingles.html" class="nav-link">
-            <span class="nav-link-icon">🎧</span>
-            <div class="nav-link-body"><div class="nav-link-name">Inglês</div><div class="nav-link-sub">Flashcards + Grammar</div></div>
-            <span class="nav-link-arr">›</span>
-          </a>
-          <a href="espanhol.html" class="nav-link">
-            <span class="nav-link-icon">🇪🇸</span>
-            <div class="nav-link-body"><div class="nav-link-name">Espanhol</div><div class="nav-link-sub">Gramática + Vocabulário</div></div>
-            <span class="nav-link-arr">›</span>
-          </a>
           <a href="segunda-fase.html" class="nav-link">
             <span class="nav-link-icon">✍️</span>
-            <div class="nav-link-body"><div class="nav-link-name">2ª Fase</div><div class="nav-link-sub">Redações por tema · praticar</div></div>
+            <div class="nav-link-body">
+              <div class="nav-link-name">2ª Fase</div>
+              <div class="nav-link-sub">Redações por tema · praticar</div>
+            </div>
             <span class="nav-link-arr">›</span>
           </a>
-          <a href="terceira-fase.html" class="nav-link">
-            <span class="nav-link-icon">🎓</span>
-            <div class="nav-link-body"><div class="nav-link-name">3ª Fase</div><div class="nav-link-sub">Produção oral e escrita</div></div>
-            <span class="nav-link-arr">›</span>
-          </a>
-          <a href="detector/index.html" class="nav-link">
-            <span class="nav-link-icon">🧭</span>
-            <div class="nav-link-body"><div class="nav-link-name">Detector</div><div class="nav-link-sub">Análise avançada de tendências</div></div>
+          <a href="analise.html" class="nav-link">
+            <span class="nav-link-icon">📊</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Análise de Desempenho</div>
+              <div class="nav-link-sub">Estatísticas e evolução</div>
+            </div>
             <span class="nav-link-arr">›</span>
           </a>
           <a href="analise-detector.html" class="nav-link">
             <span class="nav-link-icon">🔍</span>
-            <div class="nav-link-body"><div class="nav-link-name">Evolução</div><div class="nav-link-sub">Detector de tendências</div></div>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Evolução</div>
+              <div class="nav-link-sub">Detector de tendências</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="agenda.html" class="nav-link">
+            <span class="nav-link-icon">📅</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Agenda</div>
+              <div class="nav-link-sub">Planejamento semanal</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="ingles.html" class="nav-link">
+            <span class="nav-link-icon">🎧</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Inglês</div>
+              <div class="nav-link-sub">Flashcards + Grammar</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="idiomas-historico.html" class="nav-link">
+            <span class="nav-link-icon">🗂️</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Histórico Idiomas</div>
+              <div class="nav-link-sub">Sessões de inglês e espanhol</div>
+            </div>
+            <span class="nav-link-arr">›</span>
+          </a>
+          <a href="detector/index.html" class="nav-link">
+            <span class="nav-link-icon">🧭</span>
+            <div class="nav-link-body">
+              <div class="nav-link-name">Detector</div>
+              <div class="nav-link-sub">Análise avançada</div>
+            </div>
             <span class="nav-link-arr">›</span>
           </a>
         </div>
-      </div>
-    </div>
-
-    <!-- ANÁLISE DE DESEMPENHO -->
-    <div class="perf-card">
-      <div class="perf-title">Análise de Desempenho</div>
-      <div class="perf-desc">Estatísticas gerais · últimas sessões e evolução por matéria</div>
-      <div class="perf-stats-grid">
-        <div class="perf-stat">
-          <div class="perf-stat-val green" id="perfAccerto">—</div>
-          <div class="perf-stat-lbl">% Acerto Geral</div>
-        </div>
-        <div class="perf-stat">
-          <div class="perf-stat-val blue" id="perfSessoes">—</div>
-          <div class="perf-stat-lbl">Sessões no Mês</div>
-        </div>
-        <div class="perf-stat">
-          <div class="perf-stat-val yellow" id="perfCards">—</div>
-          <div class="perf-stat-lbl">Cards Estudados</div>
-        </div>
-      </div>
-      <div class="perf-links">
-        <a href="analise.html" class="nav-link">
-          <span class="nav-link-icon">📊</span>
-          <div class="nav-link-body"><div class="nav-link-name">Análise Completa</div><div class="nav-link-sub">Estatísticas detalhadas por matéria</div></div>
-          <span class="nav-link-arr">›</span>
-        </a>
-        <a href="idiomas-historico.html" class="nav-link">
-          <span class="nav-link-icon">🗂️</span>
-          <div class="nav-link-body"><div class="nav-link-name">Histórico de Idiomas</div><div class="nav-link-sub">Sessões de inglês e espanhol</div></div>
-          <span class="nav-link-arr">›</span>
-        </a>
-        <a href="agenda.html" class="nav-link">
-          <span class="nav-link-icon">📅</span>
-          <div class="nav-link-body"><div class="nav-link-name">Agenda</div><div class="nav-link-sub">Planejamento semanal</div></div>
-          <span class="nav-link-arr">›</span>
-        </a>
       </div>
     </div>
 
     <!-- HEATMAP ANUAL -->
     <div class="heatmap-card">
       <div class="heatmap-head">
-        <div>
+        <div class="heatmap-title-group">
           <div class="heatmap-title">Atividade · 365 Dias</div>
           <div class="heatmap-subtitle" id="heatmapSubtitle">carregando…</div>
         </div>
         <div class="heatmap-stats-row">
           <div class="hm-stat">
-            <div class="hm-stat-val" id="hmStreak">—</div>
+            <div class="hm-stat-val" id="streakVal">—</div>
             <div class="hm-stat-lbl">dias seguidos</div>
           </div>
           <div class="hm-stat">
@@ -637,7 +838,7 @@
       <div class="heatmap-footer">
         <div class="heatmap-footer-stats">
           <div class="hm-foot-item">Sequência atual: <strong id="hmStreakFoot">—</strong> dias</div>
-          <div class="hm-foot-item">Maior sequência: <strong id="hmLongest">—</strong> dias</div>
+          <div class="hm-foot-item">Maior sequência: <strong id="hmLongestStreak">—</strong> dias</div>
         </div>
         <div class="heatmap-legend">
           <div class="hm-leg-lbl">menos</div>
@@ -652,9 +853,9 @@
       </div>
     </div>
 
-    <!-- PLANO DO DIA -->
+    <!-- PLANO DO DIA — acordeão -->
     <div class="accordion-card" id="planoAccordion">
-      <button class="accordion-trigger" onclick="document.getElementById('planoAccordion').classList.toggle('open')">
+      <button class="accordion-trigger" onclick="togglePlano()">
         <span>📅</span>
         <span class="accordion-trigger-label">Plano do Dia</span>
         <span class="accordion-trigger-date" id="cycleDate"></span>
@@ -670,25 +871,131 @@
   </main>
 
   <script>
-    /* ── DATA ─────────────────────────────────────────────── */
+    /* ── accordion ─────────────────────────────────────────────────── */
+    function togglePlano() {
+      document.getElementById('planoAccordion').classList.toggle('open');
+    }
+
+    /* ── HEATMAP ANUAL (7 × 53) ───────────────────────────────────── */
+    function renderHeatmap() {
+      const grid = document.getElementById('heatmapGrid');
+      if (!grid) return;
+
+      const today = new Date().toISOString().split('T')[0];
+      const DAYS = 371; // 7 × 53
+      const YEAR = 365;
+
+      /* build ordered array of the last 365 days + padding */
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - (YEAR - 1));
+
+      /* find max to compute levels */
+      let maxVal = 1;
+      for (let i = 0; i < YEAR; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const key = d.toISOString().split('T')[0];
+        const v = _activity[key] || 0;
+        if (v > maxVal) maxVal = v;
+      }
+
+      /* thresholds for 5 levels */
+      function levelOf(v) {
+        if (v <= 0) return 0;
+        if (v <= maxVal * 0.15) return 1;
+        if (v <= maxVal * 0.35) return 2;
+        if (v <= maxVal * 0.60) return 3;
+        if (v <= maxVal * 0.80) return 4;
+        return 5;
+      }
+
+      /* the grid flows column-major (grid-auto-flow: column), so we
+         need to pad the first column so that day-0 lines up with the
+         correct day-of-week row (0 = Sun, 6 = Sat). */
+      const firstDow = startDate.getDay(); // 0–6
+      const cells = [];
+
+      /* leading empty cells */
+      for (let i = 0; i < firstDow; i++) {
+        cells.push(`<div class="hm-cell" style="opacity:0;pointer-events:none"></div>`);
+      }
+
+      /* real day cells */
+      for (let i = 0; i < YEAR; i++) {
+        const d = new Date(startDate);
+        d.setDate(d.getDate() + i);
+        const key = d.toISOString().split('T')[0];
+        const v = _activity[key] || 0;
+        const lv = levelOf(v);
+        const isToday = key === today;
+        const dateLabel = d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' });
+        const cls = ['hm-cell', lv > 0 ? `lv${lv}` : '', isToday ? 'today' : ''].filter(Boolean).join(' ');
+        cells.push(`<div class="${cls}" title="${dateLabel}: ${v} cards"></div>`);
+      }
+
+      grid.innerHTML = cells.join('');
+
+      /* ── stats ── */
+      const streak = computeStreak(_activity);
+      const longestStreak = computeLongestStreak(_activity);
+      const daysLearned = Object.values(_activity).filter(v => v > 0).length;
+      const totalCards = Object.values(_activity).reduce((a, v) => a + v, 0);
+      const avgDaily = daysLearned > 0 ? Math.round(totalCards / daysLearned) : 0;
+
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setEl('streakVal', streak);
+      setEl('hmDaysLearned', daysLearned);
+      setEl('hmAvgDaily', avgDaily);
+      setEl('hmStreakFoot', streak);
+      setEl('hmLongestStreak', longestStreak);
+      setEl('heatmapSubtitle', `${daysLearned} dias com estudo · ${totalCards.toLocaleString('pt-BR')} cards no total`);
+    }
+
+    function computeLongestStreak(activity) {
+      const keys = Object.keys(activity).filter(k => (activity[k] || 0) > 0).sort();
+      if (!keys.length) return 0;
+      let longest = 1, current = 1;
+      for (let i = 1; i < keys.length; i++) {
+        const prev = new Date(keys[i - 1]);
+        const curr = new Date(keys[i]);
+        const diff = (curr - prev) / 86400000;
+        if (diff === 1) { current++; if (current > longest) longest = current; }
+        else current = 1;
+      }
+      return longest;
+    }
+
+    /* ── SUBJECTS + DATA ──────────────────────────────────────────── */
     const SUBJECTS = [
-      { id:'LP',  name:'Língua Portuguesa',     color:'#a78bfa', icon:'📝',
-        files:[{name:'Literatura',path:'FLASHCARDS/PORTUGUÊS/LITERATURA port.csv',type:'fc'},{name:'Literatura Bosi',path:'FLASHCARDS/PORTUGUÊS/LITERATURA BOSI port.csv',type:'fc'},{name:'Lessa PI (PT)',path:'FLASHCARDS/PORTUGUÊS/LESSA PI  p.i.csv',type:'fc'},{name:'Sintaxe',path:'FLASHCARDS/PORTUGUÊS/PORTUGUES SINTAXE.csv',type:'fc'}] },
-      { id:'ING', name:'Língua Inglesa',         color:'#60a5fa', icon:'🇬🇧',
-        files:[{name:'Grammar',path:'FLASHCARDS/INGLÊS/GRAMMAR ING ing.csv',type:'fc'},{name:'Dict. Diplomacy',path:'FLASHCARDS/INGLÊS/DICTIONARY OF DIPLOMACY  ing.csv',type:'fc'}] },
-      { id:'HB',  name:'História do Brasil',     color:'#fbbf24', icon:'🏛️',
+      { id:'LP',   name:'Língua Portuguesa',     color:'#a78bfa', icon:'📝', cssVar:'--lp',
+        files:[
+          {name:'Literatura',      path:'FLASHCARDS/PORTUGUÊS/LITERATURA port.csv',         type:'fc'},
+          {name:'Literatura Bosi', path:'FLASHCARDS/PORTUGUÊS/LITERATURA BOSI port.csv',    type:'fc'},
+          {name:'Lessa PI (PT)',   path:'FLASHCARDS/PORTUGUÊS/LESSA PI  p.i.csv',           type:'fc'},
+          {name:'Sintaxe',         path:'FLASHCARDS/PORTUGUÊS/PORTUGUES SINTAXE.csv',       type:'fc'},
+        ] },
+      { id:'ING',  name:'Língua Inglesa',         color:'#60a5fa', icon:'🇬🇧', cssVar:'--ing',
+        files:[
+          {name:'Grammar',         path:'FLASHCARDS/INGLÊS/GRAMMAR ING ing.csv',            type:'fc'},
+          {name:'Dict. Diplomacy', path:'FLASHCARDS/INGLÊS/DICTIONARY OF DIPLOMACY  ing.csv',type:'fc'},
+        ] },
+      { id:'HB',   name:'História do Brasil',     color:'#fbbf24', icon:'🏛️', cssVar:'--hb',
         files:[{name:'História do Brasil',path:'FLASHCARDS/BRASIL/HISTORIA DO BRASIL .csv',type:'fc'}] },
-      { id:'HM',  name:'História Mundial',       color:'#f97316', icon:'🌍',
-        files:[{name:'História Mundial',path:'FLASHCARDS/HISTORIA/HISTORIA MUNDIAL .csv',type:'fc'}] },
-      { id:'GEO', name:'Geografia',              color:'#34d399', icon:'🗺️',
-        files:[{name:'Geografia',path:'FLASHCARDS/GEOGRAFIA/GEOGRAFIA .csv',type:'fc'}] },
-      { id:'PI',  name:'Política Internacional', color:'#22d3ee', icon:'🌐',
+      { id:'HM',   name:'História Mundial',       color:'#f97316', icon:'🌍', cssVar:'--hm',
+        files:[{name:'História Mundial', path:'FLASHCARDS/HISTORIA/HISTORIA MUNDIAL .csv',  type:'fc'}] },
+      { id:'GEO',  name:'Geografia',              color:'#34d399', icon:'🗺️', cssVar:'--geo',
+        files:[{name:'Geografia',        path:'FLASHCARDS/GEOGRAFIA/GEOGRAFIA .csv',        type:'fc'}] },
+      { id:'PI',   name:'Política Internacional', color:'#22d3ee', icon:'🌐', cssVar:'--pi',
         files:[{name:'Pol. Internacional',path:'FLASHCARDS/INTERNACIONAL/POLITICA INTERNACIONAL .csv',type:'fc'}] },
-      { id:'ECO', name:'Economia',               color:'#facc15', icon:'📊',
-        files:[{name:'Economia',path:'FLASHCARDS/ECONOMIA/ECONOMIA .csv',type:'fc'}] },
-      { id:'DIR', name:'Direito',                color:'#f87171', icon:'⚖️',
-        files:[{name:'Constitucional',path:'FLASHCARDS/DIREITO/CONTITUCIONAL .csv',type:'fc'},{name:'DIP',path:'FLASHCARDS/DIREITO/DIP.csv',type:'fc'}] },
+      { id:'ECO',  name:'Economia',               color:'#facc15', icon:'📊', cssVar:'--eco',
+        files:[{name:'Economia',         path:'FLASHCARDS/ECONOMIA/ECONOMIA .csv',          type:'fc'}] },
+      { id:'DIR',  name:'Direito',                color:'#f87171', icon:'⚖️', cssVar:'--dir',
+        files:[
+          {name:'Constitucional',   path:'FLASHCARDS/DIREITO/CONTITUCIONAL .csv',           type:'fc'},
+          {name:'DIP',              path:'FLASHCARDS/DIREITO/DIP.csv',                      type:'fc'},
+        ] },
     ];
+
     const TPS_FILES = [
       {name:'TPS 2016',path:'TPS/TPS 2016.csv'},{name:'TPS 2017',path:'TPS/TPS 2017.csv'},
       {name:'TPS 2018',path:'TPS/TPS 2018.csv'},{name:'TPS 2019',path:'TPS/TPS 2019.csv'},
@@ -696,219 +1003,230 @@
       {name:'TPS 2023',path:'TPS/TPS 2023.csv'},{name:'TPS 2024',path:'TPS/TPS 2024.csv'},
       {name:'TPS 2025',path:'TPS/TPS 2025.csv'},{name:'TPS 2026',path:'TPS/TPS 2026.csv'},
     ];
+
     const PAGE_FOR = { fc:'flashcards.html', sim:'simulados.html', rep:'repositorio.html' };
     let _sessions = [], _activity = {};
 
-    /* ── HELPERS ──────────────────────────────────────────── */
-    function setEl(id, val) { const e = document.getElementById(id); if (e) e.textContent = val; }
-
-    function computeStreak(act) {
-      let s = 0;
+    function computeStreak(activity) {
+      const today = new Date();
+      let streak = 0;
       for (let i = 0; i < 365; i++) {
-        const d = new Date(); d.setDate(d.getDate() - i);
-        const k = d.toISOString().split('T')[0];
-        if ((act[k]||0) > 0) s++; else if (i > 0) break;
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        const key = d.toISOString().split('T')[0];
+        if ((activity[key] || 0) > 0) streak++;
+        else if (i > 0) break;
       }
-      return s;
+      return streak;
     }
-    function computeLongestStreak(act) {
-      const keys = Object.keys(act).filter(k => (act[k]||0) > 0).sort();
-      if (!keys.length) return 0;
-      let longest = 1, cur = 1;
-      for (let i = 1; i < keys.length; i++) {
-        const diff = (new Date(keys[i]) - new Date(keys[i-1])) / 86400000;
-        if (diff === 1) { cur++; if (cur > longest) longest = cur; } else cur = 1;
-      }
-      return longest;
+
+    function computeWeekHours(sessions) {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
+      const cutStr = cutoff.toISOString().split('T')[0];
+      return sessions.filter(s => s.date >= cutStr)
+        .reduce((a, s) => a + (s.time_seconds || 0), 0) / 3600;
     }
-    function computeWeekHours(s) {
-      const cut = new Date(); cut.setDate(cut.getDate()-7);
-      const cutS = cut.toISOString().split('T')[0];
-      return s.filter(x => x.date >= cutS).reduce((a,x) => a+(x.time_seconds||0),0)/3600;
+
+    function computeTodayHours(sessions) {
+      const today = new Date().toISOString().split('T')[0];
+      return sessions.filter(s => s.date === today)
+        .reduce((a, s) => a + (s.time_seconds || 0), 0) / 3600;
     }
-    function computeTodayHours(s) {
-      const t = new Date().toISOString().split('T')[0];
-      return s.filter(x => x.date===t).reduce((a,x) => a+(x.time_seconds||0),0)/3600;
+
+    function relativeDate(dateStr) {
+      if (!dateStr) return '';
+      const diff = Math.floor((Date.now() - new Date(dateStr)) / 86400000);
+      if (diff === 0) return 'hoje';
+      if (diff === 1) return 'ontem';
+      return `${diff}d atrás`;
     }
-    function relativeDate(d) {
-      if (!d) return '';
-      const diff = Math.floor((Date.now()-new Date(d))/86400000);
-      return diff===0?'hoje':diff===1?'ontem':`${diff}d atrás`;
-    }
+
     function getSubjectStats(id) {
-      const ss = _sessions.filter(s => s.subject===id);
-      if (!ss.length) return {pct:0};
-      return {pct: Math.round(ss.reduce((a,s)=>a+(s.correct/s.total*100),0)/ss.length)};
+      const ss = _sessions.filter(s => s.subject === id);
+      if (!ss.length) return { pct:0, total:0, sessions:0, lastDate:null };
+      const pct = Math.round(ss.reduce((a,s) => a + (s.correct/s.total*100), 0) / ss.length);
+      const lastDate = ss[0]?.date || null;
+      return { pct, total: ss.reduce((a,s)=>a+s.total,0), sessions:ss.length, lastDate };
     }
 
-    /* ── RENDER GAMES ─────────────────────────────────────── */
-    function renderGamesGrid() { /* grid removido — no-op */ }
+    /* ── RENDER ─────────────────────────────────────────────────── */
+    function renderGamesGrid() {
+      const GAMES_LIST = [
+        { href:'GAMES/DIP/index.html',                     icon:'dip',      name:'DIP',            sub:'Direito Internacional' },
+        { href:'GAMES/ECONOMIA/index.html',                icon:'economy',  name:'Economia',       sub:'Matching de termos' },
+        { href:'GAMES/POLITICA INTERNACIONAL/index.html',  icon:'globe',    name:'Política Int.',  sub:'Termos de RI' },
+        { href:'GAMES/BRASIL/BANDEIRAS/index.html',        icon:'flag',     name:'Bandeiras',      sub:'Países do mundo' },
+        { href:'GAMES/BRASIL/COMERCIO/index.html',         icon:'exchange', name:'Comércio',       sub:'Exportações brasileiras' },
+        { href:'matching.html',                            icon:'words',    name:'Vocabulário EN', sub:'Inglês diplomático' },
+      ];
+      const grid = document.getElementById('gamesGrid');
+      if (!grid) return;
+      grid.innerHTML = GAMES_LIST.map(g => {
+        const svgIcon = (typeof ICONS !== 'undefined' && ICONS[g.icon]) ? ICONS[g.icon] : '';
+        return `<a class="game-card" href="${g.href}">
+          <div class="game-card-icon">${svgIcon}</div>
+          <div class="game-card-body">
+            <div class="game-card-name">${g.name}</div>
+            <div class="game-card-sub">${g.sub}</div>
+          </div>
+          <div class="game-card-arr">→</div>
+        </a>`;
+      }).join('');
+    }
 
-    /* ── RENDER TPS ───────────────────────────────────────── */
     function renderTPS() {
       document.getElementById('tpsChips').innerHTML = TPS_FILES.map(f =>
         `<a href="simulados.html?file=${encodeURIComponent(f.path)}" class="tps-chip">📋 ${f.name}</a>`
       ).join('');
     }
 
-    /* ── RENDER HERO (visible card) ───────────────────────── */
+    /* visible hero — independent of the hidden #heroCard sink */
     function renderHeroVisible(examDate) {
       const last = _sessions[0];
-      const now  = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
-      const exam = new Date(examDate.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
-      now.setHours(0,0,0,0); exam.setHours(0,0,0,0);
-      const days = Math.ceil((exam-now)/86400000);
-      setEl('heroDaysV', days>0?days:'—');
-      setEl('mcDays', days>0?days:'—');
-      setEl('navCountdown', `${days}d CACD`);
+      const nowBSB  = new Date(new Date().toLocaleString('en-US', { timeZone:'America/Sao_Paulo' }));
+      const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone:'America/Sao_Paulo' }));
+      nowBSB.setHours(0,0,0,0); examBSB.setHours(0,0,0,0);
+      const days = Math.ceil((examBSB - nowBSB) / 86400000);
 
-      const bar = document.getElementById('heroBarV');
-      const tit = document.getElementById('heroTitleV');
-      const met = document.getElementById('heroMetaV');
-      const btn = document.getElementById('heroBtnV');
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setEl('heroDaysVisible', days > 0 ? days : '—');
+      setEl('mcDays', days > 0 ? days : '—');
+
+      const bar   = document.getElementById('heroBarVisible');
+      const title = document.getElementById('heroTitleVisible');
+      const meta  = document.getElementById('heroMetaVisible');
+      const btn   = document.getElementById('heroBtnVisible');
 
       if (last) {
-        const subj = SUBJECTS.find(s=>s.id===last.subject);
-        if (bar) bar.style.background = subj?.color||'#d4af37';
-        if (tit) tit.textContent = subj?subj.name:last.deck;
-        const pct = Math.round(last.correct/last.total*100);
-        if (met) met.textContent = `Última sessão: ${relativeDate(last.date)} · ${last.total} itens · ${pct}% de acerto`;
-        const href = last.type==='flashcard'
-          ?`flashcards.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`
-          :`simulados.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`;
-        if (btn) { btn.href=href; btn.textContent='Retomar →'; btn.className='hero-btn'; }
+        const subj = SUBJECTS.find(s => s.id === last.subject);
+        if (bar) bar.style.background = subj?.color || '#d4af37';
+        if (title) title.textContent = subj ? subj.name : last.deck;
+        const pct = Math.round(last.correct / last.total * 100);
+        if (meta) meta.textContent = `Última sessão: ${relativeDate(last.date)} · ${last.total} itens · ${pct}% de acerto`;
+        const href = last.type === 'flashcard'
+          ? `flashcards.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`
+          : `simulados.html?file=${encodeURIComponent(last.deck||'')}&subject=${last.subject||''}`;
+        if (btn) { btn.href = href; btn.textContent = 'Retomar →'; btn.className = 'hero-btn'; }
       } else {
-        if (tit) tit.textContent='Bem-vindo ao Atlas Diplomático';
-        if (met) met.textContent='Selecione uma área para começar seus estudos';
-        if (btn) { btn.textContent='Começar →'; btn.className='hero-btn empty'; }
+        if (title) title.textContent = 'Bem-vindo ao Atlas Diplomático';
+        if (meta) meta.textContent = 'Selecione uma área para começar seus estudos';
+        if (btn) { btn.textContent = 'Começar →'; btn.className = 'hero-btn empty'; }
       }
     }
 
-    /* kept for compat — populates hidden sinks only */
+    /* hidden JS sink — kept for renderMotivation/renderNextTask/renderRecentSessions compat */
     function renderHero(examDate) {
-      const now  = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
-      const exam = new Date(examDate.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
-      now.setHours(0,0,0,0); exam.setHours(0,0,0,0);
-      setEl('heroDays', Math.ceil((exam-now)/86400000));
+      const last = _sessions[0];
+      const nowBSB  = new Date(new Date().toLocaleString('en-US', { timeZone:'America/Sao_Paulo' }));
+      const examBSB = new Date(examDate.toLocaleString('en-US', { timeZone:'America/Sao_Paulo' }));
+      nowBSB.setHours(0,0,0,0); examBSB.setHours(0,0,0,0);
+      const days = Math.ceil((examBSB - nowBSB) / 86400000);
+      const heroDaysEl = document.getElementById('heroDays');
+      if (heroDaysEl) heroDaysEl.textContent = days;
     }
+
     function renderMotivation(examDate) {
-      const streak = computeStreak(_activity);
-      const weekH  = computeWeekHours(_sessions);
-      const todayH = computeTodayHours(_sessions);
+      const streak   = computeStreak(_activity);
+      const weekH    = computeWeekHours(_sessions);
+      const todayH   = computeTodayHours(_sessions);
+      const nowBSB   = new Date(new Date().toLocaleString('en-US', { timeZone:'America/Sao_Paulo' }));
+      const examBSB  = new Date(examDate.toLocaleString('en-US', { timeZone:'America/Sao_Paulo' }));
+      nowBSB.setHours(0,0,0,0); examBSB.setHours(0,0,0,0);
+      const days = Math.ceil((examBSB - nowBSB) / 86400000);
+
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+      setEl('navCountdown', `${days}d CACD`);
       setEl('mcStreak', streak);
       const todayKey = new Date().toISOString().split('T')[0];
-      setEl('mcSessions', _sessions.filter(s=>s.date===todayKey).length);
-      const elS = document.getElementById('mcSessions'); if(elS) elS.className='mc-val blue';
-      const elK = document.getElementById('mcStreak');   if(elK) elK.className='mc-val yellow';
-      setEl('weekHours', weekH.toFixed(1)+'h'); setEl('weekSub','de 25h meta');
-      const wf=document.getElementById('weekFill'); if(wf) wf.style.width=Math.min(100,weekH/25*100)+'%';
-      setEl('todayHours', todayH<0.017?'0min':todayH<0.1?Math.round(todayH*60)+'min':todayH.toFixed(1)+'h');
-      setEl('todaySub','de 2h meta diária');
-      const tf=document.getElementById('todayFill'); if(tf) tf.style.width=Math.min(100,todayH/2*100)+'%';
+      const todayCount = _sessions.filter(s => s.date === todayKey).length;
+      setEl('mcSessions', todayCount);
+
+      /* hidden sinks */
+      setEl('weekHours', weekH.toFixed(1) + 'h');
+      setEl('weekSub', 'de 25h meta');
+      const whf = document.getElementById('weekFill');
+      if (whf) whf.style.width = Math.min(100, weekH/25*100) + '%';
+      setEl('todayHours', todayH < 0.017 ? '0min' : todayH < 0.1 ? Math.round(todayH*60)+'min' : todayH.toFixed(1)+'h');
+      setEl('todaySub', 'de 2h meta diária');
+      const thf = document.getElementById('todayFill');
+      if (thf) thf.style.width = Math.min(100, todayH/2*100) + '%';
     }
+
     function renderNextTask() {
-      const today=new Date().toISOString().split('T')[0];
-      const studied=new Set(_sessions.filter(s=>s.date===today).map(s=>s.subject));
-      const cands=(SUBJECTS.filter(s=>!studied.has(s.id)).length?SUBJECTS.filter(s=>!studied.has(s.id)):SUBJECTS)
-        .map(s=>({...s,pct:getSubjectStats(s.id).pct})).sort((a,b)=>a.pct-b.pct);
-      const pick=cands[0]; if(!pick) return;
-      const ff=pick.files.find(f=>f.type==='fc')||pick.files[0];
-      const href=ff?`${PAGE_FOR[ff.type]}?file=${encodeURIComponent(ff.path)}&subject=${pick.id}`:`flashcards.html?subject=${pick.id}`;
-      setEl('nextTask',pick.name); setEl('nextMeta',`${pick.pct}% acerto`);
-      const nb=document.getElementById('nextTaskBtn'); if(nb) nb.href=href;
-    }
-    function renderRecentSessions() { /* hidden — no-op */ }
-    function renderActivityChart()  { /* replaced by heatmap — no-op */ }
-    function renderAnnouncements()  { /* hidden — no-op */ }
-
-    /* ── RENDER HEATMAP ANUAL ─────────────────────────────── */
-    function renderHeatmap() {
-      const grid = document.getElementById('heatmapGrid'); if (!grid) return;
-      const todayStr = new Date().toISOString().split('T')[0];
-      const YEAR = 365;
-      const start = new Date(); start.setDate(start.getDate()-(YEAR-1));
-
-      let maxVal = 1;
-      for (let i=0;i<YEAR;i++) {
-        const d=new Date(start); d.setDate(d.getDate()+i);
-        const v=_activity[d.toISOString().split('T')[0]]||0;
-        if(v>maxVal) maxVal=v;
+      const today = new Date().toISOString().split('T')[0];
+      const studiedToday = new Set(_sessions.filter(s => s.date === today).map(s => s.subject));
+      const notStudied = SUBJECTS.filter(s => !studiedToday.has(s.id));
+      const candidates = notStudied.length ? notStudied : SUBJECTS;
+      const pick = candidates.map(s => ({...s, pct: getSubjectStats(s.id).pct}))
+        .sort((a,b) => a.pct - b.pct)[0];
+      if (pick) {
+        const ff = pick.files.find(f => f.type==='fc') || pick.files[0];
+        const href = ff
+          ? `${PAGE_FOR[ff.type]}?file=${encodeURIComponent(ff.path)}&subject=${pick.id}`
+          : `flashcards.html?subject=${pick.id}`;
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setEl('nextTask', pick.name);
+        setEl('nextMeta', `${pick.pct}% acerto`);
+        const nb = document.getElementById('nextTaskBtn');
+        if (nb) nb.href = href;
       }
-      const lvl = v => {
-        if(v<=0) return 0;
-        if(v<=maxVal*.15) return 1;
-        if(v<=maxVal*.35) return 2;
-        if(v<=maxVal*.60) return 3;
-        if(v<=maxVal*.80) return 4;
-        return 5;
-      };
-
-      const cells=[];
-      /* pad leading empty cells so first day aligns with correct weekday row */
-      const firstDow = start.getDay();
-      for(let i=0;i<firstDow;i++) cells.push(`<div class="hm-cell empty-pad"></div>`);
-
-      for(let i=0;i<YEAR;i++) {
-        const d=new Date(start); d.setDate(d.getDate()+i);
-        const k=d.toISOString().split('T')[0];
-        const v=_activity[k]||0;
-        const lv=lvl(v);
-        const isToday=k===todayStr;
-        const lbl=d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
-        const cls=['hm-cell', lv>0?`lv${lv}`:'', isToday?'today':''].filter(Boolean).join(' ');
-        cells.push(`<div class="${cls}" title="${lbl}: ${v} cards"></div>`);
-      }
-      grid.innerHTML = cells.join('');
-
-      /* stats */
-      const streak  = computeStreak(_activity);
-      const longest = computeLongestStreak(_activity);
-      const daysLearned = Object.values(_activity).filter(v=>v>0).length;
-      const total = Object.values(_activity).reduce((a,v)=>a+v,0);
-      const avg   = daysLearned>0 ? Math.round(total/daysLearned) : 0;
-
-      setEl('hmStreak',    streak);
-      setEl('hmDaysLearned', daysLearned);
-      setEl('hmAvgDaily',  avg);
-      setEl('hmStreakFoot', streak);
-      setEl('hmLongest',   longest);
-      setEl('heatmapSubtitle', `${daysLearned} dias com estudo · ${total.toLocaleString('pt-BR')} cards no total`);
     }
 
-    /* ── RENDER PLANO DO DIA ──────────────────────────────── */
+    function renderRecentSessions() {
+      /* hidden sink — kept for JS compat */
+      const el = document.getElementById('recentSessions');
+      if (!el) return;
+      el.innerHTML = '';
+    }
+
+    /* ── PLANO DO DIA — lista compacta com checkboxes visuais ─── */
     function renderDailyCycle() {
-      const ALWAYS = [
-        {id:'HB', name:'História do Brasil',     icon:'🇧🇷', gameUrl:'GAMES/HISTORIA DO BRASIL/index.html', bolsoId:'hb'},
-        {id:'PI', name:'Política Internacional', icon:'🌐',  gameUrl:'GAMES/POLITICA INTERNACIONAL/index.html', bolsoId:'pi'},
-        {id:'GEO',name:'Geografia',              icon:'🗺️', gameUrl:'GAMES/BRASIL/BANDEIRAS/index.html', bolsoId:'geo'},
-        {id:'LP', name:'Português',              icon:'📝',  gameUrl:'gramatica-matching.html', bolsoId:null},
-        {id:'ING',name:'Inglês',                 icon:'🇬🇧', gameUrl:'matching.html', bolsoId:null},
+      const DAILY_ALWAYS = [
+        { id:'HB',  name:'História do Brasil',     icon:'🇧🇷', gameUrl:'GAMES/HISTORIA DO BRASIL/index.html', bolsoId:'hb' },
+        { id:'PI',  name:'Política Internacional', icon:'🌐',  gameUrl:'GAMES/POLITICA INTERNACIONAL/index.html', bolsoId:'pi' },
+        { id:'GEO', name:'Geografia',              icon:'🗺️', gameUrl:'GAMES/BRASIL/BANDEIRAS/index.html', bolsoId:'geo' },
+        { id:'LP',  name:'Português',              icon:'📝',  gameUrl:'gramatica-matching.html', bolsoId:null },
+        { id:'ING', name:'Inglês',                 icon:'🇬🇧', gameUrl:'matching.html', bolsoId:null },
       ];
-      const ROTATE = [
-        {id:'DIP',name:'Dir. Internacional',  icon:'⚖️', gameUrl:'GAMES/DIP/index.html', bolsoId:'dip'},
-        {id:'ECO',name:'Economia',            icon:'📊', gameUrl:'GAMES/ECONOMIA/index.html', bolsoId:'eco'},
-        {id:'DIR',name:'Dir. Constitucional', icon:'📋', gameUrl:'GAMES/CACD BOLSO/index.html', bolsoId:'direito'},
+      const DAILY_ROTATE = [
+        { id:'DIP', name:'Dir. Internacional',  icon:'⚖️', gameUrl:'GAMES/DIP/index.html', bolsoId:'dip' },
+        { id:'ECO', name:'Economia',            icon:'📊', gameUrl:'GAMES/ECONOMIA/index.html', bolsoId:'eco' },
+        { id:'DIR', name:'Dir. Constitucional', icon:'📋', gameUrl:'GAMES/CACD BOLSO/index.html', bolsoId:'direito' },
       ];
 
-      const nowBSB = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+      const nowBSB = new Date(new Date().toLocaleString('en-US', { timeZone:'America/Sao_Paulo' }));
       const today  = nowBSB.toISOString().split('T')[0];
-      const rotIdx = Math.floor(nowBSB.getTime()/86400000) % 3;
-      const subs   = [...ALWAYS, ROTATE[rotIdx%3], ROTATE[(rotIdx+1)%3]];
+      const rotIdx = Math.floor(nowBSB.getTime() / 86400000) % 3;
+      const todaySubjects = [
+        ...DAILY_ALWAYS,
+        DAILY_ROTATE[rotIdx % 3],
+        DAILY_ROTATE[(rotIdx + 1) % 3],
+      ];
 
-      setEl('cycleDate', nowBSB.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}));
+      document.getElementById('cycleDate').textContent =
+        nowBSB.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
 
-      const sess = _sessions.filter(s=>(s.date||s.created_at||'').startsWith(today));
-      let done = 0;
-      const total = subs.length + 2;
+      const todaySessions = _sessions.filter(s => (s.date || s.created_at || '').startsWith(today));
 
-      const items = subs.map(sub => {
-        const gameDone  = sess.some(s=>s.subject===sub.id&&(!s.deck||!s.deck.startsWith('cacd-bolso-')));
-        const bolsoDone = sub.bolsoId ? sess.some(s=>s.deck&&s.deck.startsWith('cacd-bolso-'+sub.bolsoId)) : true;
-        const allDone   = gameDone && bolsoDone;
-        if (allDone) done++;
-        const chips = [`<a class="plan-chip${gameDone?' done':''}" href="${sub.gameUrl}">🎮 Game</a>`];
-        if (sub.bolsoId) chips.push(`<a class="plan-chip${bolsoDone?' done':''}" href="GAMES/CACD BOLSO/index.html">📱 Bolso</a>`);
-        return `<div class="plan-item${allDone?' done':''}">
+      let doneCount = 0;
+      const totalItems = todaySubjects.length + 2; /* +redações +SRS */
+
+      /* ── matérias ── */
+      const subjectItems = todaySubjects.map(sub => {
+        const gameDone = todaySessions.some(s =>
+          s.subject === sub.id && (!s.deck || !s.deck.startsWith('cacd-bolso-')));
+        const bolsoDone = sub.bolsoId
+          ? todaySessions.some(s => s.deck && s.deck.startsWith('cacd-bolso-' + sub.bolsoId))
+          : true;
+        const done = gameDone && bolsoDone;
+        if (done) doneCount++;
+
+        const chips = [];
+        chips.push(`<a class="plan-chip${gameDone?' done':''}" href="${sub.gameUrl}">🎮 Game</a>`);
+        if (sub.bolsoId) {
+          chips.push(`<a class="plan-chip${bolsoDone?' done':''}" href="GAMES/CACD BOLSO/index.html">📱 Bolso</a>`);
+        }
+
+        return `<div class="plan-item${done?' done':''}">
           <div class="plan-check"></div>
           <div class="plan-icon">${sub.icon}</div>
           <div class="plan-name">${sub.name}</div>
@@ -916,80 +1234,100 @@
         </div>`;
       }).join('');
 
-      const redCount = parseInt(localStorage.getItem('sf2_daily_'+today)||'0');
-      const redDone  = redCount>=3; if(redDone) done++;
-      const redItem  = `<div class="plan-item${redDone?' done':''}">
-        <div class="plan-check"></div><div class="plan-icon">✍️</div>
+      /* ── redações ── */
+      const redCount = parseInt(localStorage.getItem('sf2_daily_' + today) || '0');
+      const redDone  = redCount >= 3;
+      if (redDone) doneCount++;
+      const redItem = `<div class="plan-item${redDone?' done':''}">
+        <div class="plan-check"></div>
+        <div class="plan-icon">✍️</div>
         <div class="plan-name">Redações</div>
-        <div class="plan-chips"><a class="plan-chip${redDone?' done':''}" href="segunda-fase.html">✍️ Praticar</a></div>
+        <div class="plan-chips">
+          <a class="plan-chip${redDone?' done':''}" href="segunda-fase.html">✍️ Praticar</a>
+        </div>
         <div class="plan-prog-text">${redCount}/3</div>
       </div>`;
 
-      const SRS_KEYS=['economia_micro_progress','economia_macro_progress','economia_inter_progress','hb_provas_progress','hb_hpeb_progress','cacd_bolso_pi','cacd_bolso_dip','cacd_bolso_direito','cacd_bolso_eco','cacd_bolso_geo','cacd_bolso_hb','cacd_bolso_hm','cacd_bolso_atual'];
-      const srsDone=!!localStorage.getItem('srs_reviewed_'+today);
-      let srsDue=0;
-      if(!srsDone){
-        const isDue=p=>{if(!p.firstSeen)return true;const d=Math.floor((Date.now()-new Date(p.lastReview||p.firstSeen).getTime())/86400000);return d>=(p.interval||1);};
-        SRS_KEYS.forEach(k=>{try{const pr=JSON.parse(localStorage.getItem(k)||'{}');(pr.wrongPairs||[]).forEach(p=>{if(isDue(p))srsDue++;});}catch(e){}});
-        try{const gp=JSON.parse(localStorage.getItem('grammar_match_progress_v1')||'{}');Object.values(gp._errors||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(p=>{if(isDue(p))srsDue++;});});}catch(e){}
+      /* ── SRS ── */
+      const SRS_LS_KEYS = [
+        'economia_micro_progress','economia_macro_progress','economia_inter_progress',
+        'hb_provas_progress','hb_hpeb_progress',
+        'cacd_bolso_pi','cacd_bolso_dip','cacd_bolso_direito','cacd_bolso_eco',
+        'cacd_bolso_geo','cacd_bolso_hb','cacd_bolso_hm','cacd_bolso_atual',
+      ];
+      const srsDone = !!localStorage.getItem('srs_reviewed_' + today);
+      let srsDue = 0;
+      if (!srsDone) {
+        const isDue = p => {
+          if (!p.firstSeen) return true;
+          const d = Math.floor((Date.now() - new Date(p.lastReview || p.firstSeen).getTime()) / 86400000);
+          return d >= (p.interval || 1);
+        };
+        SRS_LS_KEYS.forEach(k => {
+          try {
+            const prog = JSON.parse(localStorage.getItem(k) || '{}');
+            (prog.wrongPairs || []).forEach(p => { if (isDue(p)) srsDue++; });
+          } catch(e) {}
+        });
+        try {
+          const gp = JSON.parse(localStorage.getItem('grammar_match_progress_v1') || '{}');
+          Object.values(gp._errors || {}).forEach(arr => {
+            if (Array.isArray(arr)) arr.forEach(p => { if (isDue(p)) srsDue++; });
+          });
+        } catch(e) {}
       }
-      if(srsDone) done++;
-      const srsLbl = srsDone?'Concluída':srsDue>0?`${srsDue} devidos`:'0 devidos';
+      if (srsDone) doneCount++;
+      const srsLabel = srsDone ? 'Concluída' : srsDue > 0 ? `${srsDue} devidos` : '0 devidos';
       const srsItem = `<div class="plan-item${srsDone?' done':''}">
-        <div class="plan-check"></div><div class="plan-icon">📚</div>
+        <div class="plan-check"></div>
+        <div class="plan-icon">📚</div>
         <div class="plan-name">Revisão SRS</div>
-        <div class="plan-chips"><a class="plan-chip${srsDone?' done':''}" href="revisao.html">📚 Revisar</a></div>
-        <div class="plan-prog-text">${srsLbl}</div>
+        <div class="plan-chips">
+          <a class="plan-chip${srsDone?' done':''}" href="revisao.html">📚 Revisar</a>
+        </div>
+        <div class="plan-prog-text">${srsLabel}</div>
       </div>`;
 
-      document.getElementById('dailyCycleGrid').innerHTML = items + redItem + srsItem;
-      document.getElementById('cycleComplete').style.display = done===total?'block':'none';
+      document.getElementById('dailyCycleGrid').innerHTML = subjectItems + redItem + srsItem;
+      document.getElementById('cycleComplete').style.display = doneCount === totalItems ? 'block' : 'none';
 
-      const prog=document.getElementById('cycleProg');
-      if(prog){ prog.textContent=`${done}/${total}`; prog.style.display=''; }
+      /* badge de progresso no trigger */
+      const prog = document.getElementById('cycleProg');
+      if (prog) {
+        prog.textContent = `${doneCount}/${totalItems}`;
+        prog.style.display = '';
+        if (doneCount === totalItems) {
+          prog.style.background = 'rgba(74,158,107,0.15)';
+          prog.style.color = 'var(--green-ok)';
+        }
+      }
     }
 
-    /* ── DARK MODE ───────────────────────────────────────── */
-    function applyDark(on) {
-      document.documentElement.classList.toggle('dark', on);
-      const btn = document.getElementById('darkToggle');
-      if (btn) btn.textContent = on ? '☀️' : '🌙';
-    }
-    function toggleDark() {
-      const next = !document.documentElement.classList.contains('dark');
-      localStorage.setItem('atlas_dark', next ? '1' : '0');
-      applyDark(next);
-    }
-    /* apply saved preference before first paint */
-    applyDark(localStorage.getItem('atlas_dark') === '1');
-
-    /* ── RENDER PERF ─────────────────────────────────────── */
-    function renderPerf() {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      const monthly = _sessions.filter(s => (s.date||'') >= monthStart);
-      const totalCards = monthly.reduce((a,s) => a+(s.total||0), 0);
-      const totalRight = monthly.reduce((a,s) => a+(s.correct||0), 0);
-      const pct = totalCards > 0 ? Math.round(totalRight/totalCards*100) : 0;
-      setEl('perfAccerto', pct + '%');
-      setEl('perfSessoes', monthly.length);
-      setEl('perfCards', totalCards.toLocaleString('pt-BR'));
+    /* kept for compat — does nothing (chart hidden) */
+    function renderActivityChart() {}
+    function renderAnnouncements(list) {
+      if (!list.length) return;
+      /* announcements card hidden, no-op */
     }
 
-    /* ── INIT ─────────────────────────────────────────────── */
+    /* ── INIT ─────────────────────────────────────────────────── */
     renderGamesGrid();
     renderTPS();
 
     (async () => {
       const user    = await DB.requireAuth();
       const profile = await DB.getProfile();
-      setEl('navUser', (profile?.name||user.email||'?').slice(0,2).toUpperCase());
+      const initials = (profile?.name || user.email || '?').slice(0, 2).toUpperCase();
+      document.getElementById('navUser').textContent = initials;
       const isAdm = await DB.isAdmin();
-      if (isAdm) document.getElementById('navAdmin').style.display='';
+      if (isAdm) document.getElementById('navAdmin').style.display = '';
 
       const [sessions, activity, announcements, examDate, subjectFilesArr] = await Promise.all([
-        DB.getSessions(user.id), DB.getActivity(user.id),
-        DB.getAnnouncements(), DB.getExamDate(), DB.getSubjectFiles()
+        DB.getSessions(user.id),
+        DB.getActivity(user.id),
+        DB.getAnnouncements(),
+        DB.getExamDate(),
+        DB.getSubjectFiles()
       ]);
       _sessions = sessions;
       _activity = activity;
@@ -1003,7 +1341,6 @@
       renderActivityChart();
       renderAnnouncements(announcements);
       renderHeatmap();
-      renderPerf();
     })();
   </script>
 <aside id="sidebar"></aside>
