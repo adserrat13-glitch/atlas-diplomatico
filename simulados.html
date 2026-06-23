@@ -277,6 +277,19 @@
   </nav>
 
   <main>
+    <!-- RESUME BANNER -->
+    <div id="resumeBanner" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
+      <div style="background:#1a1d24;border:1px solid #2a2f3a;border-radius:16px;padding:28px 32px;max-width:420px;width:90%;text-align:center;">
+        <div style="font-size:28px;margin-bottom:12px">📌</div>
+        <div style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:8px">Progresso salvo</div>
+        <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:24px;line-height:1.5"></div>
+        <div style="display:flex;gap:12px;justify-content:center;">
+          <button id="btnResumeContinue" style="background:#d4af37;color:#000;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">▶ Continuar</button>
+          <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer">Começar do zero</button>
+        </div>
+      </div>
+    </div>
+
     <!-- LOADER -->
     <div class="view active" id="viewLoader">
       <div class="loader-title">SIMULADOS</div>
@@ -392,6 +405,8 @@
     let pendingFlashcard = null;
     let sessionAIFlashcards = [];
     const flashcardCache = {};
+    let isLongDeck = false;
+    let currentProgressKey = null;
 
     // ─── Subject classification ──────────────────────────────────────
     const SUBJECT_RULES = [
@@ -638,13 +653,61 @@
       catch { text = new TextDecoder('windows-1252').decode(buf); }
       text = text.replace(/^﻿/, '');
       deckName = filename.replace(/\.csv$/i, '').trim();
-      processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
+      const progKey = 'sim_prog_' + deckName.replace(/\s+/g, '_');
+      const saved = (() => { try { return JSON.parse(localStorage.getItem(progKey)); } catch { return null; } })();
+      if (saved && saved.idx > 0 && saved.answers) {
+        currentProgressKey = progKey;
+        showResumeBanner(saved, filename);
+      } else {
+        currentProgressKey = null;
+        processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
+      }
+      // guardamos o texto para uso no resume
+      window._pendingSimText = text;
+      window._pendingSimFile = filename;
+    }
+
+    function showResumeBanner(saved, filename) {
+      const banner = document.getElementById('resumeBanner');
+      document.getElementById('resumeMsg').textContent =
+        `"${deckName}" — você pausou na questão ${saved.idx + 1} de ${saved.totalQ || '?'} (${saved.savedAt || ''})`;
+      banner.style.display = 'flex';
+      document.getElementById('btnResumeContinue').onclick = () => {
+        banner.style.display = 'none';
+        const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
+        processSimData(parsed, saved);
+      };
+      document.getElementById('btnResumeReset').onclick = () => {
+        banner.style.display = 'none';
+        localStorage.removeItem(currentProgressKey);
+        processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
+      };
+      showView('viewOptions');
+    }
+
+    function saveProgress() {
+      if (!currentProgressKey) return;
+      try {
+        const now = new Date();
+        const ts = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+        localStorage.setItem(currentProgressKey, JSON.stringify({
+          idx: currentIdx,
+          totalQ: queue.length,
+          answers: answers,
+          queueIds: queue.map(q => allQuestions.indexOf(q)),
+          mode: window._currentSimMode || 'all',
+          savedAt: ts
+        }));
+      } catch(e) { /* quota exceeded — ignore */ }
+    }
+
+    function clearProgress() {
+      if (currentProgressKey) localStorage.removeItem(currentProgressKey);
     }
 
     // ─── Data processing (with classification) ──────────────────────
-    function processSimData(rows) {
+    function processSimData(rows, resumeState) {
       allQuestions = []; sections = {};
-      // Passagem 1: coleta as questões respondíveis em ordem (sem classificar)
       const collected = []; let currentSection = '';
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
@@ -655,14 +718,35 @@
         collected.push({ q, correct: ans, section: currentSection });
       });
       if (!collected.length) { alert('Nenhuma questão CERTO/ERRADO encontrada.'); return; }
-      // Passagem 2: classifica por posição (TPS) ou cai no regex (avulso)
       const tpsClassify = makeTpsPositionalClassifier(deckName, collected.length);
       collected.forEach((item, i) => {
         const cls = tpsClassify ? tpsClassify(i, item.q) : classifyQuestion(item.q);
         sections[i] = item.section;
         allQuestions.push({ ...item, ...cls });
       });
-      showOptions();
+      isLongDeck = allQuestions.length >= 250;
+      currentProgressKey = isLongDeck ? ('sim_prog_' + deckName.replace(/\s+/g, '_')) : null;
+      if (resumeState && isLongDeck) {
+        resumeProgress(resumeState);
+      } else {
+        showOptions();
+      }
+    }
+
+    function resumeProgress(saved) {
+      const ids = saved.queueIds || [];
+      queue = ids.map(i => allQuestions[i]).filter(Boolean);
+      if (!queue.length) { showOptions(); return; }
+      currentIdx = Math.min(saved.idx, queue.length);
+      answers = saved.answers || [];
+      window._currentSimMode = saved.mode || 'all';
+      sessionAIFlashcards = [];
+      timerSecs = 0; updateTimer();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+      showView('viewStudy');
+      document.getElementById('simDeck').textContent = deckName;
+      renderQuestion();
     }
 
     function showView(id) {
@@ -701,6 +785,8 @@
       else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
       else queue = [...allQuestions];
       currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      window._currentSimMode = mode;
+      clearProgress();
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -740,6 +826,7 @@
         subjectLabel: q.subjectLabel, tags: q.tags || []
       });
       currentIdx++;
+      if (isLongDeck) saveProgress();
       renderQuestion();
       if (!correct) showWrongPill(q);
     }
@@ -866,6 +953,7 @@
 
     // ─── Summary ─────────────────────────────────────────────────────
     function showSummary() {
+      clearProgress();
       const total = answers.length;
       const correct = answers.filter(a => a.isCorrect).length;
       const wrong = total - correct;

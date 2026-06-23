@@ -255,6 +255,8 @@
       text-decoration: none; transition: background .15s;
     }
     .tps-chip:hover { background: rgba(200,168,75,.18); }
+    .tps-chip-extra { background: rgba(52,211,153,.06); border-color: rgba(52,211,153,.22); color: #34d399; }
+    .tps-chip-extra:hover { background: rgba(52,211,153,.16); }
 
     /* ── PERF CARD (Análise de Desempenho) ── */
     .perf-card {
@@ -297,19 +299,20 @@
       grid-auto-columns: 13px;
       gap: 3px;
       width: max-content;
-      min-width: 100%;
     }
     .hm-cell {
       width: 13px; height: 13px; border-radius: 3px;
       background: var(--hm-empty, #eae7e2); cursor: default; transition: opacity .1s;
     }
     .hm-cell:hover { opacity: .7; }
-    .hm-cell.lv1 { background: #e0d090; }
-    .hm-cell.lv2 { background: #c4a84f; }
-    .hm-cell.lv3 { background: #b8962e; }
-    .hm-cell.lv4 { background: #9a7a20; }
-    .hm-cell.lv5 { background: #7a5f10; }
-    .hm-cell.today { outline: 2px solid var(--gold); outline-offset: 1px; }
+    .hm-cell.lv1 { background: #c8f0c8; }
+    .hm-cell.lv2 { background: #90EE90; }
+    .hm-cell.lv3 { background: #5cd65c; }
+    .hm-cell.lv4 { background: #2eb82e; }
+    .hm-cell.lv5 { background: #1a7a1a; }
+    .hm-cell.today { outline: 2px solid #2eb82e; outline-offset: 1px; }
+    .hm-cell.future { background: #e8e4df; opacity: .45; }
+    html.dark .hm-cell.future { background: #2a2b33; opacity: .35; }
     .hm-cell.empty-pad { opacity: 0; pointer-events: none; }
     .hm-cell.before-study { opacity: 0.3; }
     html.dark { --hm-empty: #2a2d36; }
@@ -330,11 +333,11 @@
     .heatmap-legend { display: flex; align-items: center; gap: 4px; }
     .hm-leg-lbl { font-size: 9px; color: var(--text-faint); }
     .hm-leg-cell { width: 11px; height: 11px; border-radius: 2px; background: #eae7e2; }
-    .hm-leg-cell.lv1 { background: #e0d090; }
-    .hm-leg-cell.lv2 { background: #c4a84f; }
-    .hm-leg-cell.lv3 { background: #b8962e; }
-    .hm-leg-cell.lv4 { background: #9a7a20; }
-    .hm-leg-cell.lv5 { background: #7a5f10; }
+    .hm-leg-cell.lv1 { background: #c8f0c8; }
+    .hm-leg-cell.lv2 { background: #90EE90; }
+    .hm-leg-cell.lv3 { background: #5cd65c; }
+    .hm-leg-cell.lv4 { background: #2eb82e; }
+    .hm-leg-cell.lv5 { background: #1a7a1a; }
 
     /* ── PLANO DO DIA — acordeão ── */
     .accordion-card {
@@ -536,8 +539,10 @@
           </a>
         </div>
         <div class="tps-block">
-          <div class="tps-block-lbl">Provas Anteriores · TPS 2016–2026</div>
+          <div class="tps-block-lbl">Provas Anteriores · TPS 2013–2026</div>
           <div class="tps-chips" id="tpsChips"></div>
+          <div class="tps-block-lbl" style="margin-top:8px;font-size:11px;opacity:.7">Bancos Temáticos</div>
+          <div class="tps-chips" id="tpsChipsExtra"></div>
         </div>
       </div>
 
@@ -626,7 +631,7 @@
     <div class="heatmap-card">
       <div class="heatmap-head">
         <div>
-          <div class="heatmap-title">Atividade · 365 Dias</div>
+          <div class="heatmap-title">Atividade · Dia a Dia</div>
           <div class="heatmap-subtitle" id="heatmapSubtitle">carregando…</div>
         </div>
         <div class="heatmap-stats-row">
@@ -703,11 +708,19 @@
         files:[{name:'Constitucional',path:'FLASHCARDS/DIREITO/CONTITUCIONAL .csv',type:'fc'},{name:'DIP',path:'FLASHCARDS/DIREITO/DIP.csv',type:'fc'}] },
     ];
     const TPS_FILES = [
-      {name:'TPS 2016',path:'TPS/TPS 2016.csv'},{name:'TPS 2017',path:'TPS/TPS 2017.csv'},
-      {name:'TPS 2018',path:'TPS/TPS 2018.csv'},{name:'TPS 2019',path:'TPS/TPS 2019.csv'},
-      {name:'TPS 2021',path:'TPS/TPS 2021.csv'},{name:'TPS 2022',path:'TPS/TPS 2022.csv'},
-      {name:'TPS 2023',path:'TPS/TPS 2023.csv'},{name:'TPS 2024',path:'TPS/TPS 2024.csv'},
-      {name:'TPS 2025',path:'TPS/TPS 2025.csv'},{name:'TPS 2026',path:'TPS/TPS 2026.csv'},
+      {name:'TPS 2013',path:'TPS/TPS 2013.csv'},{name:'TPS 2014',path:'TPS/TPS 2014.csv'},
+      {name:'TPS 2015',path:'TPS/tps 2015.csv'},{name:'TPS 2016',path:'TPS/TPS 2016.csv'},
+      {name:'TPS 2017',path:'TPS/TPS 2017.csv'},{name:'TPS 2018',path:'TPS/TPS 2018.csv'},
+      {name:'TPS 2019',path:'TPS/TPS 2019.csv'},{name:'TPS 2021',path:'TPS/TPS 2021.csv'},
+      {name:'TPS 2022',path:'TPS/TPS 2022.csv'},{name:'TPS 2023',path:'TPS/TPS 2023.csv'},
+      {name:'TPS 2024',path:'TPS/TPS 2024.csv'},{name:'TPS 2025',path:'TPS/TPS 2025.csv'},
+      {name:'TPS 2025.1',path:'TPS/TPS  2025.1.csv'},{name:'TPS 2026',path:'TPS/TPS 2026.csv'},
+      {name:'TPS 2026.1',path:'TPS/TPS 2026.1.csv'},
+    ];
+    const TPS_EXTRA = [
+      {name:'1001 DIP',path:'TPS/1001 DIP .csv'},
+      {name:'1001 Const.',path:'TPS/1001 CONST.csv'},
+      {name:'Dir. Adm.',path:'TPS/DIRIETO ADM .csv'},
     ];
     const PAGE_FOR = { fc:'flashcards.html', sim:'simulados.html', rep:'repositorio.html' };
     let _sessions = [], _activity = {};
@@ -761,6 +774,9 @@
     function renderTPS() {
       document.getElementById('tpsChips').innerHTML = TPS_FILES.map(f =>
         `<a href="simulados.html?file=${encodeURIComponent(f.path)}" class="tps-chip">📋 ${f.name}</a>`
+      ).join('');
+      document.getElementById('tpsChipsExtra').innerHTML = TPS_EXTRA.map(f =>
+        `<a href="simulados.html?file=${encodeURIComponent(f.path)}" class="tps-chip tps-chip-extra">📚 ${f.name}</a>`
       ).join('');
     }
 
@@ -837,6 +853,7 @@
     /* ── RENDER HEATMAP ANUAL ─────────────────────────────── */
     function renderHeatmap() {
       const grid = document.getElementById('heatmapGrid'); if (!grid) return;
+<<<<<<< Updated upstream
       const todayStr = new Date().toISOString().split('T')[0];
 
       /* Dia 1 fixo: 19/06/2026 — mostra mínimo de 26 semanas (182 dias) de grade */
@@ -857,22 +874,46 @@
         if (!day) continue;
         combined[day] = (combined[day] || 0) + (s.total || 1);
       }
+=======
+>>>>>>> Stashed changes
 
+      /* Day 1 = 19/06/2025 (launch date). Grid grows forward from this anchor.
+         No padding, no history before Day 1, no empty leading cells.
+         Today is always the last filled cell. */
+      /* Dia 1 = 19/06/2026. Grade sempre 365 dias.
+         índice 0 = Dia 1 (canto sup. esq.), índice 364 = Dia 365.
+         Dias passados/hoje: intensidade real. Dias futuros: célula cinza vazia. */
+      const START = new Date('2026-06-19T00:00:00');
+      const today = new Date(); today.setHours(0,0,0,0);
+      const msPerDay = 86400000;
+      const daysElapsed = Math.max(0, Math.floor((today - START) / msPerDay));
+      const TOTAL = 365;
+
+      // maxVal apenas sobre dias já chegados (passado + hoje)
       let maxVal = 1;
+<<<<<<< Updated upstream
       for (let i=0;i<YEAR;i++) {
         const d=new Date(start); d.setDate(d.getDate()+i);
         const v=combined[d.toISOString().split('T')[0]]||0;
         if(v>maxVal) maxVal=v;
+=======
+      for (let i = 0; i <= daysElapsed && i < TOTAL; i++) {
+        const d = new Date(START); d.setDate(d.getDate() + i);
+        const v = _activity[d.toISOString().split('T')[0]] || 0;
+        if (v > maxVal) maxVal = v;
+>>>>>>> Stashed changes
       }
+
       const lvl = v => {
-        if(v<=0) return 0;
-        if(v<=maxVal*.15) return 1;
-        if(v<=maxVal*.35) return 2;
-        if(v<=maxVal*.60) return 3;
-        if(v<=maxVal*.80) return 4;
+        if (v <= 0) return 0;
+        if (v <= maxVal * .15) return 1;
+        if (v <= maxVal * .35) return 2;
+        if (v <= maxVal * .60) return 3;
+        if (v <= maxVal * .80) return 4;
         return 5;
       };
 
+<<<<<<< Updated upstream
       const cells=[];
       /* pad leading empty cells so first day aligns with correct weekday row */
       const firstDow = start.getDay();
@@ -889,7 +930,25 @@
         const cls=['hm-cell', lv>0?`lv${lv}`:'', isToday?'today':'', beforeStudy?'before-study':''].filter(Boolean).join(' ');
         const tip = beforeStudy ? `${lbl}: antes do início` : `${lbl}: ${v} itens`;
         cells.push(`<div class="${cls}" title="${tip}"></div>`);
+=======
+      const cells = [];
+      for (let i = 0; i < TOTAL; i++) {
+        const d = new Date(START); d.setDate(d.getDate() + i);
+        const k = d.toISOString().split('T')[0];
+        const isFuture = i > daysElapsed;
+        const isToday  = i === daysElapsed;
+        const v  = isFuture ? 0 : (_activity[k] || 0);
+        const lv = isFuture ? 0 : lvl(v);
+        const lbl = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        const cls = ['hm-cell',
+          lv > 0 ? `lv${lv}` : '',
+          isToday ? 'today' : '',
+          isFuture ? 'future' : ''
+        ].filter(Boolean).join(' ');
+        cells.push(`<div class="${cls}" title="Dia ${i+1} · ${lbl}${isFuture ? '' : ': ' + v + ' cards'}"></div>`);
+>>>>>>> Stashed changes
       }
+
       grid.innerHTML = cells.join('');
 
       /* stats */
