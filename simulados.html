@@ -712,7 +712,7 @@
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
         if (!q) return;
-        if (!a) { currentSection = q; return; }
+        if (!a) { if (q.length <= 80) currentSection = q; return; }
         const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
         if (!ans) return;
         collected.push({ q, correct: ans, section: currentSection });
