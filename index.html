@@ -855,7 +855,6 @@
     /* ── RENDER HEATMAP ANUAL ─────────────────────────────── */
     function renderHeatmap() {
       const grid = document.getElementById('heatmapGrid'); if (!grid) return;
-<<<<<<< Updated upstream
       const todayStr = new Date().toISOString().split('T')[0];
 
       /* Dia 1 fixo: 19/06/2026 — mostra mínimo de 26 semanas (182 dias) de grade */
@@ -876,34 +875,13 @@
         if (!day) continue;
         combined[day] = (combined[day] || 0) + (s.total || 1);
       }
-=======
->>>>>>> Stashed changes
-
-      /* Day 1 = 19/06/2025 (launch date). Grid grows forward from this anchor.
-         No padding, no history before Day 1, no empty leading cells.
-         Today is always the last filled cell. */
-      /* Dia 1 = 19/06/2026. Grade sempre 365 dias.
-         índice 0 = Dia 1 (canto sup. esq.), índice 364 = Dia 365.
-         Dias passados/hoje: intensidade real. Dias futuros: célula cinza vazia. */
-      const START = new Date('2026-06-19T00:00:00');
-      const today = new Date(); today.setHours(0,0,0,0);
-      const msPerDay = 86400000;
-      const daysElapsed = Math.max(0, Math.floor((today - START) / msPerDay));
-      const TOTAL = 365;
 
       // maxVal apenas sobre dias já chegados (passado + hoje)
       let maxVal = 1;
-<<<<<<< Updated upstream
       for (let i=0;i<YEAR;i++) {
         const d=new Date(start); d.setDate(d.getDate()+i);
         const v=combined[d.toISOString().split('T')[0]]||0;
         if(v>maxVal) maxVal=v;
-=======
-      for (let i = 0; i <= daysElapsed && i < TOTAL; i++) {
-        const d = new Date(START); d.setDate(d.getDate() + i);
-        const v = _activity[d.toISOString().split('T')[0]] || 0;
-        if (v > maxVal) maxVal = v;
->>>>>>> Stashed changes
       }
 
       const lvl = v => {
@@ -915,7 +893,6 @@
         return 5;
       };
 
-<<<<<<< Updated upstream
       const cells=[];
       /* pad leading empty cells so first day aligns with correct weekday row */
       const firstDow = start.getDay();
@@ -932,23 +909,6 @@
         const cls=['hm-cell', lv>0?`lv${lv}`:'', isToday?'today':'', beforeStudy?'before-study':''].filter(Boolean).join(' ');
         const tip = beforeStudy ? `${lbl}: antes do início` : `${lbl}: ${v} itens`;
         cells.push(`<div class="${cls}" title="${tip}"></div>`);
-=======
-      const cells = [];
-      for (let i = 0; i < TOTAL; i++) {
-        const d = new Date(START); d.setDate(d.getDate() + i);
-        const k = d.toISOString().split('T')[0];
-        const isFuture = i > daysElapsed;
-        const isToday  = i === daysElapsed;
-        const v  = isFuture ? 0 : (_activity[k] || 0);
-        const lv = isFuture ? 0 : lvl(v);
-        const lbl = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        const cls = ['hm-cell',
-          lv > 0 ? `lv${lv}` : '',
-          isToday ? 'today' : '',
-          isFuture ? 'future' : ''
-        ].filter(Boolean).join(' ');
-        cells.push(`<div class="${cls}" title="Dia ${i+1} · ${lbl}${isFuture ? '' : ': ' + v + ' cards'}"></div>`);
->>>>>>> Stashed changes
       }
 
       grid.innerHTML = cells.join('');
