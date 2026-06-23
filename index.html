@@ -69,7 +69,6 @@
       --sh-sm:      0 2px 8px rgba(0,0,0,0.3);
       --sh-md:      0 4px 16px rgba(0,0,0,0.4);
     }
-    html body { background: var(--bg-page) !important; color: var(--text-main) !important; }
     html.dark body { background: var(--bg-page) !important; color: var(--text-main) !important; }
     html.dark .site-header { background: #12131a; border-color: rgba(255,255,255,0.07); }
     html.dark .area-card { background: var(--bg-card); border-color: var(--border-cl); }
@@ -542,7 +541,7 @@
         <div class="tps-block">
           <div class="tps-block-lbl">Provas Anteriores · TPS 2013–2026</div>
           <div class="tps-chips" id="tpsChips"></div>
-          <div class="tps-block-lbl" style="margin-top:10px;font-size:8px;letter-spacing:1.5px;">Bancos de Questões</div>
+          <div class="tps-block-lbl" style="margin-top:8px;font-size:11px;opacity:.7">Bancos Temáticos</div>
           <div class="tps-chips" id="tpsChipsExtra"></div>
         </div>
       </div>
@@ -719,10 +718,10 @@
       {name:'TPS 2026.1',path:'TPS/TPS 2026.1.csv'},
     ];
     const TPS_EXTRA = [
-      {name:'TPS 00',path:'TPS/TPS 00.csv'},
       {name:'1001 DIP',path:'TPS/1001 DIP .csv'},
       {name:'1001 Const.',path:'TPS/1001 CONST.csv'},
       {name:'Dir. Adm.',path:'TPS/DIRIETO ADM .csv'},
+      {name:'TPS 00 (Eco/HB/HM/GEO/PI/DIR)',path:'TPS/TPS 00.csv'},
     ];
     const PAGE_FOR = { fc:'flashcards.html', sim:'simulados.html', rep:'repositorio.html' };
     let _sessions = [], _activity = {};
@@ -1071,11 +1070,7 @@
 
     /* ── INIT ─────────────────────────────────────────────── */
     renderGamesGrid();
-    if (document.getElementById('tpsChips')) {
-      renderTPS();
-    } else {
-      document.addEventListener('DOMContentLoaded', renderTPS);
-    }
+    renderTPS();
 
     (async () => {
       const user    = await DB.requireAuth();
