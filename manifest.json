@@ -1,55 +1,63 @@
-{
-  "flashcards": {
-    "BRASIL": [
-      "HISTORIA DO BRASIL .csv"
-    ],
-    "DIREITO": [
-      "CONTITUCIONAL .csv",
-      "DIP.csv"
-    ],
-    "ECONOMIA": [
-      "ECONOMIA .csv"
-    ],
-    "GEOGRAFIA": [
-      "GEOGRAFIA .csv"
-    ],
-    "HISTORIA": [
-      "HISTORIA MUNDIAL .csv"
-    ],
-    "INGLÊS": [
-      "DICTIONARY OF DIPLOMACY  ing.csv",
-      "GRAMMAR ING ing.csv"
-    ],
-    "INTERNACIONAL": [
-      "POLITICA INTERNACIONAL .csv"
-    ],
-    "PORTUGUÊS": [
-      "LESSA PI  p.i.csv",
-      "LITERATURA BOSI port.csv",
-      "LITERATURA port.csv",
-      "PORTUGUES SINTAXE.csv"
-    ]
-  },
-  "tps": [
-    "TPS 2016.csv",
-    "TPS 2017.csv",
-    "TPS 2018.csv",
-    "TPS 2019.csv",
-    "TPS 2021.csv",
-    "TPS 2022.csv",
-    "TPS 2023.csv",
-    "TPS 2024.csv",
-    "TPS 2025.csv",
-    "TPS 2026.csv",
-    "POLITICAINTERNACIONAL.csv"
-  ],
-  "tps_conexoes": [
-    "CONTITUCIONAL .csv",
-    "DIP.csv",
-    "ECONOMIA .csv",
-    "GEOGRAFIA .csv",
-    "HISTORIA DO BRASIL .csv",
-    "HISTORIA MUNDIAL .csv",
-    "POLITICA INTERNACIONAL .csv"
-  ]
+﻿{
+    "flashcards":  {
+                       "BRASIL":  [
+                                      "HISTORIA DO BRASIL .csv"
+                                  ],
+                       "DIREITO":  [
+                                       "CONTITUCIONAL .csv",
+                                       "DIP.csv"
+                                   ],
+                       "ECONOMIA":  [
+                                        "ECONOMIA .csv"
+                                    ],
+                       "GEOGRAFIA":  [
+                                         "GEOGRAFIA .csv"
+                                     ],
+                       "HISTORIA":  [
+                                        "HISTORIA MUNDIAL .csv"
+                                    ],
+                       "INGLÊS":  [
+                                      "DICTIONARY OF DIPLOMACY  ing.csv",
+                                      "GRAMMAR ING ing.csv"
+                                  ],
+                       "INTERNACIONAL":  [
+                                             "POLITICA INTERNACIONAL .csv"
+                                         ],
+                       "PORTUGUÊS":  [
+                                         "LESSA PI  p.i.csv",
+                                         "LITERATURA BOSI port.csv",
+                                         "LITERATURA port.csv",
+                                         "PORTUGUES SINTAXE.csv"
+                                     ]
+                   },
+    "tps":  [
+                "TPS 2013.csv",
+                "TPS 2014.csv",
+                "tps 2015.csv",
+                "TPS 2016.csv",
+                "TPS 2017.csv",
+                "TPS 2018.csv",
+                "TPS 2019.csv",
+                "TPS 2021.csv",
+                "TPS 2022.csv",
+                "TPS 2023.csv",
+                "TPS 2024.csv",
+                "TPS 2025.csv",
+                "TPS 2026.csv",
+                "POLITICAINTERNACIONAL.csv",
+                "TPS  2025.1.csv",
+                "TPS 2026.1.csv",
+                "1001 DIP .csv",
+                "DIRIETO ADM .csv",
+                "1001 CONST.csv"
+            ],
+    "tps_conexoes":  [
+                         "CONTITUCIONAL .csv",
+                         "DIP.csv",
+                         "ECONOMIA .csv",
+                         "GEOGRAFIA .csv",
+                         "HISTORIA DO BRASIL .csv",
+                         "HISTORIA MUNDIAL .csv",
+                         "POLITICA INTERNACIONAL .csv"
+                     ]
 }
