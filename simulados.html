@@ -825,7 +825,7 @@
       else if (mode === 'randomN') {
         const n = parseInt(document.getElementById('customQtdInput').value, 10);
         if (!n || n < 1) { document.getElementById('customQtdInput').focus(); return; }
-        queue = shuffle(allQuestions).slice(0, Math.min(n, allQuestions.length));
+        queue = allQuestions.slice(0, Math.min(n, allQuestions.length));
       }
       else queue = [...allQuestions];
       currentIdx = 0; answers = []; sessionAIFlashcards = [];
