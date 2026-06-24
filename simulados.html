@@ -692,6 +692,7 @@
       document.getElementById('resumeMsg').textContent =
         `Você pausou na questão ${saved.idx + 1} de ${saved.totalQ || '?'} (${saved.savedAt || ''})`;
       document.getElementById('resumeInline').style.display = 'block';
+      document.getElementById('customQtdWrap').style.display = 'flex';
       document.getElementById('btnResumeContinue').onclick = () => {
         document.getElementById('resumeInline').style.display = 'none';
         const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
