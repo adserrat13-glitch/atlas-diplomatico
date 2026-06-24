@@ -305,23 +305,17 @@
         <div class="opt-box"><div class="opt-val" id="optCerto"></div><div class="opt-lbl">CERTO</div></div>
         <div class="opt-box"><div class="opt-val" id="optErrado"></div><div class="opt-lbl">ERRADO</div></div>
       </div>
-      <div id="resumeInline" style="display:none;margin-bottom:8px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center">
-        <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:12px;line-height:1.5"></div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:10px">
-          <button id="btnResumeContinue" style="background:#d4af37;color:#000;border:none;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">▶ Continuar todas</button>
-          <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:10px 18px;border-radius:8px;font-size:13px;cursor:pointer">Começar do zero</button>
-        </div>
-        <div style="font-size:12px;color:#9ca3af;margin-top:4px">Ou use o campo abaixo para definir quantas questões fazer a partir daqui ↓</div>
+      <div id="resumeInline" style="display:none;margin-bottom:16px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center">
+        <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:10px;line-height:1.5"></div>
+        <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer">Zerar progresso</button>
       </div>
       <div class="btns">
-        <button class="btn btn-primary" onclick="startSim('all')">Responder todas</button>
-        <button class="btn btn-secondary" onclick="startSim('random50')">50 aleatórias</button>
-        <button class="btn btn-secondary" onclick="startSim('random20')">20 aleatórias</button>
-        <div id="customQtdWrap" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
-          <input id="customQtdInput" type="number" min="1" placeholder="Fazer X questões seguidas"
-            style="width:190px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;text-align:center"
-            onkeydown="if(event.key==='Enter')startSim('seqN')">
-          <button class="btn btn-secondary" onclick="startSim('seqN')">▶ Iniciar</button>
+        <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
+          <input id="customQtdInput" type="number" min="1" placeholder="Quantas questões agora?"
+            style="width:200px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;text-align:center"
+            onkeydown="if(event.key==='Enter')startSeq()">
+          <button class="btn btn-secondary" onclick="startSeq()">▶ Iniciar</button>
         </div>
         <button class="btn btn-secondary" onclick="showView('viewLoader')">← Outro arquivo</button>
       </div>
@@ -660,77 +654,34 @@
       deckName = filename.replace(/\.csv$/i, '').trim();
       const progKey = 'sim_prog_' + deckName.replace(/\s+/g, '_');
       currentProgressKey = progKey;
-      // Busca local e remoto, usa o que tiver maior progresso
+      window._pendingSimText = text;
+      window._pendingSimFile = filename;
+      // Busca checkpoint local e remoto, usa o maior lastDone
       const localSaved = (() => { try { return JSON.parse(localStorage.getItem(progKey)); } catch { return null; } })();
       let remoteSaved = null;
       try { remoteSaved = await DB.getCheckpoint(deckName); } catch(e) {}
-      const remoteConverted = remoteSaved && remoteSaved.current_index > 0 ? {
-        idx: remoteSaved.current_index,
-        totalQ: remoteSaved.total_questions,
-        answers: remoteSaved.answers,
-        queueIds: remoteSaved.queue_ids,
-        mode: remoteSaved.mode,
-        savedAt: new Date(remoteSaved.saved_at).toLocaleString('pt-BR')
-      } : null;
-      // Prefere o mais avançado entre local e remoto
-      const localIdx = (localSaved && localSaved.idx) || 0;
-      const remoteIdx = (remoteConverted && remoteConverted.idx) || 0;
-      const best = remoteIdx >= localIdx ? remoteConverted : localSaved;
-      // guardamos o texto ANTES de showResumeBanner para o onclick ter acesso
-      window._pendingSimText = text;
-      window._pendingSimFile = filename;
-      if (best && best.idx > 0 && best.answers) {
-        localStorage.setItem(progKey, JSON.stringify(best));
-        showResumeBanner(best, filename);
-      } else {
-        currentProgressKey = null;
-        processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
-      }
+      const remoteLastDone = remoteSaved ? (remoteSaved.current_index || 0) : 0;
+      const localLastDone = localSaved ? (localSaved.lastDone || 0) : 0;
+      window._lastDone = Math.max(localLastDone, remoteLastDone);
+      // Sempre processa o CSV para popular allQuestions, depois showOptions mostra o banner
+      processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
     }
 
-    function showResumeBanner(saved, filename) {
-      window._resumeIdx = saved.idx; // índice de onde retomar
-      window._resumeSaved = saved;
-      document.getElementById('resumeMsg').textContent =
-        `Você pausou na questão ${saved.idx + 1} de ${saved.totalQ || '?'} (${saved.savedAt || ''})`;
-      document.getElementById('resumeInline').style.display = 'block';
-      document.getElementById('customQtdWrap').style.display = 'flex';
-      document.getElementById('btnResumeContinue').onclick = () => {
-        document.getElementById('resumeInline').style.display = 'none';
-        const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
-        processSimData(parsed, saved);
-      };
-      document.getElementById('btnResumeReset').onclick = () => {
-        document.getElementById('resumeInline').style.display = 'none';
-        window._resumeIdx = null; window._resumeSaved = null;
-        localStorage.removeItem(currentProgressKey);
-        DB.clearCheckpoint(deckName).catch(() => {});
-        processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
-      };
-      showView('viewOptions');
-    }
 
     function saveProgress() {
       if (!currentProgressKey) return;
       try {
-        const now = new Date();
-        const ts = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-        const progressData = {
-          idx: currentIdx,
-          totalQ: queue.length,
-          answers: answers,
-          queueIds: queue.map(q => allQuestions.indexOf(q)),
-          mode: window._currentSimMode || 'all',
-          savedAt: ts
-        };
-        localStorage.setItem(currentProgressKey, JSON.stringify(progressData));
+        const lastDone = (window._sessionStartIdx || 0) + currentIdx;
+        const ts = new Date().toLocaleString('pt-BR');
+        const data = { lastDone, totalQ: allQuestions.length, savedAt: ts };
+        localStorage.setItem(currentProgressKey, JSON.stringify(data));
         DB.saveCheckpoint({
           deck_name: deckName,
-          current_index: currentIdx,
-          total_questions: queue.length,
-          answers: answers,
-          queue_ids: progressData.queueIds,
-          mode: progressData.mode,
+          current_index: lastDone,
+          total_questions: allQuestions.length,
+          answers: [],
+          queue_ids: [],
+          mode: 'seq',
           timer_seconds: timerSecs || 0
         }).catch(() => {});
       } catch(e) { /* quota exceeded — ignore */ }
@@ -738,13 +689,12 @@
 
     function clearProgress() {
       if (!currentProgressKey) return;
-      clearTimeout(_cpDebounce);
       localStorage.removeItem(currentProgressKey);
-      if (isLongDeck) DB.clearCheckpoint(deckName).catch(() => {});
+      DB.clearCheckpoint(deckName).catch(() => {});
     }
 
     // ─── Data processing (with classification) ──────────────────────
-    function processSimData(rows, resumeState) {
+    function processSimData(rows) {
       allQuestions = []; sections = {};
       const collected = []; let currentSection = '';
       rows.forEach(row => {
@@ -762,29 +712,9 @@
         sections[i] = item.section;
         allQuestions.push({ ...item, ...cls });
       });
-      isLongDeck = allQuestions.length >= 250;
-      currentProgressKey = isLongDeck ? ('sim_prog_' + deckName.replace(/\s+/g, '_')) : null;
-      if (resumeState && isLongDeck) {
-        resumeProgress(resumeState);
-      } else {
-        showOptions();
-      }
-    }
-
-    function resumeProgress(saved) {
-      const ids = saved.queueIds || [];
-      queue = ids.map(i => allQuestions[i]).filter(Boolean);
-      if (!queue.length) { showOptions(); return; }
-      currentIdx = Math.min(saved.idx, queue.length);
-      answers = saved.answers || [];
-      window._currentSimMode = saved.mode || 'all';
-      sessionAIFlashcards = [];
-      timerSecs = 0; updateTimer();
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
-      showView('viewStudy');
-      document.getElementById('simDeck').textContent = deckName;
-      renderQuestion();
+      isLongDeck = true; // sempre salva checkpoint
+      currentProgressKey = 'sim_prog_' + deckName.replace(/\s+/g, '_');
+      showOptions();
     }
 
     function showView(id) {
@@ -815,65 +745,49 @@
       document.getElementById('optTotal').textContent = allQuestions.length;
       document.getElementById('optCerto').textContent = certos;
       document.getElementById('optErrado').textContent = allQuestions.length - certos;
-      document.getElementById('customQtdWrap').style.display = isLongDeck ? 'flex' : 'none';
+      const lastDone = window._lastDone || 0;
+      const total = allQuestions.length;
+      const resumeEl = document.getElementById('resumeInline');
+      const resetBtn = document.getElementById('btnResumeReset');
+      if (lastDone > 0 && lastDone < total) {
+        document.getElementById('resumeMsg').textContent =
+          `Progresso: ${lastDone} de ${total} questões concluídas — próxima sessão começa na questão ${lastDone + 1}`;
+        resumeEl.style.display = 'block';
+      } else if (lastDone >= total) {
+        document.getElementById('resumeMsg').textContent =
+          `✓ Todas as ${total} questões do deck foram concluídas!`;
+        resumeEl.style.display = 'block';
+      } else {
+        resumeEl.style.display = 'none';
+      }
+      resetBtn.onclick = () => {
+        window._lastDone = 0;
+        localStorage.removeItem(currentProgressKey);
+        DB.clearCheckpoint(deckName).catch(() => {});
+        resumeEl.style.display = 'none';
+      };
       showView('viewOptions');
     }
 
-    function startSim(mode) {
-      // Se allQuestions ainda não foi populado, processa o CSV sem iniciar (só preenche a lista)
-      if (!allQuestions.length && window._pendingSimText) {
-        const rows = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
-        const collected = []; let currentSection = '';
-        rows.forEach(row => {
-          const q = (row[0] || '').trim(), a = (row[1] || '').trim();
-          if (!q) return;
-          if (!a) { if (q.length <= 80) currentSection = q; return; }
-          const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
-          if (!ans) return;
-          collected.push({ q, correct: ans, section: currentSection });
-        });
-        const tpsClassify = makeTpsPositionalClassifier(deckName, collected.length);
-        collected.forEach((item, i) => {
-          const cls = tpsClassify ? tpsClassify(i, item.q) : classifyQuestion(item.q);
-          allQuestions.push({ ...item, ...cls });
-        });
-      }
-      if (mode === 'resumeN') {
-        const n = parseInt(document.getElementById('resumeQtdInput').value, 10);
-        if (!n || n < 1) { document.getElementById('resumeQtdInput').focus(); return; }
-        const startIdx = window._resumeIdx || 0;
-        const saved = window._resumeSaved;
-        const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
-        const limitedSaved = { ...saved, queueIds: saved.queueIds.slice(0, startIdx + n) };
-        document.getElementById('resumeInline').style.display = 'none';
-        processSimData(parsed, limitedSaved);
+    function startSeq(n) {
+      const lastDone = window._lastDone || 0;
+      const total = allQuestions.length;
+      if (lastDone >= total) {
+        alert('Todas as questões do deck foram concluídas! Clique em "Zerar progresso" para reiniciar.');
         return;
       }
-      else if (mode === 'seqN') {
-        // Parte de onde parou (ou do início) na ordem do CSV
-        const n = parseInt(document.getElementById('customQtdInput').value, 10);
+      if (n === undefined) {
+        // chamado pelo campo de input
+        n = parseInt(document.getElementById('customQtdInput').value, 10);
         if (!n || n < 1) { document.getElementById('customQtdInput').focus(); return; }
-        const startIdx = window._resumeIdx != null ? window._resumeIdx : 0;
-        const saved = window._resumeSaved;
-        if (saved && startIdx > 0) {
-          // Tem checkpoint — retoma de onde parou com limite de N questões
-          const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
-          const limitedSaved = { ...saved, queueIds: saved.queueIds.slice(0, startIdx + n) };
-          document.getElementById('resumeInline').style.display = 'none';
-          processSimData(parsed, limitedSaved);
-        } else {
-          // Sem checkpoint — começa do início com N questões em ordem
-          queue = allQuestions.slice(0, Math.min(n, allQuestions.length));
-          document.getElementById('resumeInline').style.display = 'none';
-        }
-        if (saved && startIdx > 0) return;
       }
-      else if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
-      else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
-      else queue = [...allQuestions];
+      // n === null significa "todas a partir de onde parou"
+      const end = (n === null) ? total : Math.min(lastDone + n, total);
+      queue = allQuestions.slice(lastDone, end);
+      if (!queue.length) { showOptions(); return; }
       currentIdx = 0; answers = []; sessionAIFlashcards = [];
-      window._currentSimMode = mode;
-      clearProgress();
+      window._currentSimMode = 'seq';
+      window._sessionStartIdx = lastDone;
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -913,7 +827,7 @@
         subjectLabel: q.subjectLabel, tags: q.tags || []
       });
       currentIdx++;
-      if (isLongDeck) saveProgress();
+      saveProgress();
       renderQuestion();
       if (!correct) showWrongPill(q);
     }
@@ -1040,7 +954,8 @@
 
     // ─── Summary ─────────────────────────────────────────────────────
     function showSummary() {
-      clearProgress();
+      // Atualiza _lastDone com o progresso desta sessão (checkpoint já foi salvo em saveProgress)
+      window._lastDone = (window._sessionStartIdx || 0) + answers.length;
       const total = answers.length;
       const correct = answers.filter(a => a.isCorrect).length;
       const wrong = total - correct;
@@ -1200,9 +1115,17 @@
     // ─── Exit & keyboard ─────────────────────────────────────────────
     function confirmExit() {
       clearInterval(timerInterval);
-      if (currentIdx > 0 && confirm('Sair? O progresso será perdido.')) showView('viewLoader');
-      else if (currentIdx === 0) showView('viewLoader');
-      else timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+      if (currentIdx > 0) {
+        if (confirm('Sair? O progresso desta sessão será salvo e você poderá continuar depois.')) {
+          // Progresso já foi salvo em saveProgress() após cada resposta — apenas volta
+          window._lastDone = (window._sessionStartIdx || 0) + currentIdx;
+          showView('viewLoader');
+        } else {
+          timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+        }
+      } else {
+        showView('viewLoader');
+      }
     }
 
     document.addEventListener('keydown', e => {
