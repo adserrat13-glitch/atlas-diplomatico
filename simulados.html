@@ -816,6 +816,10 @@
     }
 
     function startSim(mode) {
+      // Se allQuestions ainda não foi populado (checkpoint pendente), processa o CSV primeiro
+      if (!allQuestions.length && window._pendingSimText) {
+        processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
+      }
       if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
       else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
       else if (mode === 'randomN') {
