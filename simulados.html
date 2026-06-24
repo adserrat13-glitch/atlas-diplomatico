@@ -718,19 +718,15 @@
           savedAt: ts
         };
         localStorage.setItem(currentProgressKey, JSON.stringify(progressData));
-        // Sync no Supabase com debounce de 3s para não sobrecarregar a API
-        clearTimeout(_cpDebounce);
-        _cpDebounce = setTimeout(() => {
-          DB.saveCheckpoint({
-            deck_name: deckName,
-            current_index: currentIdx,
-            total_questions: queue.length,
-            answers: answers,
-            queue_ids: progressData.queueIds,
-            mode: progressData.mode,
-            timer_seconds: timerSecs || 0
-          }).catch(() => {});
-        }, 3000);
+        DB.saveCheckpoint({
+          deck_name: deckName,
+          current_index: currentIdx,
+          total_questions: queue.length,
+          answers: answers,
+          queue_ids: progressData.queueIds,
+          mode: progressData.mode,
+          timer_seconds: timerSecs || 0
+        }).catch(() => {});
       } catch(e) { /* quota exceeded — ignore */ }
     }
 
