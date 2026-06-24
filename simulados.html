@@ -311,22 +311,17 @@
           <button id="btnResumeContinue" style="background:#d4af37;color:#000;border:none;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">▶ Continuar todas</button>
           <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:10px 18px;border-radius:8px;font-size:13px;cursor:pointer">Começar do zero</button>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap">
-          <input id="resumeQtdInput" type="number" min="1" placeholder="Fazer X questões daqui"
-            style="width:180px;padding:9px 14px;border-radius:10px;border:1px solid #d4af37;background:var(--card);color:var(--text);font-size:14px;text-align:center"
-            onkeydown="if(event.key==='Enter')startSim('resumeN')">
-          <button id="btnResumeN" style="background:#d4af37;color:#000;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:none" onclick="startSim('resumeN')">▶ Continuar →</button>
-        </div>
+        <div style="font-size:12px;color:#9ca3af;margin-top:4px">Ou use o campo abaixo para definir quantas questões fazer a partir daqui ↓</div>
       </div>
       <div class="btns">
         <button class="btn btn-primary" onclick="startSim('all')">Responder todas</button>
         <button class="btn btn-secondary" onclick="startSim('random50')">50 aleatórias</button>
         <button class="btn btn-secondary" onclick="startSim('random20')">20 aleatórias</button>
         <div id="customQtdWrap" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
-          <input id="customQtdInput" type="number" min="1" placeholder="Qtd. de questões"
-            style="width:160px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;text-align:center"
-            onkeydown="if(event.key==='Enter')startSim('randomN')">
-          <button class="btn btn-secondary" onclick="startSim('randomN')">Aleatórias →</button>
+          <input id="customQtdInput" type="number" min="1" placeholder="Fazer X questões seguidas"
+            style="width:190px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;text-align:center"
+            onkeydown="if(event.key==='Enter')startSim('seqN')">
+          <button class="btn btn-secondary" onclick="startSim('seqN')">▶ Iniciar</button>
         </div>
         <button class="btn btn-secondary" onclick="showView('viewLoader')">← Outro arquivo</button>
       </div>
@@ -700,12 +695,6 @@
         `Você pausou na questão ${saved.idx + 1} de ${saved.totalQ || '?'} (${saved.savedAt || ''})`;
       document.getElementById('resumeInline').style.display = 'block';
       document.getElementById('customQtdWrap').style.display = 'flex';
-      // Mostra botão "Continuar →" ao digitar quantidade
-      const resumeInput = document.getElementById('resumeQtdInput');
-      const resumeBtn = document.getElementById('btnResumeN');
-      resumeInput.oninput = () => {
-        resumeBtn.style.display = resumeInput.value > 0 ? 'inline-block' : 'none';
-      };
       document.getElementById('btnResumeContinue').onclick = () => {
         document.getElementById('resumeInline').style.display = 'none';
         const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
@@ -854,20 +843,33 @@
         if (!n || n < 1) { document.getElementById('resumeQtdInput').focus(); return; }
         const startIdx = window._resumeIdx || 0;
         const saved = window._resumeSaved;
-        // Retoma o estado salvo com fila limitada a N questões a partir de onde parou
         const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
         const limitedSaved = { ...saved, queueIds: saved.queueIds.slice(0, startIdx + n) };
         document.getElementById('resumeInline').style.display = 'none';
         processSimData(parsed, limitedSaved);
         return;
       }
-      else if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
-      else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
-      else if (mode === 'randomN') {
+      else if (mode === 'seqN') {
+        // Parte de onde parou (ou do início) na ordem do CSV
         const n = parseInt(document.getElementById('customQtdInput').value, 10);
         if (!n || n < 1) { document.getElementById('customQtdInput').focus(); return; }
-        queue = allQuestions.slice(0, Math.min(n, allQuestions.length));
+        const startIdx = window._resumeIdx != null ? window._resumeIdx : 0;
+        const saved = window._resumeSaved;
+        if (saved && startIdx > 0) {
+          // Tem checkpoint — retoma de onde parou com limite de N questões
+          const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
+          const limitedSaved = { ...saved, queueIds: saved.queueIds.slice(0, startIdx + n) };
+          document.getElementById('resumeInline').style.display = 'none';
+          processSimData(parsed, limitedSaved);
+        } else {
+          // Sem checkpoint — começa do início com N questões em ordem
+          queue = allQuestions.slice(0, Math.min(n, allQuestions.length));
+          document.getElementById('resumeInline').style.display = 'none';
+        }
+        if (saved && startIdx > 0) return;
       }
+      else if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
+      else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
       else queue = [...allQuestions];
       currentIdx = 0; answers = []; sessionAIFlashcards = [];
       window._currentSimMode = mode;
