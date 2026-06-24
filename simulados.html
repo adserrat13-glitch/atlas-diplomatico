@@ -1167,15 +1167,8 @@
       const filePath = params.get('file');
       if (!filePath) return;
       try {
-        const res = await fetch(encodeURI(filePath));
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const buf = await res.arrayBuffer();
-        let text;
-        try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
-        catch { text = new TextDecoder('windows-1252').decode(buf); }
-        text = text.replace(/^﻿/, '');
-        deckName = decodeURIComponent(filePath.split('/').pop().replace(/\.csv$/i, '').trim());
-        processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
+        const filename = decodeURIComponent(filePath.split('/').pop());
+        await loadSimFromPath(filename);
       } catch(e) { console.warn('Auto-load falhou:', e); }
     })();
   </script>
