@@ -831,9 +831,23 @@
     }
 
     function startSim(mode) {
-      // Se allQuestions ainda não foi populado (checkpoint pendente), processa o CSV primeiro
+      // Se allQuestions ainda não foi populado, processa o CSV sem iniciar (só preenche a lista)
       if (!allQuestions.length && window._pendingSimText) {
-        processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
+        const rows = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
+        const collected = []; let currentSection = '';
+        rows.forEach(row => {
+          const q = (row[0] || '').trim(), a = (row[1] || '').trim();
+          if (!q) return;
+          if (!a) { if (q.length <= 80) currentSection = q; return; }
+          const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
+          if (!ans) return;
+          collected.push({ q, correct: ans, section: currentSection });
+        });
+        const tpsClassify = makeTpsPositionalClassifier(deckName, collected.length);
+        collected.forEach((item, i) => {
+          const cls = tpsClassify ? tpsClassify(i, item.q) : classifyQuestion(item.q);
+          allQuestions.push({ ...item, ...cls });
+        });
       }
       if (mode === 'resumeN') {
         const n = parseInt(document.getElementById('resumeQtdInput').value, 10);
