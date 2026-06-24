@@ -277,18 +277,8 @@
   </nav>
 
   <main>
-    <!-- RESUME BANNER -->
-    <div id="resumeBanner" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);align-items:center;justify-content:center;">
-      <div style="background:#1a1d24;border:1px solid #2a2f3a;border-radius:16px;padding:28px 32px;max-width:420px;width:90%;text-align:center;">
-        <div style="font-size:28px;margin-bottom:12px">📌</div>
-        <div style="font-size:16px;font-weight:700;color:#e5e7eb;margin-bottom:8px">Progresso salvo</div>
-        <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:24px;line-height:1.5"></div>
-        <div style="display:flex;gap:12px;justify-content:center;">
-          <button id="btnResumeContinue" style="background:#d4af37;color:#000;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">▶ Continuar</button>
-          <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer">Começar do zero</button>
-        </div>
-      </div>
-    </div>
+    <!-- RESUME BANNER (inline, dentro da tela de opções) -->
+    <div id="resumeBanner" style="display:none"></div>
 
     <!-- LOADER -->
     <div class="view active" id="viewLoader">
@@ -314,6 +304,13 @@
         <div class="opt-box"><div class="opt-val" id="optTotal"></div><div class="opt-lbl">Questões</div></div>
         <div class="opt-box"><div class="opt-val" id="optCerto"></div><div class="opt-lbl">CERTO</div></div>
         <div class="opt-box"><div class="opt-val" id="optErrado"></div><div class="opt-lbl">ERRADO</div></div>
+      </div>
+      <div id="resumeInline" style="display:none;margin-bottom:8px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center">
+        <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:12px;line-height:1.5"></div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button id="btnResumeContinue" style="background:#d4af37;color:#000;border:none;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">▶ Continuar de onde parei</button>
+          <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:10px 18px;border-radius:8px;font-size:13px;cursor:pointer">Começar do zero</button>
+        </div>
       </div>
       <div class="btns">
         <button class="btn btn-primary" onclick="startSim('all')">Responder todas</button>
@@ -692,17 +689,16 @@
     }
 
     function showResumeBanner(saved, filename) {
-      const banner = document.getElementById('resumeBanner');
       document.getElementById('resumeMsg').textContent =
-        `"${deckName}" — você pausou na questão ${saved.idx + 1} de ${saved.totalQ || '?'} (${saved.savedAt || ''})`;
-      banner.style.display = 'flex';
+        `Você pausou na questão ${saved.idx + 1} de ${saved.totalQ || '?'} (${saved.savedAt || ''})`;
+      document.getElementById('resumeInline').style.display = 'block';
       document.getElementById('btnResumeContinue').onclick = () => {
-        banner.style.display = 'none';
+        document.getElementById('resumeInline').style.display = 'none';
         const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
         processSimData(parsed, saved);
       };
       document.getElementById('btnResumeReset').onclick = () => {
-        banner.style.display = 'none';
+        document.getElementById('resumeInline').style.display = 'none';
         localStorage.removeItem(currentProgressKey);
         DB.clearCheckpoint(deckName).catch(() => {});
         processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
