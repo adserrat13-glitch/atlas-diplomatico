@@ -141,12 +141,48 @@ textarea:focus{outline:none;border-color:var(--blue)}
         <button class="btn btn-primary" onclick="gerarQuestoes()" style="padding:6px 14px;font-size:11px">Gerar</button>
       </div>
     </div>
+    <!-- progress bar -->
+    <div id="qProgress" style="display:none;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span style="font-size:12px;color:var(--muted2)" id="qProgressLabel">Questão 1 de 5</span>
+        <span style="font-size:12px;color:var(--gold)" id="qProgressScore">0 acertos</span>
+      </div>
+      <div style="background:var(--border);border-radius:4px;height:6px">
+        <div id="qProgressBar" style="height:6px;border-radius:4px;background:var(--gold);transition:.3s;width:0%"></div>
+      </div>
+    </div>
+    <!-- texto-base -->
     <div id="qSourceText" style="display:none;margin-bottom:16px">
       <div style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Texto-base</div>
       <div id="qSourceTextContent" style="font-size:14px;line-height:1.75;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;white-space:pre-wrap"></div>
     </div>
+    <!-- questão atual (uma por vez) -->
     <div id="qList"></div>
-    <div id="qScore" style="display:none;margin-top:16px;padding:14px;background:rgba(52,211,153,.08);border:1px solid var(--green);border-radius:10px;font-size:14px;font-weight:700;color:var(--green)"></div>
+    <!-- gabarito final -->
+    <div id="qGabarito" style="display:none"></div>
+    <!-- placar final -->
+    <div id="qScore" style="display:none;margin-top:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">Prática Concluída</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:26px;font-weight:900;color:var(--blue)" id="qResTotal">0</div>
+          <div style="font-size:10px;color:var(--muted2);text-transform:uppercase;margin-top:2px">Questões</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:26px;font-weight:900;color:var(--green)" id="qResCorrect">0</div>
+          <div style="font-size:10px;color:var(--muted2);text-transform:uppercase;margin-top:2px">Acertos</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:26px;font-weight:900;color:var(--red)" id="qResWrong">0</div>
+          <div style="font-size:10px;color:var(--muted2);text-transform:uppercase;margin-top:2px">Erros</div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-size:26px;font-weight:900" id="qResAcc">0%</div>
+          <div style="font-size:10px;color:var(--muted2);text-transform:uppercase;margin-top:2px">Aproveitamento</div>
+        </div>
+      </div>
+      <button onclick="resetCespe()" style="padding:9px 22px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Nova Prática</button>
+    </div>
   </div>
 
   <div id="exercisePanel" class="panel hidden">
@@ -300,7 +336,9 @@ function renderFeedback(fb){
 
 // ── Questões CESPE ──────────────────────────────────────────────────────────
 let QUESTOES_ATUAL = [];
-let RESPOSTAS = {};
+let CESPE_IDX = 0;
+let CESPE_ACERTOS = 0;
+let CESPE_RESPOSTAS = [];
 let CESPE_MODE = 'isolated';
 let CESPE_DIFF = 'cacd';
 
@@ -312,9 +350,14 @@ async function gerarQuestoes(){
   CESPE_DIFF = difficulty;
 
   QUESTOES_ATUAL = [];
-  RESPOSTAS = {};
+  CESPE_IDX = 0;
+  CESPE_ACERTOS = 0;
+  CESPE_RESPOSTAS = [];
+
   document.getElementById('qList').innerHTML = '';
+  document.getElementById('qGabarito').style.display = 'none';
   document.getElementById('qScore').style.display = 'none';
+  document.getElementById('qProgress').style.display = 'none';
   document.getElementById('qSourceText').style.display = 'none';
   setStatus(loadingHTML('Gerando questões no padrão CESPE/CEBRASPE...'));
 
@@ -328,97 +371,134 @@ async function gerarQuestoes(){
       document.getElementById('qSourceText').style.display = 'block';
     }
 
-    renderQuestoes(QUESTOES_ATUAL);
+    document.getElementById('qProgress').style.display = 'block';
+    renderQuestaoAtual();
   }catch(e){
     setStatus(errHTML('Não foi possível gerar questões: '+e.message));
   }
 }
 
-function renderQuestoes(qs){
-  const list = document.getElementById('qList');
-  list.innerHTML = qs.map((q,i) => `
-    <div class="q-card" id="qcard-${i}" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px">
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <span style="font-size:11px;font-weight:700;color:var(--muted2);min-width:22px;padding-top:2px">${i+1}.</span>
-        <div style="flex:1">
-          <p style="font-size:14px;line-height:1.65;margin-bottom:12px">${esc(q.statement)}</p>
-          <div style="display:flex;gap:8px">
-            <button onclick="responder(${i}, true)"  class="q-btn" id="qbtn-${i}-true"
-              style="padding:7px 18px;border-radius:8px;border:1px solid var(--green);background:rgba(52,211,153,.08);color:var(--green);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s">
-              CERTO
-            </button>
-            <button onclick="responder(${i}, false)" class="q-btn" id="qbtn-${i}-false"
-              style="padding:7px 18px;border-radius:8px;border:1px solid var(--red);background:rgba(248,113,113,.08);color:var(--red);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s">
-              ERRADO
-            </button>
-          </div>
-          <div id="qfeedback-${i}" style="display:none;margin-top:12px"></div>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function responder(idx, escolha){
-  if(RESPOSTAS[idx] !== undefined) return;
-  RESPOSTAS[idx] = escolha;
-
-  const q = QUESTOES_ATUAL[idx];
-  const acertou = escolha === q.answer;
-  const corBorda = acertou ? 'var(--green)' : 'var(--red)';
-  const icone = acertou ? '✓' : '✗';
-
-  const card = document.getElementById('qcard-'+idx);
-  card.style.borderColor = corBorda;
-
-  ['true','false'].forEach(v => {
-    const btn = document.getElementById(`qbtn-${idx}-${v}`);
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
-    btn.style.cursor = 'default';
-  });
-  const chosenBtn = document.getElementById(`qbtn-${idx}-${escolha}`);
-  chosenBtn.style.opacity = '1';
-  chosenBtn.style.filter = acertou ? 'brightness(1.3)' : 'brightness(1.3)';
-  chosenBtn.style.borderWidth = '2px';
-
-  const gabarito = q.answer ? 'CERTO' : 'ERRADO';
-  const fb = document.getElementById('qfeedback-'+idx);
-  fb.style.display = 'block';
-  fb.innerHTML = `
-    <div style="padding:12px;border-radius:8px;background:${acertou?'rgba(52,211,153,.08)':'rgba(248,113,113,.08)'};border:1px solid ${corBorda}">
-      <div style="font-size:13px;font-weight:800;color:${corBorda};margin-bottom:6px">${icone} ${acertou?'CORRETO':'INCORRETO'} — Gabarito: ${gabarito}${q.is_trap?' 🪤 PEGADINHA':''}</div>
-      <div style="font-size:13px;line-height:1.6;color:var(--text)">${esc(q.explanation)}</div>
-      ${q.linguistic_justification?`<div style="font-size:12px;color:var(--muted2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">📐 ${esc(q.linguistic_justification)}</div>`:''}
-    </div>`;
-
-  if(Object.keys(RESPOSTAS).length === QUESTOES_ATUAL.length) mostrarPlacar();
-}
-
-function mostrarPlacar(){
-  const acertos = QUESTOES_ATUAL.filter((q,i) => RESPOSTAS[i] === q.answer).length;
+function renderQuestaoAtual(){
   const total = QUESTOES_ATUAL.length;
-  const pct = Math.round(acertos/total*100);
-  DB.addCespeSession({
-    lang: 'en',
-    mode: CESPE_MODE,
-    difficulty: CESPE_DIFF,
-    total_questions: total,
-    correct_count: acertos,
-    score: pct,
-    questions_data: QUESTOES_ATUAL,
-    user_answers: RESPOSTAS,
-  }).catch(() => {});
-  const scoreEl = document.getElementById('qScore');
-  scoreEl.style.display = 'block';
-  scoreEl.style.borderColor = pct>=70?'var(--green)':'var(--red)';
-  scoreEl.style.color = pct>=70?'var(--green)':'var(--red)';
-  scoreEl.style.background = pct>=70?'rgba(52,211,153,.08)':'rgba(248,113,113,.08)';
-  scoreEl.innerHTML = `${iconeScore(pct)} ${acertos}/${total} corretas (${pct}%) — ${pct>=70?'Aprovado!':'Continue praticando'}
-    <button onclick="gerarQuestoes()" style="margin-left:14px;padding:5px 14px;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Nova rodada</button>`;
-  scoreEl.scrollIntoView({behavior:'smooth'});
+  if(CESPE_IDX >= total){ finalizarCespe(); return; }
+
+  const q = QUESTOES_ATUAL[CESPE_IDX];
+  document.getElementById('qProgressLabel').textContent = `Questão ${CESPE_IDX+1} de ${total}`;
+  document.getElementById('qProgressScore').textContent = `${CESPE_ACERTOS} acerto${CESPE_ACERTOS!==1?'s':''}`;
+  document.getElementById('qProgressBar').style.width = `${(CESPE_IDX/total)*100}%`;
+
+  const diffColors = {cacd:'var(--gold)',hard:'var(--red)',medium:'var(--amber)',easy:'var(--green)'};
+  const diffLabels = {cacd:'CACD',hard:'Difícil',medium:'Médio',easy:'Fácil'};
+  const cor = diffColors[q.difficulty]||'var(--muted)';
+
+  document.getElementById('qList').innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.25)">INGLÊS CACD</span>
+        <span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid ${cor}33;color:${cor};background:${cor}15">${diffLabels[q.difficulty]||q.difficulty}</span>
+        ${q.is_trap?'<span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.25)">🪤 PEGADINHA</span>':''}
+        ${q.category?`<span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:rgba(255,255,255,.05);color:var(--muted2);border:1px solid var(--border)">${esc(q.category)}</span>`:''}
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted2);margin-bottom:8px">Questão ${CESPE_IDX+1} de ${total}</div>
+      <p style="font-size:14px;line-height:1.75;margin-bottom:20px;color:var(--text)">${esc(q.statement)}</p>
+      <div style="display:flex;gap:10px" id="qActions">
+        <button onclick="responderCespe(true)"
+          style="padding:10px 24px;border-radius:10px;border:1px solid var(--green);background:rgba(52,211,153,.1);color:var(--green);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;flex:1">
+          CERTO
+        </button>
+        <button onclick="responderCespe(false)"
+          style="padding:10px 24px;border-radius:10px;border:1px solid var(--red);background:rgba(248,113,113,.1);color:var(--red);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;flex:1">
+          ERRADO
+        </button>
+      </div>
+    </div>`;
 }
 
-function iconeScore(p){ if(p>=90) return '🏆'; if(p>=70) return '✅'; if(p>=50) return '⚠️'; return '❌'; }
+function responderCespe(escolha){
+  const q = QUESTOES_ATUAL[CESPE_IDX];
+  const acertou = escolha === q.answer;
+  if(acertou) CESPE_ACERTOS++;
+  CESPE_RESPOSTAS.push({q, userAnswer: escolha, acertou});
+
+  const cor = acertou ? 'var(--green)' : 'var(--red)';
+  const bg  = acertou ? 'rgba(52,211,153,.08)' : 'rgba(248,113,113,.08)';
+  const gabarito = q.answer ? 'CERTO' : 'ERRADO';
+
+  document.getElementById('qActions').innerHTML = `
+    <div style="width:100%;padding:14px;border-radius:8px;background:${bg};border:1px solid ${cor}">
+      <div style="font-size:13px;font-weight:800;color:${cor};margin-bottom:6px">
+        ${acertou?'✓ CORRETO':'✗ INCORRETO'} — Gabarito: ${gabarito}${q.is_trap?' 🪤':''}
+      </div>
+      <div style="font-size:13px;line-height:1.6;color:var(--text)">${esc(q.explanation||'')}</div>
+      ${q.linguistic_justification?`<div style="font-size:12px;color:var(--muted2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">📐 ${esc(q.linguistic_justification)}</div>`:''}
+      <button onclick="proximaCespe()" style="margin-top:14px;padding:8px 22px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">
+        ${CESPE_IDX+1 < QUESTOES_ATUAL.length ? 'Próxima →' : 'Ver Gabarito'}
+      </button>
+    </div>`;
+}
+
+function proximaCespe(){
+  CESPE_IDX++;
+  renderQuestaoAtual();
+}
+
+function finalizarCespe(){
+  const total = QUESTOES_ATUAL.length;
+  const pct = Math.round(CESPE_ACERTOS/total*100);
+  const accColor = pct>=85?'var(--green)':pct>=60?'var(--amber)':'var(--red)';
+
+  // Salvar no Supabase
+  const respostasMap = {};
+  CESPE_RESPOSTAS.forEach((r,i) => respostasMap[i] = r.userAnswer);
+  DB.addCespeSession({
+    lang: 'en', mode: CESPE_MODE, difficulty: CESPE_DIFF,
+    total_questions: total, correct_count: CESPE_ACERTOS,
+    score: pct, questions_data: QUESTOES_ATUAL, user_answers: respostasMap,
+  }).catch(()=>{});
+
+  // Placar
+  document.getElementById('qList').innerHTML = '';
+  document.getElementById('qProgress').style.display = 'none';
+  document.getElementById('qProgressBar').style.width = '100%';
+  document.getElementById('qResTotal').textContent = total;
+  document.getElementById('qResCorrect').textContent = CESPE_ACERTOS;
+  document.getElementById('qResWrong').textContent = total - CESPE_ACERTOS;
+  document.getElementById('qResAcc').textContent = pct+'%';
+  document.getElementById('qResAcc').style.color = accColor;
+  document.getElementById('qScore').style.display = 'block';
+
+  // Gabarito completo
+  document.getElementById('qGabarito').style.display = 'block';
+  document.getElementById('qGabarito').innerHTML = `
+    <div style="font-size:11px;color:var(--muted2);letter-spacing:.8px;text-transform:uppercase;margin:20px 0 12px">Gabarito Completo</div>
+    ${CESPE_RESPOSTAS.map((r,i)=>{
+      const cor = r.acertou ? 'var(--green)' : 'var(--red)';
+      const bg  = r.acertou ? 'rgba(52,211,153,.06)' : 'rgba(248,113,113,.06)';
+      const gabarito = r.q.answer ? 'CERTO' : 'ERRADO';
+      return `<div style="background:var(--surface);border:1px solid ${r.acertou?'rgba(52,211,153,.25)':'rgba(248,113,113,.25)'};border-radius:10px;padding:16px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:18px;font-weight:900;color:${cor};min-width:26px">${r.acertou?'✓':'✗'}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--muted2)">Questão ${i+1}</span>
+          <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;background:${bg};color:${cor};border:1px solid ${cor}33">Gabarito: ${gabarito}</span>
+          ${r.q.is_trap?'<span style="font-size:10px;color:var(--red)">🪤 PEGADINHA</span>':''}
+        </div>
+        <p style="font-size:13px;line-height:1.65;color:var(--muted);margin-bottom:10px">${esc(r.q.statement)}</p>
+        <div style="font-size:12px;line-height:1.6;color:var(--text)">${esc(r.q.explanation||'')}</div>
+        ${r.q.linguistic_justification?`<div style="font-size:11px;color:var(--muted2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">📐 ${esc(r.q.linguistic_justification)}</div>`:''}
+      </div>`;
+    }).join('')}`;
+
+  document.getElementById('qScore').scrollIntoView({behavior:'smooth'});
+}
+
+function resetCespe(){
+  QUESTOES_ATUAL=[]; CESPE_IDX=0; CESPE_ACERTOS=0; CESPE_RESPOSTAS=[];
+  document.getElementById('qList').innerHTML='';
+  document.getElementById('qGabarito').style.display='none';
+  document.getElementById('qScore').style.display='none';
+  document.getElementById('qProgress').style.display='none';
+  document.getElementById('qSourceText').style.display='none';
+}
 // ── fim Questões CESPE ───────────────────────────────────────────────────────
 
 (async()=>{
