@@ -307,9 +307,15 @@
       </div>
       <div id="resumeInline" style="display:none;margin-bottom:8px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center">
         <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:12px;line-height:1.5"></div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button id="btnResumeContinue" style="background:#d4af37;color:#000;border:none;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">▶ Continuar de onde parei</button>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:10px">
+          <button id="btnResumeContinue" style="background:#d4af37;color:#000;border:none;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">▶ Continuar todas</button>
           <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:10px 18px;border-radius:8px;font-size:13px;cursor:pointer">Começar do zero</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap">
+          <input id="resumeQtdInput" type="number" min="1" placeholder="Fazer X questões daqui"
+            style="width:180px;padding:9px 14px;border-radius:10px;border:1px solid #d4af37;background:var(--card);color:var(--text);font-size:14px;text-align:center"
+            onkeydown="if(event.key==='Enter')startSim('resumeN')">
+          <button id="btnResumeN" style="background:#d4af37;color:#000;border:none;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:none" onclick="startSim('resumeN')">▶ Continuar →</button>
         </div>
       </div>
       <div class="btns">
@@ -688,10 +694,18 @@
     }
 
     function showResumeBanner(saved, filename) {
+      window._resumeIdx = saved.idx; // índice de onde retomar
+      window._resumeSaved = saved;
       document.getElementById('resumeMsg').textContent =
         `Você pausou na questão ${saved.idx + 1} de ${saved.totalQ || '?'} (${saved.savedAt || ''})`;
       document.getElementById('resumeInline').style.display = 'block';
       document.getElementById('customQtdWrap').style.display = 'flex';
+      // Mostra botão "Continuar →" ao digitar quantidade
+      const resumeInput = document.getElementById('resumeQtdInput');
+      const resumeBtn = document.getElementById('btnResumeN');
+      resumeInput.oninput = () => {
+        resumeBtn.style.display = resumeInput.value > 0 ? 'inline-block' : 'none';
+      };
       document.getElementById('btnResumeContinue').onclick = () => {
         document.getElementById('resumeInline').style.display = 'none';
         const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
@@ -699,6 +713,7 @@
       };
       document.getElementById('btnResumeReset').onclick = () => {
         document.getElementById('resumeInline').style.display = 'none';
+        window._resumeIdx = null; window._resumeSaved = null;
         localStorage.removeItem(currentProgressKey);
         DB.clearCheckpoint(deckName).catch(() => {});
         processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
@@ -820,7 +835,19 @@
       if (!allQuestions.length && window._pendingSimText) {
         processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
       }
-      if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
+      if (mode === 'resumeN') {
+        const n = parseInt(document.getElementById('resumeQtdInput').value, 10);
+        if (!n || n < 1) { document.getElementById('resumeQtdInput').focus(); return; }
+        const startIdx = window._resumeIdx || 0;
+        const saved = window._resumeSaved;
+        // Retoma o estado salvo com fila limitada a N questões a partir de onde parou
+        const parsed = Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data;
+        const limitedSaved = { ...saved, queueIds: saved.queueIds.slice(0, startIdx + n) };
+        document.getElementById('resumeInline').style.display = 'none';
+        processSimData(parsed, limitedSaved);
+        return;
+      }
+      else if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
       else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
       else if (mode === 'randomN') {
         const n = parseInt(document.getElementById('customQtdInput').value, 10);
