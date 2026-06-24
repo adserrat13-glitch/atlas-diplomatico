@@ -177,6 +177,44 @@ const DB = {
     return data;
   },
 
+  // ── SIMULADO CHECKPOINTS ─────────────────────────────────────────────
+
+  async saveCheckpoint({ deck_name, current_index, total_questions, answers, queue_ids, mode, timer_seconds }) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('simulado_checkpoints').upsert({
+      user_id: user.id,
+      deck_name,
+      current_index,
+      total_questions,
+      answers,
+      queue_ids,
+      mode,
+      timer_seconds,
+      saved_at: new Date().toISOString()
+    }, { onConflict: 'user_id,deck_name' });
+  },
+
+  async getCheckpoint(deck_name) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const { data } = await _sb.from('simulado_checkpoints')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('deck_name', deck_name)
+      .maybeSingle();
+    return data;
+  },
+
+  async clearCheckpoint(deck_name) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('simulado_checkpoints')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('deck_name', deck_name);
+  },
+
   // ── CARD STATUS ─────────────────────────────────────────────────────
 
   /** Returns map: { question: {status, reviews} } for a deck */

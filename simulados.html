@@ -407,6 +407,7 @@
     const flashcardCache = {};
     let isLongDeck = false;
     let currentProgressKey = null;
+    let _cpDebounce = null;
 
     // ─── Subject classification ──────────────────────────────────────
     const SUBJECT_RULES = [
@@ -654,13 +655,30 @@
       text = text.replace(/^﻿/, '');
       deckName = filename.replace(/\.csv$/i, '').trim();
       const progKey = 'sim_prog_' + deckName.replace(/\s+/g, '_');
-      const saved = (() => { try { return JSON.parse(localStorage.getItem(progKey)); } catch { return null; } })();
-      if (saved && saved.idx > 0 && saved.answers) {
+      const localSaved = (() => { try { return JSON.parse(localStorage.getItem(progKey)); } catch { return null; } })();
+      if (localSaved && localSaved.idx > 0 && localSaved.answers) {
         currentProgressKey = progKey;
-        showResumeBanner(saved, filename);
+        showResumeBanner(localSaved, filename);
       } else {
-        currentProgressKey = null;
-        processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
+        // Tenta recuperar checkpoint do Supabase (persiste entre dispositivos/sessões)
+        currentProgressKey = progKey;
+        let remoteSaved = null;
+        try { remoteSaved = await DB.getCheckpoint(deckName); } catch(e) {}
+        if (remoteSaved && remoteSaved.current_index > 0 && remoteSaved.answers) {
+          const saved = {
+            idx: remoteSaved.current_index,
+            totalQ: remoteSaved.total_questions,
+            answers: remoteSaved.answers,
+            queueIds: remoteSaved.queue_ids,
+            mode: remoteSaved.mode,
+            savedAt: new Date(remoteSaved.saved_at).toLocaleString('pt-BR')
+          };
+          localStorage.setItem(progKey, JSON.stringify(saved));
+          showResumeBanner(saved, filename);
+        } else {
+          currentProgressKey = null;
+          processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
+        }
       }
       // guardamos o texto para uso no resume
       window._pendingSimText = text;
@@ -680,6 +698,7 @@
       document.getElementById('btnResumeReset').onclick = () => {
         banner.style.display = 'none';
         localStorage.removeItem(currentProgressKey);
+        DB.clearCheckpoint(deckName).catch(() => {});
         processSimData(Papa.parse(window._pendingSimText, {delimiter:';', skipEmptyLines:true}).data);
       };
       showView('viewOptions');
@@ -690,19 +709,36 @@
       try {
         const now = new Date();
         const ts = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-        localStorage.setItem(currentProgressKey, JSON.stringify({
+        const progressData = {
           idx: currentIdx,
           totalQ: queue.length,
           answers: answers,
           queueIds: queue.map(q => allQuestions.indexOf(q)),
           mode: window._currentSimMode || 'all',
           savedAt: ts
-        }));
+        };
+        localStorage.setItem(currentProgressKey, JSON.stringify(progressData));
+        // Sync no Supabase com debounce de 3s para não sobrecarregar a API
+        clearTimeout(_cpDebounce);
+        _cpDebounce = setTimeout(() => {
+          DB.saveCheckpoint({
+            deck_name: deckName,
+            current_index: currentIdx,
+            total_questions: queue.length,
+            answers: answers,
+            queue_ids: progressData.queueIds,
+            mode: progressData.mode,
+            timer_seconds: timerSecs || 0
+          }).catch(() => {});
+        }, 3000);
       } catch(e) { /* quota exceeded — ignore */ }
     }
 
     function clearProgress() {
-      if (currentProgressKey) localStorage.removeItem(currentProgressKey);
+      if (!currentProgressKey) return;
+      clearTimeout(_cpDebounce);
+      localStorage.removeItem(currentProgressKey);
+      if (isLongDeck) DB.clearCheckpoint(deckName).catch(() => {});
     }
 
     // ─── Data processing (with classification) ──────────────────────
