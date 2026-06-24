@@ -320,6 +320,40 @@ const DB = {
     return data || [];
   },
 
+  // ── IDIOMAS CESPE (Questões Certo/Errado) ───────────────────────────
+
+  async addCespeSession(session) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await _sb.from('idiomas_cespe_sessions').insert({
+      user_id:         user.id,
+      lang:            session.lang,
+      mode:            session.mode,
+      difficulty:      session.difficulty,
+      total_questions: session.total_questions,
+      correct_count:   session.correct_count,
+      score:           session.score,
+      questions_data:  session.questions_data,
+      user_answers:    session.user_answers,
+    }).select().single();
+    if (!error) {
+      await _sb.rpc('upsert_activity', { p_user_id: user.id, p_date: today });
+    }
+    return data;
+  },
+
+  async getCespeSessions(lang = null) {
+    const user = await this.getUser();
+    if (!user) return [];
+    let q = _sb.from('idiomas_cespe_sessions')
+      .select('*')
+      .eq('user_id', user.id);
+    if (lang) q = q.eq('lang', lang);
+    const { data } = await q.order('created_at', { ascending: false }).limit(200);
+    return data || [];
+  },
+
   // ── REVIEWED ITEMS ──────────────────────────────────────────────────
 
   async getReviewed() {

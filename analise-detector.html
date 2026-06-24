@@ -203,7 +203,7 @@
       // meta 70%
       const dates = _sessions.map(s=>s.date).sort();
       if (dates.length) {
-        datasets.push({ label:'Meta 70%', data:[{x:dates[0],y:70},{x:dates[dates.length-1],y:70}],
+        datasets.push({ label:'Meta 85%', data:[{x:dates[0],y:85},{x:dates[dates.length-1],y:85}],
           borderColor:'#facc1550', borderDash:[6,4], borderWidth:1.5, pointRadius:0, fill:false });
       }
       if (_chartEv) _chartEv.destroy();
@@ -312,7 +312,7 @@
       const el = document.getElementById('histWrap');
       if (!_sessions.length) { el.innerHTML='<div class="empty">Nenhuma sessão ainda. Acesse o Detector e complete um tópico!</div>'; return; }
       const rows = _sessions.slice(0,30).map(s=>{
-        const p=pct(s); const cls=p>=70?'hi':p>=50?'mid':'lo';
+        const p=pct(s); const cls=p>=85?'hi':p>=50?'mid':'lo';
         const subj=SMAP[s.subject]; const dateStr=new Date(s.date).toLocaleDateString('pt-BR');
         return `<tr>
           <td style="color:${subj?.color||'#888'}">${subj?.icon||''} ${subj?.name||s.subject||'—'}</td>
