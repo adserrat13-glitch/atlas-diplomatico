@@ -675,6 +675,9 @@
       const localIdx = (localSaved && localSaved.idx) || 0;
       const remoteIdx = (remoteConverted && remoteConverted.idx) || 0;
       const best = remoteIdx >= localIdx ? remoteConverted : localSaved;
+      // guardamos o texto ANTES de showResumeBanner para o onclick ter acesso
+      window._pendingSimText = text;
+      window._pendingSimFile = filename;
       if (best && best.idx > 0 && best.answers) {
         localStorage.setItem(progKey, JSON.stringify(best));
         showResumeBanner(best, filename);
@@ -682,9 +685,6 @@
         currentProgressKey = null;
         processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
       }
-      // guardamos o texto para uso no resume
-      window._pendingSimText = text;
-      window._pendingSimFile = filename;
     }
 
     function showResumeBanner(saved, filename) {
