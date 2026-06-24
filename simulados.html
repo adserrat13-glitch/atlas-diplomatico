@@ -658,30 +658,29 @@
       text = text.replace(/^﻿/, '');
       deckName = filename.replace(/\.csv$/i, '').trim();
       const progKey = 'sim_prog_' + deckName.replace(/\s+/g, '_');
+      currentProgressKey = progKey;
+      // Busca local e remoto, usa o que tiver maior progresso
       const localSaved = (() => { try { return JSON.parse(localStorage.getItem(progKey)); } catch { return null; } })();
-      if (localSaved && localSaved.idx > 0 && localSaved.answers) {
-        currentProgressKey = progKey;
-        showResumeBanner(localSaved, filename);
+      let remoteSaved = null;
+      try { remoteSaved = await DB.getCheckpoint(deckName); } catch(e) {}
+      const remoteConverted = remoteSaved && remoteSaved.current_index > 0 ? {
+        idx: remoteSaved.current_index,
+        totalQ: remoteSaved.total_questions,
+        answers: remoteSaved.answers,
+        queueIds: remoteSaved.queue_ids,
+        mode: remoteSaved.mode,
+        savedAt: new Date(remoteSaved.saved_at).toLocaleString('pt-BR')
+      } : null;
+      // Prefere o mais avançado entre local e remoto
+      const localIdx = (localSaved && localSaved.idx) || 0;
+      const remoteIdx = (remoteConverted && remoteConverted.idx) || 0;
+      const best = remoteIdx >= localIdx ? remoteConverted : localSaved;
+      if (best && best.idx > 0 && best.answers) {
+        localStorage.setItem(progKey, JSON.stringify(best));
+        showResumeBanner(best, filename);
       } else {
-        // Tenta recuperar checkpoint do Supabase (persiste entre dispositivos/sessões)
-        currentProgressKey = progKey;
-        let remoteSaved = null;
-        try { remoteSaved = await DB.getCheckpoint(deckName); } catch(e) {}
-        if (remoteSaved && remoteSaved.current_index > 0 && remoteSaved.answers) {
-          const saved = {
-            idx: remoteSaved.current_index,
-            totalQ: remoteSaved.total_questions,
-            answers: remoteSaved.answers,
-            queueIds: remoteSaved.queue_ids,
-            mode: remoteSaved.mode,
-            savedAt: new Date(remoteSaved.saved_at).toLocaleString('pt-BR')
-          };
-          localStorage.setItem(progKey, JSON.stringify(saved));
-          showResumeBanner(saved, filename);
-        } else {
-          currentProgressKey = null;
-          processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
-        }
+        currentProgressKey = null;
+        processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
       }
       // guardamos o texto para uso no resume
       window._pendingSimText = text;
