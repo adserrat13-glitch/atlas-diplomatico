@@ -319,6 +319,12 @@
         <button class="btn btn-primary" onclick="startSim('all')">Responder todas</button>
         <button class="btn btn-secondary" onclick="startSim('random50')">50 aleatórias</button>
         <button class="btn btn-secondary" onclick="startSim('random20')">20 aleatórias</button>
+        <div id="customQtdWrap" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
+          <input id="customQtdInput" type="number" min="1" placeholder="Qtd. de questões"
+            style="width:160px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;text-align:center"
+            onkeydown="if(event.key==='Enter')startSim('randomN')">
+          <button class="btn btn-secondary" onclick="startSim('randomN')">Aleatórias →</button>
+        </div>
         <button class="btn btn-secondary" onclick="showView('viewLoader')">← Outro arquivo</button>
       </div>
     </div>
@@ -809,12 +815,18 @@
       document.getElementById('optTotal').textContent = allQuestions.length;
       document.getElementById('optCerto').textContent = certos;
       document.getElementById('optErrado').textContent = allQuestions.length - certos;
+      document.getElementById('customQtdWrap').style.display = isLongDeck ? 'flex' : 'none';
       showView('viewOptions');
     }
 
     function startSim(mode) {
       if (mode === 'random50') queue = shuffle(allQuestions).slice(0, 50);
       else if (mode === 'random20') queue = shuffle(allQuestions).slice(0, 20);
+      else if (mode === 'randomN') {
+        const n = parseInt(document.getElementById('customQtdInput').value, 10);
+        if (!n || n < 1) { document.getElementById('customQtdInput').focus(); return; }
+        queue = shuffle(allQuestions).slice(0, Math.min(n, allQuestions.length));
+      }
       else queue = [...allQuestions];
       currentIdx = 0; answers = []; sessionAIFlashcards = [];
       window._currentSimMode = mode;
