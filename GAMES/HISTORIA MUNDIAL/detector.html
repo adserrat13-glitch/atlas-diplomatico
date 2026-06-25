@@ -61,6 +61,26 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .back-link { display: inline-block; color: var(--text-muted, #888); font-size: 0.8rem; margin-bottom: 1.5rem; text-decoration: none; }
     .back-link:hover { color: #f59e0b; }
+
+    /* Quiz de revisão */
+    .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .review-counter { font-size: 0.8rem; color: var(--text-muted, #888); }
+    .review-score { font-size: 0.85rem; font-weight: 600; color: #f59e0b; }
+    .review-enunciado { font-size: 1rem; line-height: 1.65; margin-bottom: 1.25rem; }
+    .alt-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    .alt-btn { background: var(--card-bg, #1a1a1a); border: 1px solid var(--border, #333); color: var(--text); padding: 0.7rem 1rem; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.9rem; transition: border-color 0.15s, background 0.15s; display: flex; gap: 0.75rem; align-items: flex-start; }
+    .alt-btn:hover:not(:disabled) { border-color: #f59e0b; background: var(--card-hover, #222); }
+    .alt-btn:disabled { cursor: default; }
+    .alt-btn.correta { border-color: #22c55e; background: #0e1f13; }
+    .alt-btn.errada { border-color: #ef4444; background: #1f0e0e; opacity: 0.7; }
+    .alt-btn.selecionada-errada { border-color: #ef4444; background: #2a1010; opacity: 1; }
+    .alt-letra { font-weight: 700; min-width: 1.2rem; color: var(--text-muted, #888); }
+    .alt-btn.correta .alt-letra { color: #22c55e; }
+    .alt-btn.selecionada-errada .alt-letra { color: #ef4444; }
+    .review-explicacao { background: var(--card-bg, #1a1a1a); border-left: 3px solid #f59e0b; border-radius: 0 6px 6px 0; padding: 0.75rem 1rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted, #bbb); margin-bottom: 1rem; display: none; }
+    .review-result { text-align: center; padding: 2rem 1rem; }
+    .review-result .big-score { font-size: 3rem; font-weight: 700; color: #f59e0b; }
+    .review-result .sub { color: var(--text-muted, #888); font-size: 0.9rem; }
   </style>
 </head>
 <body>
@@ -75,6 +95,11 @@
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div id="quiz-content"></div>
   </div>
+  <div id="screen-review" class="screen">
+    <div class="progress-bar"><div class="progress-fill" id="review-progress-fill" style="width:0%"></div></div>
+    <div id="review-content"></div>
+  </div>
+
   <div id="screen-report" class="screen">
     <div class="report-header">
       <div class="total-score" id="report-score">0</div>
@@ -84,7 +109,8 @@
     <h3 style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:#f59e0b;margin:0 0 1rem">Lacunas identificadas</h3>
     <ul class="gap-list" id="gap-list"></ul>
     <div class="btn-row" style="margin-top:2rem;justify-content:center">
-      <button class="btn btn-primary" onclick="resetToTopics()">Testar outro tópico</button>
+      <button class="btn btn-primary" onclick="startReviewQuiz()">Revisar com Quiz (20 questões) →</button>
+      <button class="btn btn-ghost" onclick="resetToTopics()">Testar outro tópico</button>
     </div>
   </div>
 </div>
@@ -239,6 +265,47 @@ async function saveDetectorSession(subjectId) {
   } catch (e) { console.warn('detector save:', e); }
 }
 function resetToTopics() { showScreen('screen-topics'); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+let reviewState = { questoes: [], currentQ: 0, acertos: 0, respondidas: 0 };
+async function startReviewQuiz() {
+  showScreen('screen-review');
+  document.getElementById('review-progress-fill').style.width = '0%';
+  document.getElementById('review-content').innerHTML = `<div class="loading"><span class="spinner"></span>Gerando quiz de revisão personalizado…</div>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const lacunas = state.avaliacoes.filter(av => av && !av.lacuna_revelada.toLowerCase().startsWith('nenhuma')).flatMap(av => [av.lacuna_revelada, ...(av.o_que_faltou || [])]).slice(0, 8);
+  try {
+    const res = await fetch('/api/generate-review-quiz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico: state.topico, lacunas }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao gerar quiz');
+    reviewState = { questoes: data.questoes, currentQ: 0, acertos: 0, respondidas: 0 };
+    renderReviewQuestion(0);
+  } catch (err) {
+    document.getElementById('review-content').innerHTML = `<div class="loading" style="color:#ef4444">${esc(err.message)}</div><div class="btn-row" style="justify-content:center;margin-top:1rem"><button class="btn btn-ghost" onclick="showScreen('screen-report')">← Voltar ao relatório</button></div>`;
+  }
+}
+function renderReviewQuestion(idx) {
+  reviewState.currentQ = idx;
+  const q = reviewState.questoes[idx]; const total = reviewState.questoes.length;
+  document.getElementById('review-progress-fill').style.width = (idx / total * 100) + '%';
+  document.getElementById('review-content').innerHTML = `<div class="review-header"><span class="review-counter">Questão ${idx + 1} de ${total}</span><span class="review-score">✓ ${reviewState.acertos} acertos</span></div><div class="review-enunciado">${esc(q.enunciado)}</div><div class="alt-list" id="alt-list">${['A','B','C','D','E'].map(l => `<button class="alt-btn" id="alt-${l}" onclick="responderReview('${l}')"><span class="alt-letra">${l}</span><span>${esc(q.alternativas[l])}</span></button>`).join('')}</div><div class="review-explicacao" id="review-explicacao">${esc(q.explicacao)}</div><div class="btn-row" id="review-next-row" style="display:none">${idx + 1 < total ? `<button class="btn btn-primary" onclick="renderReviewQuestion(${idx + 1})">Próxima →</button>` : `<button class="btn btn-primary" onclick="showReviewResult()">Ver resultado final →</button>`}<button class="btn btn-ghost" onclick="showScreen('screen-report')">← Relatório</button></div>`;
+}
+function responderReview(letra) {
+  const q = reviewState.questoes[reviewState.currentQ];
+  if (letra === q.correta) reviewState.acertos++;
+  reviewState.respondidas++;
+  ['A','B','C','D','E'].forEach(l => { const btn = document.getElementById('alt-' + l); btn.disabled = true; if (l === q.correta) btn.classList.add('correta'); else if (l === letra) btn.classList.add('selecionada-errada'); else btn.classList.add('errada'); });
+  document.getElementById('review-explicacao').style.display = 'block';
+  document.getElementById('review-next-row').style.display = 'flex';
+  document.getElementById('review-next-row').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function showReviewResult() {
+  const total = reviewState.questoes.length; const pct = Math.round((reviewState.acertos / total) * 100);
+  document.getElementById('review-progress-fill').style.width = '100%';
+  const msg = pct >= 85 ? 'Excelente domínio — lacunas superadas!' : pct >= 70 ? 'Bom desempenho — continue revisando os pontos errados.' : pct >= 50 ? 'Progresso razoável — recomenda-se nova revisão.' : 'Lacunas ainda presentes — retorne ao material básico.';
+  document.getElementById('review-content').innerHTML = `<div class="review-result"><div class="big-score">${reviewState.acertos}<span style="font-size:1.5rem;color:var(--text-muted,#888)">/${total}</span></div><div style="font-size:1.1rem;margin:0.25rem 0">${pct}%</div><div class="sub">${msg}</div></div><div class="btn-row" style="justify-content:center;margin-top:1.5rem"><button class="btn btn-primary" onclick="startReviewQuiz()">Novo quiz de revisão</button><button class="btn btn-ghost" onclick="resetToTopics()">Testar outro tópico</button></div>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 renderTopics();
 </script>
 </body>
