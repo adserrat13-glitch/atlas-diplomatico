@@ -45,6 +45,14 @@ const ICONS = {
     <line x1="13.5" y1="11" x2="9" y2="11"/>
   </svg>`,
 
+  gramC2: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2" width="9" height="12" rx="1"/>
+    <path d="M5 2v12"/>
+    <line x1="7" y1="6" x2="10" y2="6"/>
+    <line x1="7" y1="9" x2="10" y2="9"/>
+    <path d="M12 9l2 2-2 2" stroke-width="1.3"/>
+  </svg>`,
+
   games: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <rect x="1" y="5" width="14" height="8" rx="2"/>
     <line x1="5" y1="9" x2="7" y2="9"/>

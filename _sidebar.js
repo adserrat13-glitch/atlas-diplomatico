@@ -21,6 +21,7 @@
     {
       label: 'IDIOMAS',
       links: [
+        { href: '/gramatica.html',         icon: 'gramC2', name: 'Gramática C2' },
         { href: '/ingles.html',            icon: 'lang',  name: 'Inglês' },
         { href: '/espanhol.html',          icon: 'flag',  name: 'Espanhol' },
         { href: '/idiomas-historico.html', icon: 'chart', name: 'Histórico' },
