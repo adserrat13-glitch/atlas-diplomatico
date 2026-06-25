@@ -1,4 +1,4 @@
-const Groq = require('groq-sdk');
+const { geminiJSON } = require('./_lib/gemini');
 
 /* ── Prompts por modo (derivados do system prompt do Tutor de Idiomas CACD) ──
    Cada prompt instrui o modelo a gerar um exercício INÉDITO, nível B2 avançado/C1/C2,
@@ -88,34 +88,15 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY não configurada' });
+  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY não configurada' });
 
   const { mode } = req.body || {};
   const systemPrompt = PROMPTS[mode];
   if (!systemPrompt) return res.status(400).json({ error: 'mode inválido' });
 
   try {
-    const groq = new Groq({ apiKey });
-    const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        // Carimbo aleatório força variação e evita repetição entre chamadas.
-        { role: 'user', content: `Gere um novo exercício inédito. ref:${Date.now()}-${Math.random().toString(36).slice(2)}` },
-      ],
-      temperature: 0.9,
-      max_tokens: 2048,
-    });
-
-    const raw = completion.choices[0]?.message?.content;
-    if (!raw) return res.status(502).json({ error: 'Resposta vazia do modelo' });
-
-    let parsed;
-    try { parsed = JSON.parse(raw); }
-    catch { return res.status(502).json({ error: 'Resposta inválida do modelo' }); }
-
+    const userPrompt = `Gere um novo exercício inédito. ref:${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const parsed = await geminiJSON({ systemPrompt, userPrompt, temperature: 0.9, maxTokens: 2048 });
     return res.status(200).json({ mode, exercise: parsed });
   } catch (err) {
     return res.status(err?.status || 500).json({ error: err?.message || 'Erro interno' });
