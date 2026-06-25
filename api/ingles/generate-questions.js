@@ -7,89 +7,114 @@ const DIFFICULTY_INSTRUCTIONS = {
   cacd:   'Advanced CACD level: long period with elaborate subordinate structures, controlled ambiguity, nuanced vocabulary — equivalent to real CESPE/CEBRASPE questions for the CACD (Concurso de Admissão à Carreira Diplomática).',
 };
 
-// Tópicos baseados no edital oficial CACD — Língua Inglesa
-const GRAMMAR_TOPICS = [
-  // Adjetivos
-  'use of adjectives (attributive vs predicative position)',
-  'comparative and superlative adjectives',
-  'opposite adjectives and antonyms',
-  // Advérbios e conjunções
-  'position of adverbs in English sentences',
-  'adverbs of place, manner, time and frequency',
-  'adverbs of degree, purpose and contrast',
-  // Artigos
-  'use of definite and indefinite articles (a, an, the)',
-  // Determinantes e quantificadores
-  'determiners and quantifiers (some, any, much, many, few, little)',
-  // Substantivos
-  'countable and uncountable nouns',
-  'plural of nouns (regular and irregular)',
-  // Números
-  'cardinal and ordinal numbers in context',
-  // Preposições
-  'prepositions of time, place and movement',
-  'prepositional phrases in academic English',
-  // Pronomes
-  'objective pronouns in formal written English',
-  'possessive adjectives and possessive pronouns',
-  'reflexive pronouns',
-  'demonstrative pronouns',
-  'relative clauses (defining and non-defining)',
-  'question words and indirect questions',
-  'subjective pronouns and subject-verb agreement',
-  'indefinite pronouns (someone, anyone, everyone, no one)',
-  // Palavras conectivas
-  'connective words and cohesive devices in academic texts',
-  // Tag questions
-  'tag questions (formation and intonation)',
-  // Verbos — tempos
-  'simple present tense in formal English',
-  'present continuous tense',
-  'present perfect tense (since, for, already, yet)',
-  'present perfect continuous tense',
-  'simple past tense',
-  'past continuous tense',
-  'past perfect tense',
-  'past perfect continuous tense',
-  'simple future (will vs going to)',
-  'future perfect tense',
-  'future perfect continuous tense',
-  'infinitive and gerund (verb patterns)',
-  'imperative mood in formal English',
-  'modal verbs (can, could, may, might, must, shall, should, will, would, ought to)',
-  'phrasal verbs in academic and diplomatic contexts',
-  // Voz
-  'passive voice in formal and diplomatic texts',
-  'active vs passive voice transformation',
-  // Condicionais e discurso
-  'conditional clauses (zero, first, second, third and mixed)',
-  'reported speech (statements, questions and commands)',
-  // Vocabulário e formação
-  'false cognates between English and Portuguese',
-  'synonyms in academic and diplomatic English',
-  'word formation: prefixes and suffixes in English',
-  'genitive case (possessive \'s and of-construction)',
-  // Análise e compreensão
-  'syntactic parsing and sentence structure',
-  'linguistic aspects of academic written English',
-  'reading comprehension and text interpretation',
-  'translation of diplomatic and academic texts',
-];
+// Tópicos baseados no edital oficial CACD — Língua Inglesa (agrupados por área)
+const GRAMMAR_AREAS = {
+  'adjectives': [
+    'use of adjectives (attributive vs predicative position)',
+    'comparative and superlative adjectives',
+    'opposite adjectives and antonyms',
+  ],
+  'adverbs-conjunctions': [
+    'position of adverbs in English sentences',
+    'adverbs of place, manner, time and frequency',
+    'adverbs of degree, purpose and contrast',
+  ],
+  'articles': [
+    'use of definite and indefinite articles (a, an, the)',
+  ],
+  'determiners-quantifiers': [
+    'determiners and quantifiers (some, any, much, many, few, little)',
+  ],
+  'nouns': [
+    'countable and uncountable nouns',
+    'plural of nouns (regular and irregular)',
+  ],
+  'numbers': [
+    'cardinal and ordinal numbers in context',
+  ],
+  'prepositions': [
+    'prepositions of time, place and movement',
+    'prepositional phrases in academic English',
+  ],
+  'pronouns': [
+    'objective pronouns in formal written English',
+    'possessive adjectives in English',
+    'possessive pronouns in English',
+    'reflexive pronouns',
+    'demonstrative pronouns',
+    'relative clauses (defining and non-defining)',
+    'question words and indirect questions',
+    'subjective pronouns and subject-verb agreement',
+    'indefinite pronouns (someone, anyone, everyone, no one)',
+  ],
+  'connective-words': [
+    'connective words and cohesive devices in academic texts',
+  ],
+  'tag-questions': [
+    'tag questions (formation and intonation)',
+  ],
+  'verbs-tenses': [
+    'simple present tense in formal English',
+    'present continuous tense',
+    'present perfect tense (since, for, already, yet)',
+    'present perfect continuous tense',
+    'simple past tense',
+    'past continuous tense',
+    'past perfect tense',
+    'past perfect continuous tense',
+    'simple future (will vs going to)',
+    'future perfect tense',
+    'future perfect continuous tense',
+    'infinitive and gerund (verb patterns)',
+    'imperative mood in formal English',
+  ],
+  'verbs-modal-phrasal': [
+    'modal verbs (can, could, may, might, must, shall, should, will, would, ought to)',
+    'phrasal verbs in academic and diplomatic contexts',
+  ],
+  'passive-active-voice': [
+    'passive voice in formal and diplomatic texts',
+    'active vs passive voice transformation',
+  ],
+  'conditionals': [
+    'conditional clauses (zero, first, second, third and mixed)',
+  ],
+  'reported-speech': [
+    'reported speech (statements, questions and commands)',
+  ],
+  'vocabulary-word-formation': [
+    'false cognates between English and Portuguese',
+    'synonyms in academic and diplomatic English',
+    'word formation: prefixes and suffixes in English',
+    "genitive case (possessive 's and of-construction)",
+  ],
+  'syntax-linguistics': [
+    'syntactic parsing and sentence structure',
+    'linguistic aspects of academic written English',
+    'reading comprehension and text interpretation',
+    'translation of diplomatic and academic texts',
+  ],
+  'diplomatic': [
+    'international trade agreements and WTO disputes',
+    'United Nations Security Council reform',
+    'climate change negotiations and multilateral agreements',
+    'human rights treaties and international law',
+    'diplomatic immunity and the Vienna Convention',
+    'regional integration processes (EU, Mercosur, African Union)',
+    'peacekeeping operations and humanitarian intervention',
+    'nuclear non-proliferation and arms control',
+    'geopolitical competition in the Indo-Pacific',
+    'global governance and multilateralism',
+    'foreign debt, IMF conditionality, and development finance',
+    'migration, refugees, and international protection',
+  ],
+};
 
-const DIPLOMATIC_TOPICS = [
-  'international trade agreements and WTO disputes',
-  'United Nations Security Council reform',
-  'climate change negotiations and multilateral agreements',
-  'human rights treaties and international law',
-  'diplomatic immunity and the Vienna Convention',
-  'regional integration processes (EU, Mercosur, African Union)',
-  'peacekeeping operations and humanitarian intervention',
-  'nuclear non-proliferation and arms control',
-  'geopolitical competition in the Indo-Pacific',
-  'global governance and multilateralism',
-  'foreign debt, IMF conditionality, and development finance',
-  'migration, refugees, and international protection',
-];
+const GRAMMAR_TOPICS = Object.entries(GRAMMAR_AREAS)
+  .filter(([k]) => k !== 'diplomatic')
+  .flatMap(([, v]) => v);
+
+const DIPLOMATIC_TOPICS = GRAMMAR_AREAS['diplomatic'];
 
 const ALL_TOPICS = [...GRAMMAR_TOPICS, ...DIPLOMATIC_TOPICS];
 
@@ -222,12 +247,20 @@ module.exports = async function handler(req, res) {
 
   const {
     mode = 'isolated',
-    topic,
+    topic: topicOverride,
+    topic_area: topicArea,
     difficulty = 'cacd',
     quantity = 3,
     category,
     force_trap: forceTrap = false,
   } = req.body || {};
+
+  // Resolve topic: explicit override > area pool > fully random
+  let topic = topicOverride;
+  if (!topic && topicArea && GRAMMAR_AREAS[topicArea]) {
+    const pool = GRAMMAR_AREAS[topicArea];
+    topic = pool[Math.floor(Math.random() * pool.length)];
+  }
 
   const validModes = ['isolated', 'text-based'];
   const validDifficulties = ['easy', 'medium', 'hard', 'cacd'];

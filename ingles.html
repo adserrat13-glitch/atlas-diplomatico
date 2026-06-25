@@ -138,6 +138,35 @@ textarea:focus{outline:none;border-color:var(--blue)}
           <option value="5">5 questões</option>
           <option value="1">1 questão</option>
         </select>
+        <select id="qArea" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
+          <option value="">Todos os tópicos</option>
+          <optgroup label="── Gramática ──">
+            <option value="adjectives">Adjetivos</option>
+            <option value="adverbs-conjunctions">Advérbios e Conjunções</option>
+            <option value="articles">Artigos</option>
+            <option value="determiners-quantifiers">Determinantes e Quantificadores</option>
+            <option value="nouns">Substantivos</option>
+            <option value="numbers">Números</option>
+            <option value="prepositions">Preposições</option>
+            <option value="pronouns">Pronomes</option>
+            <option value="connective-words">Palavras Conectivas</option>
+            <option value="tag-questions">Tag Questions</option>
+            <option value="verbs-tenses">Verbos — Tempos Verbais</option>
+            <option value="verbs-modal-phrasal">Verbos — Modais e Frasais</option>
+            <option value="passive-active-voice">Voz Passiva / Ativa</option>
+            <option value="conditionals">Orações Condicionais</option>
+            <option value="reported-speech">Discurso Direto e Indireto</option>
+          </optgroup>
+          <optgroup label="── Vocabulário ──">
+            <option value="vocabulary-word-formation">Vocabulário e Formação de Palavras</option>
+          </optgroup>
+          <optgroup label="── Análise e Tradução ──">
+            <option value="syntax-linguistics">Análise Sintática / Aspectos Linguísticos</option>
+          </optgroup>
+          <optgroup label="── Temas ──">
+            <option value="diplomatic">Tópicos Diplomáticos</option>
+          </optgroup>
+        </select>
         <button class="btn btn-primary" onclick="gerarQuestoes()" style="padding:6px 14px;font-size:11px">Gerar</button>
       </div>
     </div>
@@ -306,6 +335,7 @@ async function gerarQuestoes(){
   const mode = document.getElementById('qMode').value;
   const difficulty = document.getElementById('qDifficulty').value;
   const quantity = parseInt(document.getElementById('qQty').value);
+  const topic_area = document.getElementById('qArea').value;
 
   QUESTOES_ATUAL = [];
   RESPOSTAS = {};
@@ -315,7 +345,9 @@ async function gerarQuestoes(){
   setStatus(loadingHTML('Gerando questões no padrão CESPE/CEBRASPE...'));
 
   try{
-    const data = await postJSON('/api/ingles/generate-questions', {mode, difficulty, quantity});
+    const body = {mode, difficulty, quantity};
+    if (topic_area) body.topic_area = topic_area;
+    const data = await postJSON('/api/ingles/generate-questions', body);
     setStatus('');
     QUESTOES_ATUAL = data.questions || [];
 
