@@ -179,20 +179,21 @@ const DB = {
 
   // ── SIMULADO CHECKPOINTS ─────────────────────────────────────────────
 
-  async saveCheckpoint({ deck_name, current_index, total_questions, answers, queue_ids, mode, timer_seconds }) {
+  async saveCheckpoint({ deck_name, current_index, total_questions, mode, timer_seconds }) {
     const user = await this.getUser();
     if (!user) return;
-    await _sb.from('simulado_checkpoints').upsert({
+    const { error } = await _sb.from('simulado_checkpoints').upsert({
       user_id: user.id,
       deck_name,
       current_index,
       total_questions,
-      answers,
-      queue_ids,
+      answers: null,
+      queue_ids: null,
       mode,
       timer_seconds,
       saved_at: new Date().toISOString()
     }, { onConflict: 'user_id,deck_name' });
+    if (error) console.warn('saveCheckpoint error:', error.message);
   },
 
   async getCheckpoint(deck_name) {
