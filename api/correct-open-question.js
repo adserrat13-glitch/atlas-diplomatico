@@ -1,4 +1,4 @@
-const { geminiJSON } = require('./_lib/gemini');
+const Groq = require('groq-sdk');
 
 const SYSTEM_PROMPT = `Você é um examinador da prova de Terceira Fase do CACD (Concurso de Admissão à Carreira Diplomática).
 Avalie a resposta do candidato a uma questão aberta dissertativa em 3 critérios (0–10 cada, total 30):
@@ -32,7 +32,8 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
-  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY não configurada' });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY não configurada' });
 
   const { question, answer, subject } = req.body || {};
 
@@ -57,7 +58,27 @@ module.exports = async function handler(req, res) {
   ].filter(Boolean).join('\n\n');
 
   try {
-    const parsed = await geminiJSON({ systemPrompt: SYSTEM_PROMPT, userPrompt: userContent, temperature: 0.3, maxTokens: 1024 });
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userContent },
+      ],
+      temperature: 0.3,
+      max_tokens: 1024,
+    });
+
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) return res.status(502).json({ error: 'Resposta vazia do modelo' });
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return res.status(502).json({ error: 'Resposta do modelo não é JSON válido' });
+    }
 
     const scores = ['precisao', 'profundidade', 'clareza'];
     for (const k of scores) {

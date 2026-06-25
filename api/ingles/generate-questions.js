@@ -1,4 +1,4 @@
-const { geminiJSON } = require('../_lib/gemini');
+const Groq = require('groq-sdk');
 
 const DIFFICULTY_INSTRUCTIONS = {
   easy:   'Easy level: straightforward statement, evident correct/incorrect, no ambiguity. Suitable for initial review.',
@@ -242,7 +242,8 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
 
   const {
     mode = 'isolated',
@@ -275,19 +276,57 @@ module.exports = async function handler(req, res) {
   const qty = Math.min(Math.max(parseInt(quantity) || 3, 1), 5);
 
   try {
+    const groq = new Groq({ apiKey });
+
     if (mode === 'isolated') {
       const questions = [];
       for (let i = 0; i < qty; i++) {
         const isTrap = forceTrap || (i % 3 === 2);
         const userPrompt = buildIsolatedUserPrompt({ topic, difficulty, category, isTrap });
-        const parsed = await geminiJSON({ systemPrompt: SYSTEM_PROMPT_ISOLATED, userPrompt, temperature: 0.85, maxTokens: 1200 });
+
+        const completion = await groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT_ISOLATED },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.85,
+          max_tokens: 1200,
+        });
+
+        const raw = completion.choices[0]?.message?.content;
+        if (!raw) return res.status(502).json({ error: 'Empty response from model' });
+
+        let parsed;
+        try { parsed = JSON.parse(raw); }
+        catch { return res.status(502).json({ error: 'Invalid JSON response from model' }); }
+
         questions.push(sanitizeQuestion(parsed, i));
       }
+
       return res.status(200).json({ mode: 'isolated', questions });
 
     } else {
       const userPrompt = buildTextBasedUserPrompt({ topic, difficulty, quantity: qty });
-      const parsed = await geminiJSON({ systemPrompt: SYSTEM_PROMPT_TEXT_BASED, userPrompt, temperature: 0.85, maxTokens: 2000 });
+
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT_TEXT_BASED },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.85,
+        max_tokens: 2000,
+      });
+
+      const raw = completion.choices[0]?.message?.content;
+      if (!raw) return res.status(502).json({ error: 'Empty response from model' });
+
+      let parsed;
+      try { parsed = JSON.parse(raw); }
+      catch { return res.status(502).json({ error: 'Invalid JSON response from model' }); }
 
       if (!parsed.source_text || !Array.isArray(parsed.questions) || parsed.questions.length === 0)
         return res.status(502).json({ error: 'Model did not return valid source text or questions' });

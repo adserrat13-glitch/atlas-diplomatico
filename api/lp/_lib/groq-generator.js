@@ -1,4 +1,4 @@
-const { geminiJSON } = require('../../_lib/gemini');
+const Groq = require('groq-sdk');
 
 const DIFFICULTY_INSTRUCTIONS = {
   easy:   'Nível fácil: enunciado direto, erro/acerto evidente, sem ambiguidade. Adequado para revisão inicial.',
@@ -48,7 +48,9 @@ Onde:
  * @param {string} params.apiKey
  * @returns {Promise<Object>} questão parseada
  */
-async function generateQuestion({ topicName, subtopic, area, difficulty, isTrap }) {
+async function generateQuestion({ topicName, subtopic, area, difficulty, isTrap, apiKey }) {
+  const groq = new Groq({ apiKey });
+
   const diffInstruction = DIFFICULTY_INSTRUCTIONS[difficulty] || DIFFICULTY_INSTRUCTIONS.cacd;
   const trapInstruction = isTrap
     ? 'IMPORTANTE: Esta questão DEVE ser do tipo "Errado" e conter uma pegadinha típica do CESPE — erro sutil de concordância, regência, colocação pronominal ou crase que passa despercebido na leitura rápida.'
@@ -63,7 +65,25 @@ async function generateQuestion({ topicName, subtopic, area, difficulty, isTrap 
     `Referência aleatória (garante originalidade): ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   ].join('\n');
 
-  return geminiJSON({ systemPrompt: SYSTEM_PROMPT, userPrompt, temperature: 0.85, maxTokens: 1200 });
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0.85,
+    max_tokens: 1200,
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) throw new Error('Resposta vazia do modelo');
+
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch { throw new Error('Resposta inválida do modelo (JSON malformado)'); }
+
+  return parsed;
 }
 
 module.exports = { generateQuestion };

@@ -16,7 +16,7 @@ const { getSupabase }      = require('./lp/_lib/supabase-client');
 const { generateQuestion } = require('./lp/_lib/groq-generator');
 const { validateQuestion, prepareRecord } = require('./lp/_lib/validator');
 const { distributeQuestions, NORMALIZED_TOPICS } = require('./lp/_lib/topic-weights');
-const { geminiJSON } = require('./_lib/gemini');
+const Groq = require('groq-sdk');
 
 const CORS = {
   'Access-Control-Allow-Origin':  process.env.FRONTEND_ORIGIN || '*',
@@ -61,7 +61,8 @@ module.exports = async function handler(req, res) {
   const action = req.query.action || req.body?.action;
   if (!action) return res.status(400).json({ error: 'Parâmetro ?action= obrigatório' });
 
-  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY não configurada' });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY não configurada' });
 
   // Autenticar e derivar user_id do JWT — nunca do body
   const auth = await authenticate(req);
@@ -70,13 +71,13 @@ module.exports = async function handler(req, res) {
 
   try {
     switch (action) {
-      case 'topics-upload':      return await topicsUpload(req, res, user_id);
-      case 'questions-generate': return await questionsGenerate(req, res, user_id);
+      case 'topics-upload':      return await topicsUpload(req, res, apiKey, user_id);
+      case 'questions-generate': return await questionsGenerate(req, res, apiKey, user_id);
       case 'answers-submit':     return await answersSubmit(req, res, user_id);
       case 'performance':        return await performance(req, res, user_id);
       case 'weak-topics':        return await weakTopics(req, res, user_id);
-      case 'simulados-generate': return await simuladosGenerate(req, res, user_id);
-      case 'questions-targeted': return await questionsTargeted(req, res, user_id);
+      case 'simulados-generate': return await simuladosGenerate(req, res, apiKey, user_id);
+      case 'questions-targeted': return await questionsTargeted(req, res, apiKey, user_id);
       default: return res.status(400).json({ error: `action desconhecida: ${action}` });
     }
   } catch (err) {
@@ -86,7 +87,7 @@ module.exports = async function handler(req, res) {
 };
 
 // ─── topics-upload ────────────────────────────────────────────────────────────
-async function topicsUpload(req, res, user_id) {
+async function topicsUpload(req, res, apiKey, user_id) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST esperado' });
   const { content, filename, use_defaults } = req.body || {};
 
@@ -101,10 +102,20 @@ async function topicsUpload(req, res, user_id) {
       area: t.area, weight: t.weight, source_file: 'default_cacd_index',
     }));
   } else {
+    const groq = new Groq({ apiKey });
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: PARSE_PROMPT },
+        { role: 'user',   content: String(content).slice(0, 15000) },
+      ],
+      temperature: 0.2, max_tokens: 4096,
+    });
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) return res.status(502).json({ error: 'Resposta vazia do modelo' });
     let parsed;
-    try {
-      parsed = await geminiJSON({ systemPrompt: PARSE_PROMPT, userPrompt: String(content).slice(0, 15000), temperature: 0.2, maxTokens: 4096 });
-    } catch { return res.status(502).json({ error: 'Erro ao processar tópicos com o modelo' }); }
+    try { parsed = JSON.parse(raw); } catch { return res.status(502).json({ error: 'JSON inválido do modelo' }); }
 
     const extracted = Array.isArray(parsed.topics) ? parsed.topics : [];
     if (!extracted.length) return res.status(400).json({ error: 'Nenhum tópico encontrado' });
@@ -126,7 +137,7 @@ async function topicsUpload(req, res, user_id) {
 }
 
 // ─── questions-generate ───────────────────────────────────────────────────────
-async function questionsGenerate(req, res, user_id) {
+async function questionsGenerate(req, res, apiKey, user_id) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST esperado' });
   const { count = 10, difficulty = 'cacd', trap_percentage = 20, topic_filter = [] } = req.body || {};
 
@@ -143,7 +154,7 @@ async function questionsGenerate(req, res, user_id) {
   if (!dist.length) return res.status(400).json({ error: 'Nenhum tópico disponível' });
 
   const queue = buildQueue(dist, safeCount, trapCount);
-  const { questions, errors } = await runGeneration(queue, safeDiff, user_id, hashSet, supabase);
+  const { questions, errors } = await runGeneration(queue, safeDiff, user_id, hashSet, supabase, apiKey);
 
   return res.status(200).json({ success: true, generated: questions.length, requested: safeCount, failed: errors.length, questions, generation_errors: errors.length ? errors : undefined });
 }
@@ -279,7 +290,7 @@ async function weakTopics(req, res, user_id) {
 }
 
 // ─── simulados-generate ───────────────────────────────────────────────────────
-async function simuladosGenerate(req, res, user_id) {
+async function simuladosGenerate(req, res, apiKey, user_id) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST esperado' });
   const { count = 10, difficulty = 'cacd', title, trap_percentage = 25 } = req.body || {};
 
@@ -295,7 +306,7 @@ async function simuladosGenerate(req, res, user_id) {
   const hashSet = new Set((hashes || []).map(r => r.content_hash));
   const dist    = distributeQuestions(safeCount, [], userTopics?.length ? userTopics : null);
   const queue   = buildQueue(dist, safeCount, trapCount);
-  const { questions } = await runGeneration(queue, safeDiff, user_id, hashSet, supabase);
+  const { questions } = await runGeneration(queue, safeDiff, user_id, hashSet, supabase, apiKey);
 
   if (!questions.length) return res.status(500).json({ error: 'Não foi possível gerar questões suficientes' });
 
@@ -308,7 +319,7 @@ async function simuladosGenerate(req, res, user_id) {
 }
 
 // ─── questions-targeted ───────────────────────────────────────────────────────
-async function questionsTargeted(req, res, user_id) {
+async function questionsTargeted(req, res, apiKey, user_id) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST esperado' });
   const { count = 5, difficulty = 'hard' } = req.body || {};
 
@@ -340,7 +351,7 @@ async function questionsTargeted(req, res, user_id) {
 
   const { data: hashes } = await supabase.from('lp_questions').select('content_hash').eq('user_id', user_id).limit(500);
   const hashSet = new Set((hashes || []).map(r => r.content_hash));
-  const { questions } = await runGeneration(queue, safeDiff, user_id, hashSet, supabase);
+  const { questions } = await runGeneration(queue, safeDiff, user_id, hashSet, supabase, apiKey);
 
   return res.status(200).json({ success: true, generated: questions.length, weak_topics: weakTopics.map(t => t.name), questions });
 }
@@ -357,10 +368,10 @@ function buildQueue(dist, total, trapCount) {
   return queue;
 }
 
-async function generateOne(slot, difficulty, userId, hashSet, supabase) {
+async function generateOne(slot, difficulty, userId, hashSet, supabase, apiKey) {
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const raw = await generateQuestion({ topicName: slot.name, subtopic: slot.subtopic, area: slot.area, difficulty, isTrap: slot.isTrap });
+      const raw = await generateQuestion({ topicName: slot.name, subtopic: slot.subtopic, area: slot.area, difficulty, isTrap: slot.isTrap, apiKey });
       const { valid, errors: ve } = validateQuestion(raw, slot.name);
       if (!valid) { if (attempt === MAX_RETRIES) return { ok: false, topic: slot.name, errors: ve }; continue; }
 
@@ -378,9 +389,9 @@ async function generateOne(slot, difficulty, userId, hashSet, supabase) {
   return { ok: false, topic: slot.name, errors: ['Falha'] };
 }
 
-async function runGeneration(queue, difficulty, userId, hashSet, supabase) {
+async function runGeneration(queue, difficulty, userId, hashSet, supabase, apiKey) {
   const results = await Promise.allSettled(
-    queue.map(slot => generateOne(slot, difficulty, userId, hashSet, supabase))
+    queue.map(slot => generateOne(slot, difficulty, userId, hashSet, supabase, apiKey))
   );
   const questions = [], errors = [];
   for (const r of results) {
