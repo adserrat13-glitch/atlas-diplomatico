@@ -120,62 +120,125 @@ textarea:focus{outline:none;border-color:var(--blue)}
 
   <!-- Painel de Questões Objetivas -->
   <div id="questoesPanel" class="panel hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-      <h2 style="margin:0">Questões CESPE/CEBRASPE — Inglês CACD</h2>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <select id="qMode" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
-          <option value="isolated">Afirmações isoladas</option>
-          <option value="text-based">Com texto-base</option>
-        </select>
-        <select id="qDifficulty" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
-          <option value="cacd">CACD (avançado)</option>
-          <option value="hard">Difícil</option>
-          <option value="medium">Médio</option>
-          <option value="easy">Fácil</option>
-        </select>
-        <select id="qQty" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
-          <option value="3">3 questões</option>
-          <option value="5">5 questões</option>
-          <option value="1">1 questão</option>
-        </select>
-        <select id="qArea" style="background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 8px;outline:none">
-          <option value="">Todos os tópicos</option>
-          <optgroup label="── Gramática ──">
-            <option value="adjectives">Adjetivos</option>
-            <option value="adverbs-conjunctions">Advérbios e Conjunções</option>
-            <option value="articles">Artigos</option>
-            <option value="determiners-quantifiers">Determinantes e Quantificadores</option>
-            <option value="nouns">Substantivos</option>
-            <option value="numbers">Números</option>
-            <option value="prepositions">Preposições</option>
-            <option value="pronouns">Pronomes</option>
-            <option value="connective-words">Palavras Conectivas</option>
-            <option value="tag-questions">Tag Questions</option>
-            <option value="verbs-tenses">Verbos — Tempos Verbais</option>
-            <option value="verbs-modal-phrasal">Verbos — Modais e Frasais</option>
-            <option value="passive-active-voice">Voz Passiva / Ativa</option>
-            <option value="conditionals">Orações Condicionais</option>
-            <option value="reported-speech">Discurso Direto e Indireto</option>
-          </optgroup>
-          <optgroup label="── Vocabulário ──">
-            <option value="vocabulary-word-formation">Vocabulário e Formação de Palavras</option>
-          </optgroup>
-          <optgroup label="── Análise e Tradução ──">
-            <option value="syntax-linguistics">Análise Sintática / Aspectos Linguísticos</option>
-          </optgroup>
-          <optgroup label="── Temas ──">
-            <option value="diplomatic">Tópicos Diplomáticos</option>
-          </optgroup>
-        </select>
-        <button class="btn btn-primary" onclick="gerarQuestoes()" style="padding:6px 14px;font-size:11px">Gerar</button>
+
+    <!-- ── Tela de Configuração ── -->
+    <div id="qConfig">
+      <h2 style="margin-bottom:16px">Questões CESPE/CEBRASPE — Inglês CACD</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <label style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase">
+          Modo
+          <select id="qMode" style="margin-top:4px;width:100%;background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 10px;outline:none;display:block">
+            <option value="isolated">Afirmações isoladas</option>
+            <option value="text-based">Com texto-base</option>
+          </select>
+        </label>
+        <label style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase">
+          Dificuldade
+          <select id="qDifficulty" style="margin-top:4px;width:100%;background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 10px;outline:none;display:block">
+            <option value="cacd">CACD (avançado)</option>
+            <option value="hard">Difícil</option>
+            <option value="medium">Médio</option>
+            <option value="easy">Fácil</option>
+          </select>
+        </label>
+        <label style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase">
+          Área / Tópico
+          <select id="qArea" style="margin-top:4px;width:100%;background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 10px;outline:none;display:block">
+            <option value="">Todos os tópicos</option>
+            <optgroup label="── Gramática ──">
+              <option value="adjectives">Adjetivos</option>
+              <option value="adverbs-conjunctions">Advérbios e Conjunções</option>
+              <option value="articles">Artigos</option>
+              <option value="determiners-quantifiers">Determinantes e Quantificadores</option>
+              <option value="nouns">Substantivos</option>
+              <option value="numbers">Números</option>
+              <option value="prepositions">Preposições</option>
+              <option value="pronouns">Pronomes</option>
+              <option value="connective-words">Palavras Conectivas</option>
+              <option value="tag-questions">Tag Questions</option>
+              <option value="verbs-tenses">Verbos — Tempos Verbais</option>
+              <option value="verbs-modal-phrasal">Verbos — Modais e Frasais</option>
+              <option value="passive-active-voice">Voz Passiva / Ativa</option>
+              <option value="conditionals">Orações Condicionais</option>
+              <option value="reported-speech">Discurso Direto e Indireto</option>
+            </optgroup>
+            <optgroup label="── Vocabulário ──">
+              <option value="vocabulary-word-formation">Vocabulário e Formação de Palavras</option>
+            </optgroup>
+            <optgroup label="── Análise e Tradução ──">
+              <option value="syntax-linguistics">Análise Sintática / Aspectos Linguísticos</option>
+            </optgroup>
+            <optgroup label="── Temas ──">
+              <option value="diplomatic">Tópicos Diplomáticos</option>
+            </optgroup>
+          </select>
+        </label>
+        <label style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase">
+          Quantidade (1–20)
+          <div style="margin-top:4px;display:flex;gap:6px;align-items:center">
+            <input id="qQty" type="number" min="1" max="20" value="5"
+              style="width:70px;background:#0f1115;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:14px;font-weight:700;padding:6px 10px;outline:none;text-align:center">
+            <span style="font-size:11px;color:var(--muted2)">questões</span>
+          </div>
+        </label>
       </div>
+      <button class="btn btn-primary" onclick="iniciarSessao()" style="width:100%;padding:11px">Iniciar →</button>
     </div>
-    <div id="qSourceText" style="display:none;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Texto-base</div>
-      <div id="qSourceTextContent" style="font-size:14px;line-height:1.75;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;white-space:pre-wrap"></div>
+
+    <!-- ── Tela de Loading ── -->
+    <div id="qLoading" style="display:none;padding:32px 0;text-align:center">
+      <div class="spinner" style="width:28px;height:28px;margin:0 auto 14px;border-width:3px"></div>
+      <div style="font-size:13px;color:var(--muted2)" id="qLoadingTxt">Gerando questões no padrão CESPE/CEBRASPE...</div>
     </div>
-    <div id="qList"></div>
-    <div id="qScore" style="display:none;margin-top:16px;padding:14px;background:rgba(52,211,153,.08);border:1px solid var(--green);border-radius:10px;font-size:14px;font-weight:700;color:var(--green)"></div>
+
+    <!-- ── Tela de Jogo (uma questão por vez) ── -->
+    <div id="qGame" style="display:none">
+      <!-- barra de progresso -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:12px;color:var(--muted2)" id="qProgressLabel">1 / 5</span>
+        <span style="font-size:12px;color:var(--muted2)" id="qScoreRunning">0 ✓</span>
+      </div>
+      <div style="height:4px;background:var(--border);border-radius:2px;margin-bottom:20px">
+        <div id="qProgressBar" style="height:100%;background:var(--blue);border-radius:2px;transition:width .3s;width:0%"></div>
+      </div>
+      <!-- texto-base (mode text-based) -->
+      <div id="qSourceText" style="display:none;margin-bottom:16px">
+        <div style="font-size:11px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">Texto-base</div>
+        <div id="qSourceTextContent" style="font-size:13px;line-height:1.75;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;white-space:pre-wrap"></div>
+      </div>
+      <!-- card da questão -->
+      <div id="qCard" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px">
+        <p id="qStatement" style="font-size:15px;line-height:1.7;margin:0"></p>
+      </div>
+      <!-- botões -->
+      <div style="display:flex;gap:10px;margin-bottom:12px">
+        <button id="qBtnCerto" onclick="responderAtual(true)"
+          style="flex:1;padding:13px;border-radius:10px;border:2px solid var(--green);background:rgba(52,211,153,.08);color:var(--green);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;transition:.15s;letter-spacing:.5px">
+          CERTO
+        </button>
+        <button id="qBtnErrado" onclick="responderAtual(false)"
+          style="flex:1;padding:13px;border-radius:10px;border:2px solid var(--red);background:rgba(248,113,113,.08);color:var(--red);font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;transition:.15s;letter-spacing:.5px">
+          ERRADO
+        </button>
+      </div>
+      <!-- feedback imediato (aparece após responder) -->
+      <div id="qFeedbackAtual" style="display:none"></div>
+      <!-- botão próxima -->
+      <button id="qBtnProxima" onclick="proximaQuestao()" style="display:none;width:100%;padding:11px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px">
+        Próxima →
+      </button>
+    </div>
+
+    <!-- ── Gabarito Final ── -->
+    <div id="qGabarito" style="display:none">
+      <div id="qScoreFinal" style="margin-bottom:20px;padding:18px;border-radius:12px;text-align:center"></div>
+      <div style="font-size:12px;color:var(--muted2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px">Gabarito completo</div>
+      <div id="qGabaritoLista"></div>
+      <button onclick="voltarConfig()" style="width:100%;margin-top:16px;padding:11px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer">
+        ← Nova sessão
+      </button>
+    </div>
+
   </div>
 
   <div id="exercisePanel" class="panel hidden">
@@ -216,7 +279,7 @@ function selectMode(btn){
     document.getElementById('feedbackPanel').classList.add('hidden');
     document.getElementById('questoesPanel').classList.remove('hidden');
     setStatus('');
-    gerarQuestoes();
+    qShow('qConfig');
   } else {
     document.getElementById('questoesPanel').classList.add('hidden');
     generate();
@@ -327,113 +390,178 @@ function renderFeedback(fb){
     ${fb.diplomatic_note?`<div class="fb-block"><h3>Como um diplomata escreveria</h3><div class="fb-note">${esc(fb.diplomatic_note)}</div></div>`:''}`;
 }
 
-// ── Questões CESPE ──────────────────────────────────────────────────────────
-let QUESTOES_ATUAL = [];
-let RESPOSTAS = {};
+// ── Questões CESPE — modo simulado ──────────────────────────────────────────
+let Q_FILA = [];        // questões carregadas
+let Q_IDX = 0;         // índice atual
+let Q_ACERTOS = 0;     // acertos na sessão
+let Q_RESPONDIDA = false; // flag para bloquear duplo clique
 
-async function gerarQuestoes(){
-  const mode = document.getElementById('qMode').value;
-  const difficulty = document.getElementById('qDifficulty').value;
-  const quantity = parseInt(document.getElementById('qQty').value);
-  const topic_area = document.getElementById('qArea').value;
+function qShow(id) {
+  ['qConfig','qLoading','qGame','qGabarito'].forEach(i =>
+    document.getElementById(i).style.display = i === id ? 'block' : 'none'
+  );
+}
 
-  QUESTOES_ATUAL = [];
-  RESPOSTAS = {};
-  document.getElementById('qList').innerHTML = '';
-  document.getElementById('qScore').style.display = 'none';
-  document.getElementById('qSourceText').style.display = 'none';
-  setStatus(loadingHTML('Gerando questões no padrão CESPE/CEBRASPE...'));
+function voltarConfig() { qShow('qConfig'); }
 
-  try{
-    const body = {mode, difficulty, quantity};
-    if (topic_area) body.topic_area = topic_area;
-    const data = await postJSON('/api/ingles/generate-questions', body);
-    setStatus('');
-    QUESTOES_ATUAL = data.questions || [];
+async function iniciarSessao() {
+  const mode      = document.getElementById('qMode').value;
+  const difficulty= document.getElementById('qDifficulty').value;
+  const topic_area= document.getElementById('qArea').value;
+  const qty       = Math.min(20, Math.max(1, parseInt(document.getElementById('qQty').value) || 5));
 
-    if(mode === 'text-based' && data.source_text){
-      document.getElementById('qSourceTextContent').textContent = data.source_text;
-      document.getElementById('qSourceText').style.display = 'block';
+  // Precisamos gerar em lotes de no máximo 5 (limite da API)
+  const LOTE = 5;
+  const lotes = [];
+  let restante = qty;
+  while (restante > 0) { lotes.push(Math.min(LOTE, restante)); restante -= LOTE; }
+
+  qShow('qLoading');
+  document.getElementById('qLoadingTxt').textContent =
+    `Gerando ${qty} questão${qty>1?'s':''} no padrão CESPE/CEBRASPE…`;
+
+  try {
+    const promises = lotes.map(n => {
+      const body = { mode, difficulty, quantity: n };
+      if (topic_area) body.topic_area = topic_area;
+      return postJSON('/api/ingles/generate-questions', body);
+    });
+    const resultados = await Promise.all(promises);
+
+    Q_FILA = resultados.flatMap(r => r.questions || []);
+    Q_IDX = 0; Q_ACERTOS = 0; Q_RESPONDIDA = false;
+
+    // texto-base: só faz sentido com 1 lote / text-based
+    const sourceText = resultados[0]?.source_text;
+    const srcEl = document.getElementById('qSourceText');
+    if (mode === 'text-based' && sourceText) {
+      document.getElementById('qSourceTextContent').textContent = sourceText;
+      srcEl.style.display = 'block';
+    } else {
+      srcEl.style.display = 'none';
     }
 
-    renderQuestoes(QUESTOES_ATUAL);
-  }catch(e){
-    setStatus(errHTML('Não foi possível gerar questões: '+e.message));
+    if (!Q_FILA.length) throw new Error('Nenhuma questão retornada');
+    renderQuestaoAtual();
+    qShow('qGame');
+  } catch(e) {
+    qShow('qConfig');
+    setStatus(errHTML('Não foi possível gerar questões: ' + e.message));
   }
 }
 
-function renderQuestoes(qs){
-  const list = document.getElementById('qList');
-  list.innerHTML = qs.map((q,i) => `
-    <div class="q-card" id="qcard-${i}" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px">
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <span style="font-size:11px;font-weight:700;color:var(--muted2);min-width:22px;padding-top:2px">${i+1}.</span>
-        <div style="flex:1">
-          <p style="font-size:14px;line-height:1.65;margin-bottom:12px">${esc(q.statement)}</p>
-          <div style="display:flex;gap:8px">
-            <button onclick="responder(${i}, true)"  class="q-btn" id="qbtn-${i}-true"
-              style="padding:7px 18px;border-radius:8px;border:1px solid var(--green);background:rgba(52,211,153,.08);color:var(--green);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s">
-              CERTO
-            </button>
-            <button onclick="responder(${i}, false)" class="q-btn" id="qbtn-${i}-false"
-              style="padding:7px 18px;border-radius:8px;border:1px solid var(--red);background:rgba(248,113,113,.08);color:var(--red);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.15s">
-              ERRADO
-            </button>
-          </div>
-          <div id="qfeedback-${i}" style="display:none;margin-top:12px"></div>
-        </div>
-      </div>
-    </div>`).join('');
+function renderQuestaoAtual() {
+  const q    = Q_FILA[Q_IDX];
+  const total = Q_FILA.length;
+
+  document.getElementById('qProgressLabel').textContent = `${Q_IDX + 1} / ${total}`;
+  document.getElementById('qScoreRunning').textContent  = `${Q_ACERTOS} ✓`;
+  document.getElementById('qProgressBar').style.width   = (Q_IDX / total * 100) + '%';
+  document.getElementById('qStatement').textContent     = q.statement;
+  document.getElementById('qCard').style.borderColor    = 'var(--border)';
+
+  // reset botões
+  ['qBtnCerto','qBtnErrado'].forEach(id => {
+    const b = document.getElementById(id);
+    b.disabled = false;
+    b.style.opacity = '1';
+    b.style.borderWidth = '2px';
+    b.style.filter = '';
+  });
+
+  document.getElementById('qFeedbackAtual').style.display = 'none';
+  document.getElementById('qBtnProxima').style.display    = 'none';
+  Q_RESPONDIDA = false;
 }
 
-function responder(idx, escolha){
-  if(RESPOSTAS[idx] !== undefined) return;
-  RESPOSTAS[idx] = escolha;
+function responderAtual(escolha) {
+  if (Q_RESPONDIDA) return;
+  Q_RESPONDIDA = true;
 
-  const q = QUESTOES_ATUAL[idx];
-  const acertou = escolha === q.answer;
-  const corBorda = acertou ? 'var(--green)' : 'var(--red)';
-  const icone = acertou ? '✓' : '✗';
+  const q      = Q_FILA[Q_IDX];
+  const acertou= escolha === q.answer;
+  const cor    = acertou ? 'var(--green)' : 'var(--red)';
+  const icone  = acertou ? '✓' : '✗';
+  q._userAnswer = escolha;
+  q._acertou    = acertou;
+  if (acertou) Q_ACERTOS++;
 
-  const card = document.getElementById('qcard-'+idx);
-  card.style.borderColor = corBorda;
+  document.getElementById('qScoreRunning').textContent = `${Q_ACERTOS} ✓`;
+  document.getElementById('qCard').style.borderColor = cor;
 
-  ['true','false'].forEach(v => {
-    const btn = document.getElementById(`qbtn-${idx}-${v}`);
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
-    btn.style.cursor = 'default';
+  // desabilita botões e destaca escolhido
+  ['qBtnCerto','qBtnErrado'].forEach(id => {
+    const b = document.getElementById(id);
+    b.disabled = true;
+    b.style.opacity = '0.4';
   });
-  const chosenBtn = document.getElementById(`qbtn-${idx}-${escolha}`);
-  chosenBtn.style.opacity = '1';
-  chosenBtn.style.filter = acertou ? 'brightness(1.3)' : 'brightness(1.3)';
-  chosenBtn.style.borderWidth = '2px';
+  const escolhidoId = escolha ? 'qBtnCerto' : 'qBtnErrado';
+  const escolhidoEl = document.getElementById(escolhidoId);
+  escolhidoEl.style.opacity = '1';
+  escolhidoEl.style.filter  = 'brightness(1.25)';
 
+  // feedback
+  const fb = document.getElementById('qFeedbackAtual');
   const gabarito = q.answer ? 'CERTO' : 'ERRADO';
-  const fb = document.getElementById('qfeedback-'+idx);
   fb.style.display = 'block';
   fb.innerHTML = `
-    <div style="padding:12px;border-radius:8px;background:${acertou?'rgba(52,211,153,.08)':'rgba(248,113,113,.08)'};border:1px solid ${corBorda}">
-      <div style="font-size:13px;font-weight:800;color:${corBorda};margin-bottom:6px">${icone} ${acertou?'CORRETO':'INCORRETO'} — Gabarito: ${gabarito}${q.is_trap?' 🪤 PEGADINHA':''}</div>
-      <div style="font-size:13px;line-height:1.6;color:var(--text)">${esc(q.explanation)}</div>
+    <div style="padding:14px;border-radius:10px;background:${acertou?'rgba(52,211,153,.08)':'rgba(248,113,113,.08)'};border:1px solid ${cor}">
+      <div style="font-size:13px;font-weight:800;color:${cor};margin-bottom:8px">${icone} ${acertou?'CORRETO':'INCORRETO'} — Gabarito: ${gabarito}${q.is_trap?' 🪤 PEGADINHA':''}</div>
+      <div style="font-size:13px;line-height:1.65;color:var(--text)">${esc(q.explanation)}</div>
       ${q.linguistic_justification?`<div style="font-size:12px;color:var(--muted2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">📐 ${esc(q.linguistic_justification)}</div>`:''}
     </div>`;
 
-  if(Object.keys(RESPOSTAS).length === QUESTOES_ATUAL.length) mostrarPlacar();
+  // botão próxima / finalizar
+  const btnP = document.getElementById('qBtnProxima');
+  btnP.style.display = 'block';
+  const ultima = Q_IDX >= Q_FILA.length - 1;
+  btnP.textContent = ultima ? 'Ver gabarito completo →' : 'Próxima →';
 }
 
-function mostrarPlacar(){
-  const acertos = QUESTOES_ATUAL.filter((q,i) => RESPOSTAS[i] === q.answer).length;
-  const total = QUESTOES_ATUAL.length;
-  const pct = Math.round(acertos/total*100);
-  const scoreEl = document.getElementById('qScore');
-  scoreEl.style.display = 'block';
-  scoreEl.style.borderColor = pct>=70?'var(--green)':'var(--red)';
-  scoreEl.style.color = pct>=70?'var(--green)':'var(--red)';
-  scoreEl.style.background = pct>=70?'rgba(52,211,153,.08)':'rgba(248,113,113,.08)';
-  scoreEl.innerHTML = `${iconeScore(pct)} ${acertos}/${total} corretas (${pct}%) — ${pct>=70?'Aprovado!':'Continue praticando'}
-    <button onclick="gerarQuestoes()" style="margin-left:14px;padding:5px 14px;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer">Nova rodada</button>`;
-  scoreEl.scrollIntoView({behavior:'smooth'});
+function proximaQuestao() {
+  Q_IDX++;
+  if (Q_IDX >= Q_FILA.length) {
+    mostrarGabarito();
+  } else {
+    renderQuestaoAtual();
+    document.getElementById('qCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function mostrarGabarito() {
+  const total = Q_FILA.length;
+  const pct   = Math.round(Q_ACERTOS / total * 100);
+  const cor   = pct >= 70 ? 'var(--green)' : 'var(--red)';
+  const bg    = pct >= 70 ? 'rgba(52,211,153,.08)' : 'rgba(248,113,113,.08)';
+
+  document.getElementById('qProgressBar').style.width = '100%';
+
+  document.getElementById('qScoreFinal').style.cssText =
+    `border:2px solid ${cor};background:${bg};border-radius:12px;padding:20px;text-align:center`;
+  document.getElementById('qScoreFinal').innerHTML = `
+    <div style="font-size:38px;font-weight:900;color:${cor}">${Q_ACERTOS}<span style="font-size:18px;color:var(--muted2)">/${total}</span></div>
+    <div style="font-size:16px;font-weight:700;color:${cor};margin-top:4px">${pct}% — ${iconeScore(pct)} ${pct>=70?'Aprovado!':'Continue praticando'}</div>`;
+
+  // lista completa
+  document.getElementById('qGabaritoLista').innerHTML = Q_FILA.map((q, i) => {
+    const userAns  = /* reconstruir a partir do que marcamos */ q._userAnswer;
+    const acertou  = q._acertou;
+    const cor2     = acertou ? 'var(--green)' : 'var(--red)';
+    const gabarito = q.answer ? 'CERTO' : 'ERRADO';
+    return `
+      <div style="border:1px solid ${cor2};border-radius:10px;padding:14px;margin-bottom:10px;background:${acertou?'rgba(52,211,153,.04)':'rgba(248,113,113,.04)'}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:11px;font-weight:700;color:var(--muted2)">${i+1}.</span>
+          <span style="font-size:12px;font-weight:800;color:${cor2}">${acertou?'✓ CORRETO':'✗ INCORRETO'} — ${gabarito}${q.is_trap?' 🪤':''}</span>
+        </div>
+        <p style="font-size:13px;line-height:1.6;color:var(--text);margin:0 0 8px">${esc(q.statement)}</p>
+        <div style="font-size:12px;line-height:1.6;color:var(--muted2)">${esc(q.explanation)}</div>
+        ${q.linguistic_justification?`<div style="font-size:11px;color:var(--muted2);margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">📐 ${esc(q.linguistic_justification)}</div>`:''}
+      </div>`;
+  }).join('');
+
+  qShow('qGabarito');
+  document.getElementById('qScoreFinal').scrollIntoView({ behavior: 'smooth' });
 }
 
 function iconeScore(p){ if(p>=90) return '🏆'; if(p>=70) return '✅'; if(p>=50) return '⚠️'; return '❌'; }
