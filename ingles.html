@@ -410,23 +410,28 @@ async function iniciarSessao() {
   const topic_area= document.getElementById('qArea').value;
   const qty       = Math.min(20, Math.max(1, parseInt(document.getElementById('qQty').value) || 5));
 
-  // Precisamos gerar em lotes de no máximo 5 (limite da API)
+  // Lotes sequenciais (máx 5 por requisição) para não estourar rate limit do Groq
   const LOTE = 5;
   const lotes = [];
   let restante = qty;
   while (restante > 0) { lotes.push(Math.min(LOTE, restante)); restante -= LOTE; }
 
   qShow('qLoading');
-  document.getElementById('qLoadingTxt').textContent =
-    `Gerando ${qty} questão${qty>1?'s':''} no padrão CESPE/CEBRASPE…`;
+  const loadingTxt = document.getElementById('qLoadingTxt');
 
   try {
-    const promises = lotes.map(n => {
-      const body = { mode, difficulty, quantity: n };
+    const resultados = [];
+    for (let i = 0; i < lotes.length; i++) {
+      loadingTxt.textContent =
+        lotes.length > 1
+          ? `Gerando questões… lote ${i + 1} de ${lotes.length}`
+          : `Gerando ${qty} questão${qty > 1 ? 's' : ''} no padrão CESPE/CEBRASPE…`;
+      const body = { mode, difficulty, quantity: lotes[i] };
       if (topic_area) body.topic_area = topic_area;
-      return postJSON('/api/ingles/generate-questions', body);
-    });
-    const resultados = await Promise.all(promises);
+      resultados.push(await postJSON('/api/ingles/generate-questions', body));
+      // pausa entre lotes para respeitar o rate limit do Groq (free tier)
+      if (i < lotes.length - 1) await new Promise(r => setTimeout(r, 2000));
+    }
 
     Q_FILA = resultados.flatMap(r => r.questions || []);
     Q_IDX = 0; Q_ACERTOS = 0; Q_RESPONDIDA = false;
