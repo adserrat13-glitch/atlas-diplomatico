@@ -391,13 +391,14 @@ async function loadTheory() {
   showView('viewLoading');
   document.getElementById('loadingMsg').textContent = 'Gerando teoria C2…';
   try {
-    const res = await fetch('/api/gramatica-generate', {
+    const res = await fetch('/api/tutor-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idioma: currentLang, topico: currentTopic, modo: 'teoria' }),
+      body: JSON.stringify({ mode: 'GRAMATICA_TEORIA', idioma: currentLang, topico: currentTopic }),
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Erro na API');
-    theoryData = await res.json();
+    const json = await res.json();
+    theoryData = json.exercise || json;
     showTheory();
   } catch (e) {
     showErr(e.message);
@@ -424,13 +425,14 @@ async function loadQuiz() {
   showView('viewLoading');
   document.getElementById('loadingMsg').textContent = 'Gerando quiz C2…';
   try {
-    const res = await fetch('/api/gramatica-generate', {
+    const res = await fetch('/api/tutor-generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idioma: currentLang, topico: currentTopic, modo: 'quiz' }),
+      body: JSON.stringify({ mode: 'GRAMATICA_QUIZ', idioma: currentLang, topico: currentTopic }),
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Erro na API');
-    quizData = await res.json();
+    const json = await res.json();
+    quizData = json.exercise || json;
     quizIdx = 0;
     quizAnswers = [];
     renderQuestion();

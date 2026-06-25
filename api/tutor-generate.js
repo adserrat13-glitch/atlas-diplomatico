@@ -78,6 +78,32 @@ ${BASE_RULES}
 Esquema JSON:
 {"source_text":"<el texto completo, EN ESPAÑOL>","instruction":"Redacte un resumen de 120-180 palabras."}
 No proporciones ningún resumen modelo.`,
+
+  // MODO 8 — GRAMATICA_TEORIA — teoria gramatical C2
+  GRAMATICA_TEORIA: `You are a C2-level grammar expert for the Brazilian diplomatic exam (CACD/IRBr).
+Write a rigorous theoretical explanation for the given grammar topic in the specified language.
+- Portuguese topics: write in formal Brazilian Portuguese
+- English topics: write in formal academic English
+- Spanish topics: write in formal Castilian Spanish
+Focus on: edge cases, formal exceptions, constructions from literary/diplomatic/legal registers, and common traps in high-level exams.
+Do NOT explain basic rules — assume the reader already knows them. Go deep.
+Length: ~350 words for conteudo, 3-5 illustrative examples.
+Respond ONLY in valid JSON, no markdown, no extra text:
+{"conteudo":"...","exemplos":["...","...","..."]}`,
+
+  // MODO 9 — GRAMATICA_QUIZ — quiz gramatical C2
+  GRAMATICA_QUIZ: `You are a C2-level grammar examiner for the Brazilian diplomatic exam (CACD/IRBr).
+Generate 5 multiple-choice questions about the given grammar topic in the specified language.
+- Portuguese topics: questions and options in formal Brazilian Portuguese
+- English topics: questions and options in formal academic English
+- Spanish topics: questions and options in formal Castilian Spanish
+Rules:
+- All questions must target C2-level difficulty: ambiguous cases, subtle distinctions, formal register nuances
+- Avoid trivial or obvious questions — every question must require deep grammatical reasoning
+- Each question has exactly 4 options (A-D), only one correct
+- Include a detailed explanation for why the correct answer is right and why the others are wrong
+Respond ONLY in valid JSON, no markdown, no extra text:
+{"questoes":[{"enunciado":"...","opcoes":["A) ...","B) ...","C) ...","D) ..."],"correta":0,"explicacao":"..."}]}`,
 };
 
 module.exports = async function handler(req, res) {
@@ -91,9 +117,16 @@ module.exports = async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY não configurada' });
 
-  const { mode } = req.body || {};
+  const { mode, idioma, topico } = req.body || {};
   const systemPrompt = PROMPTS[mode];
   if (!systemPrompt) return res.status(400).json({ error: 'mode inválido' });
+
+  const isGramatica = mode === 'GRAMATICA_TEORIA' || mode === 'GRAMATICA_QUIZ';
+  const userContent = isGramatica
+    ? `Language: ${idioma}\nGrammar topic: ${topico}`
+    : `Gere um novo exercício inédito. ref:${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const maxTokens = mode === 'GRAMATICA_TEORIA' ? 1200 : mode === 'GRAMATICA_QUIZ' ? 2000 : 2048;
+  const temperature = isGramatica ? 0.4 : 0.9;
 
   try {
     const groq = new Groq({ apiKey });
@@ -102,11 +135,10 @@ module.exports = async function handler(req, res) {
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: systemPrompt },
-        // Carimbo aleatório força variação e evita repetição entre chamadas.
-        { role: 'user', content: `Gere um novo exercício inédito. ref:${Date.now()}-${Math.random().toString(36).slice(2)}` },
+        { role: 'user', content: userContent },
       ],
-      temperature: 0.9,
-      max_tokens: 2048,
+      temperature,
+      max_tokens: maxTokens,
     });
 
     const raw = completion.choices[0]?.message?.content;
