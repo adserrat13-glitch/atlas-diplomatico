@@ -509,6 +509,7 @@ function showReviewResult() {
   document.getElementById('review-progress-fill').style.width = '100%';
   const msg = pct >= 85 ? 'Excelente domínio — lacunas superadas!' : pct >= 70 ? 'Bom desempenho — continue revisando os pontos errados.' : pct >= 50 ? 'Progresso razoável — recomenda-se nova revisão.' : 'Lacunas ainda presentes — retorne ao material básico.';
   document.getElementById('review-content').innerHTML = `<div class="review-result"><div class="big-score">${reviewState.acertos}<span style="font-size:1.5rem;color:var(--text-muted,#888)">/${total}</span></div><div style="font-size:1.1rem;margin:0.25rem 0">${pct}%</div><div class="sub">${msg}</div></div><div class="btn-row" style="justify-content:center;margin-top:1.5rem"><button class="btn btn-primary" onclick="startReviewQuiz()">Novo quiz de revisão</button><button class="btn btn-ghost" onclick="resetToTopics()">Testar outro tópico</button></div>`;
+  DB.getUser().then(u => { if (!u) return; DB.addSession({ type: 'review_quiz', deck: state.topico, subject: 'DIR', total, correct: reviewState.acertos, wrong: total - reviewState.acertos, wrong_items: [] }).catch(() => {}); });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 

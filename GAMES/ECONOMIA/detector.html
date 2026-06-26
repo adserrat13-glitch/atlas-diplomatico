@@ -542,6 +542,7 @@ function showReviewResult() {
       <button class="btn btn-ghost" onclick="resetToTopics()">Testar outro tópico</button>
     </div>
   `;
+  DB.getUser().then(u => { if (!u) return; DB.addSession({ type: 'review_quiz', deck: state.topico, subject: 'ECO', total, correct: reviewState.acertos, wrong: total - reviewState.acertos, wrong_items: [] }).catch(() => {}); });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
