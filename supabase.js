@@ -78,9 +78,9 @@ const DB = {
   /** Redirects to login.html if not authenticated. Redirects to banned.html if banned. Returns user. */
   async requireAuth() {
     const user = await this.getUser();
-    if (!user) { window.location.href = 'login.html'; throw new Error('unauthenticated'); }
+    if (!user) { window.location.href = '/login.html'; throw new Error('unauthenticated'); }
     const profile = await this.getProfile();
-    if (profile?.banned_at) { window.location.href = 'banned.html'; throw new Error('banned'); }
+    if (profile?.banned_at) { window.location.href = '/banned.html'; throw new Error('banned'); }
     return user;
   },
 
@@ -88,7 +88,7 @@ const DB = {
   async requireAdmin() {
     const profile = await this.getProfile();
     if (!profile || !ADMIN_ROLES.includes(profile.role)) {
-      window.location.href = 'index.html'; throw new Error('not admin');
+      window.location.href = '/index.html'; throw new Error('not admin');
     }
     return profile;
   },
@@ -97,7 +97,7 @@ const DB = {
   async requireRole(...roles) {
     const profile = await this.getProfile();
     if (!profile || !roles.includes(profile.role)) {
-      window.location.href = 'index.html'; throw new Error('insufficient role');
+      window.location.href = '/index.html'; throw new Error('insufficient role');
     }
     return profile;
   },
@@ -123,7 +123,7 @@ const DB = {
   async logout() {
     _profile = null;
     await _sb.auth.signOut();
-    window.location.href = 'login.html';
+    window.location.href = '/login.html';
   },
 
   // ── NAV HELPER ──────────────────────────────────────────────────────
