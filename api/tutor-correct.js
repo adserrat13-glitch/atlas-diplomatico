@@ -1,4 +1,4 @@
-const Groq = require('groq-sdk');
+const { groqCreate } = require('./_lib/groq-client');
 
 /* ── MODO DE CORREÇÃO (fiel ao system prompt do Tutor de Idiomas CACD) ──
    Nota 0-100, rigor do CACD, tabela de 5 categorias, reescrita de trechos,
@@ -20,6 +20,10 @@ Atribua uma nota de 0 a 100. Se a nota for superior a 90, faça observações re
 
 Reescreva trechos problemáticos, mostrando soluções de nível C2 e explicando como um diplomata ou tradutor profissional escreveria a mesma ideia.
 
+Adicionalmente, para cada erro gramatical identificado, inclua uma explicação didática da regra gramatical correspondente NO IDIOMA-ALVO da tradução (inglês nos modos ENPT/PTEN/COMPOSITION/SUMMARY; espanhol nos modos ESPPT/PTESP/RESUMEN), para que o candidato possa revisar a regra original. Isso é especialmente importante nos modos de tradução para português (ENPT, ESPPT), onde os erros revelam dificuldades com estruturas do idioma de origem.
+
+Preste atenção especial a "falsos cognatos" e interferências típicas entre os três idiomas (português, inglês, espanhol) — por exemplo, "actualmente" (ES) ≠ "atualmente" (PT), "embarazada" (ES) ≠ "embaraçada" (PT), "pretend" (EN) ≠ "pretender" (PT/ES), "assist" (EN) ≠ "assistir" (PT). Quando o erro decorrer de interferência entre idiomas, explicite isso no campo "problema".
+
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {
   "score": <inteiro 0-100>,
@@ -30,8 +34,23 @@ Responda APENAS em JSON válido, sem markdown, sem texto extra:
     {"categoria":"Estilo","nota":<0-100>},
     {"categoria":"Adequação ao tema","nota":<0-100>}
   ],
-  "errors": [{"trecho":"...","problema":"...","correcao":"..."}],
+  "errors": [
+    {
+      "trecho": "<trecho exato da resposta do candidato que contém o erro>",
+      "trecho_fonte": "<trecho correspondente do texto-fonte no idioma original — mostre de onde veio a expressão>",
+      "problema": "<explicação detalhada do erro: por que essa tradução está errada, qual foi o raciocínio equivocado do candidato, e qual a diferença semântica/estrutural entre os dois idiomas que causou a confusão>",
+      "correcao": "<versão correta substituindo apenas o trecho problemático>"
+    }
+  ],
   "rewrites": [{"original":"...","c2":"..."}],
+  "grammar_explanations": [
+    {
+      "regra": "<nome da regra gramatical em inglês, ex: 'Passive Voice', 'Conditional Type 2', 'Gerund vs Infinitive'>",
+      "explicacao": "<explicação clara da regra em português, 2-4 frases, com foco em como ela funciona no inglês original>",
+      "exemplo_correto": "<exemplo de frase em inglês aplicando a regra corretamente>",
+      "dica_cacd": "<observação de como essa estrutura aparece em textos diplomáticos/acadêmicos do CACD ou como é cobrada na prova>"
+    }
+  ],
   "diplomatic_note": "<como um diplomata/tradutor profissional escreveria a mesma ideia>",
   "summary": "<avaliação geral em 1-2 frases>"
 }`;
@@ -43,9 +62,6 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
-
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY não configurada' });
 
   const { mode, prompt, answer } = req.body || {};
   if (!answer || answer.trim().length < 10) {
@@ -59,8 +75,7 @@ module.exports = async function handler(req, res) {
   ].join('\n\n');
 
   try {
-    const groq = new Groq({ apiKey });
-    const completion = await groq.chat.completions.create({
+    const completion = await groqCreate({
       model: 'llama-3.3-70b-versatile',
       response_format: { type: 'json_object' },
       messages: [
@@ -83,6 +98,7 @@ module.exports = async function handler(req, res) {
       table: Array.isArray(parsed.table) ? parsed.table.slice(0, 5) : [],
       errors: Array.isArray(parsed.errors) ? parsed.errors.slice(0, 30) : [],
       rewrites: Array.isArray(parsed.rewrites) ? parsed.rewrites.slice(0, 30) : [],
+      grammar_explanations: Array.isArray(parsed.grammar_explanations) ? parsed.grammar_explanations.slice(0, 10) : [],
       diplomatic_note: String(parsed.diplomatic_note || '').trim(),
       summary: String(parsed.summary || '').trim(),
     });

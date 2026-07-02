@@ -1,4 +1,4 @@
-const Groq = require('groq-sdk');
+const { groqCreate } = require('./_lib/groq-client');
 
 /* ── Prompts por modo (derivados do system prompt do Tutor de Idiomas CACD) ──
    Cada prompt instrui o modelo a gerar um exercício INÉDITO, nível B2 avançado/C1/C2,
@@ -6,15 +6,41 @@ const Groq = require('groq-sdk');
    Saída sempre em JSON estruturado para o front renderizar. */
 
 const CACD_THEMES =
-  'Temas relevantes ao CACD: política internacional, relações internacionais, ' +
-  'história mundial, história do Brasil, geopolítica, economia internacional, ' +
-  'comércio exterior, meio ambiente, energia, organizações internacionais, ' +
-  'direitos humanos, segurança internacional, integração regional, ' +
-  'tecnologia e IA, desenvolvimento econômico, governança global.';
+  'Temas relevantes ao CACD (varie amplamente entre eles, evitando repetição): ' +
+  'reforma do Conselho de Segurança da ONU e multilateralismo; ' +
+  'disputas comerciais e OMC; acordos de livre-comércio e protecionismo; ' +
+  'mudança climática e acordos multilaterais (Acordo de Paris, COPs); ' +
+  'transição energética e segurança energética; ' +
+  'tratados de direitos humanos e direito internacional humanitário; ' +
+  'imunidade diplomática e Convenção de Viena; ' +
+  'processos de integração regional (Mercosul, União Europeia, União Africana, ASEAN); ' +
+  'operações de paz e intervenção humanitária; ' +
+  'não-proliferação nuclear e controle de armamentos; ' +
+  'competição geopolítica no Indo-Pacífico e disputas no Mar do Sul da China; ' +
+  'governança global e reforma das instituições de Bretton Woods; ' +
+  'dívida externa, condicionalidades do FMI e financiamento do desenvolvimento; ' +
+  'migrações, refugiados e proteção internacional; ' +
+  'política externa brasileira e diplomacia presidencial; ' +
+  'BRICS, G20 e cooperação Sul-Sul; ' +
+  'segurança cibernética e governança da internet; ' +
+  'inteligência artificial, regulação tecnológica e geopolítica da tecnologia; ' +
+  'biodiversidade, Amazônia e diplomacia ambiental; ' +
+  'crises regionais contemporâneas (Oriente Médio, Leste Europeu, África); ' +
+  'história diplomática do Brasil (Barão do Rio Branco, política externa republicana); ' +
+  'organizações internacionais (ONU, OMC, FMI, Banco Mundial, OCDE).';
+
+const REGISTER_GUIDANCE =
+  'Registro e vocabulário: utilize terminologia técnica própria de tratados, ' +
+  'documentos diplomáticos e organismos internacionais (ex.: "communiqué", ' +
+  '"multilateral framework", "ratification", "sanctions regime", "bilateral accord"); ' +
+  'evite coloquialismos; prefira estruturas sintáticas complexas e coesão típica de ' +
+  'textos jornalísticos e diplomáticos de alto nível (The Economist, Foreign Affairs, ' +
+  'documentos da ONU e do Itamaraty).';
 
 const BASE_RULES =
   'Regras: o conteúdo deve ser 100% original e inédito; linguagem sofisticada, ' +
   'natural e contemporânea; nível entre B2 avançado, C1 e C2. ' + CACD_THEMES +
+  ' ' + REGISTER_GUIDANCE +
   ' Responda APENAS em JSON válido, sem markdown e sem texto extra.';
 
 const PROMPTS = {
@@ -88,16 +114,12 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY não configurada' });
-
   const { mode } = req.body || {};
   const systemPrompt = PROMPTS[mode];
   if (!systemPrompt) return res.status(400).json({ error: 'mode inválido' });
 
   try {
-    const groq = new Groq({ apiKey });
-    const completion = await groq.chat.completions.create({
+    const completion = await groqCreate({
       model: 'llama-3.3-70b-versatile',
       response_format: { type: 'json_object' },
       messages: [
