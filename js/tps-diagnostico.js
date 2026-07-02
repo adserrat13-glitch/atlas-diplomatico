@@ -160,7 +160,7 @@ function renderMateriasFracas(dados) {
     </div>
   `).join('');
 
-  document.getElementById('materiasFracas').textContent = materias.filter(m => m.percentual < 70).length;
+  document.getElementById('materiasFracas').textContent = materias.filter(m => m.percentual < 85).length;
 }
 
 function renderTemasFracos(dados) {
@@ -218,7 +218,7 @@ function renderRecomendacoes(dados) {
   const recomendacoes = [
     {
       titulo: '🎯 Foco Prioritário',
-      texto: `Concentre-se em ${pioresMatérias[0]?.materia || 'HB'}. Seu desempenho está abaixo de 70%.`
+      texto: `Concentre-se em ${pioresMatérias[0]?.materia || 'HB'}. Seu desempenho está abaixo de 85%.`
     },
     {
       titulo: '📚 Revisão em Cascata',

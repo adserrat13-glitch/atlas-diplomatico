@@ -22,3 +22,5 @@ desktop.ini
 .env*.local
 
 .netlify/
+.env*
+.worktrees/

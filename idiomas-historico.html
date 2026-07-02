@@ -77,6 +77,22 @@ main{padding:32px;max-width:920px;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
 .hidden{display:none}
 @media(max-width:700px){main{padding:16px}.summary-row{grid-template-columns:1fr 1fr}}
+.cespe-section{margin-top:28px}
+.cespe-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.cespe-head{display:flex;align-items:center;gap:14px;padding:13px 16px;cursor:pointer;transition:.15s}
+.cespe-head:hover{background:rgba(255,255,255,.03)}
+.cespe-score{font-size:22px;font-weight:900;min-width:54px;text-align:center}
+.cespe-info{flex:1;min-width:0}
+.cespe-mode{font-size:13px;font-weight:700}
+.cespe-meta{font-size:11px;color:var(--muted2);margin-top:2px}
+.cespe-badge{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--card);border:1px solid var(--border);color:var(--muted);flex-shrink:0}
+.cespe-arrow{color:var(--muted2);font-size:12px;flex-shrink:0;transition:transform .2s}
+.cespe-item.open .cespe-arrow{transform:rotate(90deg)}
+.cespe-detail{display:none;padding:12px 16px 16px;border-top:1px solid var(--border)}
+.cespe-item.open .cespe-detail{display:block}
+.cespe-q{font-size:12px;line-height:1.6;padding:8px 10px;border-radius:6px;margin-bottom:6px;border:1px solid var(--border)}
+.cespe-q-ok{border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.04)}
+.cespe-q-err{border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.04)}
 </style>
 </head>
 <body>
@@ -126,10 +142,16 @@ main{padding:32px;max-width:920px;margin:0 auto}
     <p>Nenhum exercício salvo ainda.</p>
     <p style="font-size:12px;margin-top:8px">Faça um exercício em <a href="ingles.html" style="color:var(--blue)">Inglês</a> ou <a href="espanhol.html" style="color:var(--blue)">Espanhol</a> para começar.</p>
   </div>
+
+  <div class="cespe-section hidden" id="cespeSection">
+    <div class="sec-lbl" style="margin-top:0">Questões CESPE/CEBRASPE</div>
+    <div id="cespeList"></div>
+  </div>
 </main>
 
 <script>
-let ALL_SESSIONS = [];     // todas as sessões carregadas (com lang)
+let ALL_SESSIONS = [];     // sessões de redação/tradução/resumo
+let CESPE_SESSIONS = [];   // sessões de questões CESPE
 let CURRENT_LANG = '';     // '' = todos
 let chartInstance = null;
 
@@ -221,12 +243,52 @@ function renderList(rows){
 }
 
 function toggle(i){ document.getElementById('hi'+i).classList.toggle('open'); }
+function toggleCespe(i){ document.getElementById('ci'+i).classList.toggle('open'); }
+
+const DIFF_LABEL = { easy:'Fácil', medium:'Médio', hard:'Difícil', cacd:'CACD' };
+const CESPE_MODE_LABEL = { isolated:'Afirmações isoladas', 'text-based':'Baseado em texto' };
+
+function renderCespe(rows){
+  const section = document.getElementById('cespeSection');
+  const el = document.getElementById('cespeList');
+  const langFilter = CURRENT_LANG;
+  const filtered = langFilter ? rows.filter(r => r.lang === langFilter) : rows;
+  if(!filtered.length){ section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+  el.innerHTML = filtered.map((r, i) => {
+    const color = r.score >= 70 ? 'var(--green)' : r.score >= 50 ? 'var(--amber)' : 'var(--red)';
+    const questions = r.questions_data || [];
+    const answers = r.user_answers || {};
+    const qHtml = questions.map((q, qi) => {
+      const userAns = answers[qi];
+      const ok = userAns === q.answer;
+      return `<div class="cespe-q ${ok ? 'cespe-q-ok' : 'cespe-q-err'}">
+        <span style="color:${ok?'var(--green)':'var(--red)'};font-weight:700">${ok ? '✓' : '✗'}</span>
+        ${esc(q.statement || '')}
+        <span style="color:var(--muted2);font-size:11px"> — Gabarito: ${q.answer ? 'CERTO' : 'ERRADO'}</span>
+      </div>`;
+    }).join('');
+    return `<div class="cespe-item" id="ci${i}">
+      <div class="cespe-head" onclick="toggleCespe(${i})">
+        <div class="cespe-score" style="color:${color}">${r.score ?? '—'}</div>
+        <div class="cespe-info">
+          <div class="cespe-mode">🇬🇧 CESPE — ${esc(CESPE_MODE_LABEL[r.mode] || r.mode)}</div>
+          <div class="cespe-meta">${r.correct_count}/${r.total_questions} corretas · ${esc(DIFF_LABEL[r.difficulty] || r.difficulty)} · ${fmtDate(r.created_at)}</div>
+        </div>
+        <span class="cespe-badge">${esc(DIFF_LABEL[r.difficulty] || r.difficulty)}</span>
+        <span class="cespe-arrow">▶</span>
+      </div>
+      <div class="cespe-detail">${qHtml}</div>
+    </div>`;
+  }).join('');
+}
 
 function render(){
   const rows = filtered();
   renderSummary(rows);
   renderChart(rows);
   renderList(rows);
+  renderCespe(CESPE_SESSIONS);
 }
 
 (async()=>{
@@ -239,9 +301,13 @@ function render(){
   if(cd && examDate) cd.textContent = Math.ceil((examDate-Date.now())/86400000)+'d';
 
   try{
-    ALL_SESSIONS = await DB.getIdiomaSessions();  // todas (en + es), ordenadas desc
+    [ALL_SESSIONS, CESPE_SESSIONS] = await Promise.all([
+      DB.getIdiomaSessions(),
+      DB.getCespeSessions(),
+    ]);
   }catch(e){
     ALL_SESSIONS = [];
+    CESPE_SESSIONS = [];
   }
   document.getElementById('statusArea').innerHTML = '';
   render();

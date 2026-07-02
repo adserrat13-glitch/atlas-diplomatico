@@ -1,6 +1,6 @@
 const Groq = require('groq-sdk');
 
-const SYSTEM_PROMPT = `Você é um examinador experiente do CACD (Concurso de Admissão à Carreira Diplomática) especializado em Economia.
+const PROMPT_GAP = `Você é um examinador experiente do CACD (Concurso de Admissão à Carreira Diplomática) especializado em Economia.
 
 Sua tarefa é criar 5 perguntas que REVELEM LACUNAS DE CONHECIMENTO em candidatos que ACHAM que dominam o tópico fornecido, mas na verdade têm gaps conceituais.
 
@@ -23,6 +23,37 @@ Responda APENAS em JSON válido, sem markdown, sem texto extra:
   ]
 }`;
 
+const PROMPT_REVIEW = `Você é um examinador do CACD especializado em criar questões de múltipla escolha para revisão de lacunas de conhecimento.
+
+Sua tarefa é criar EXATAMENTE 20 questões de múltipla escolha no estilo CACD, priorizando os conceitos onde o candidato demonstrou gaps, mas cobrindo o tópico geral.
+
+Regras obrigatórias:
+- Cada questão tem 5 alternativas (A, B, C, D, E)
+- Apenas UMA alternativa é correta
+- As alternativas incorretas devem ser plausíveis (não óbvias)
+- A explicação deve clarificar por que a alternativa correta está certa E por que as outras estão erradas no ponto principal
+- Nível: 1ª e 2ª Fase CACD
+- Priorize os conceitos das lacunas fornecidas nas primeiras questões
+
+Responda APENAS em JSON válido, sem markdown, sem texto extra:
+{
+  "questoes": [
+    {
+      "id": 1,
+      "enunciado": "<texto da questão>",
+      "alternativas": {
+        "A": "<alternativa A>",
+        "B": "<alternativa B>",
+        "C": "<alternativa C>",
+        "D": "<alternativa D>",
+        "E": "<alternativa E>"
+      },
+      "correta": "C",
+      "explicacao": "<por que C está correta e o conceito-chave>"
+    }
+  ]
+}`;
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -34,10 +65,20 @@ module.exports = async function handler(req, res) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'GROQ_API_KEY não configurada' });
 
-  const { topico } = req.body || {};
+  const { topico, mode, lacunas } = req.body || {};
   if (!topico || typeof topico !== 'string') {
     return res.status(400).json({ error: 'topico é obrigatório' });
   }
+
+  const isReview = mode === 'review';
+
+  const lacunasText = isReview && Array.isArray(lacunas) && lacunas.length > 0
+    ? `\n\nLacunas identificadas no candidato (priorize estes conceitos):\n${lacunas.map((l, i) => `${i + 1}. ${l}`).join('\n')}`
+    : '';
+
+  const userMsg = isReview
+    ? `Tópico: ${topico.trim()}${lacunasText}\n\nGere exatamente 20 questões de múltipla escolha.`
+    : `Tópico do edital CACD: ${topico.trim()}`;
 
   try {
     const groq = new Groq({ apiKey });
@@ -45,11 +86,11 @@ module.exports = async function handler(req, res) {
       model: 'llama-3.3-70b-versatile',
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: `Tópico do edital CACD: ${topico.trim()}` },
+        { role: 'system', content: isReview ? PROMPT_REVIEW : PROMPT_GAP },
+        { role: 'user', content: userMsg },
       ],
-      temperature: 0.7,
-      max_tokens: 2048,
+      temperature: isReview ? 0.6 : 0.7,
+      max_tokens: isReview ? 6000 : 2048,
     });
 
     const raw = completion.choices[0]?.message?.content;
@@ -60,16 +101,35 @@ module.exports = async function handler(req, res) {
       return res.status(502).json({ error: 'Resposta do modelo não é JSON válido' });
     }
 
-    if (!Array.isArray(parsed.perguntas) || parsed.perguntas.length === 0) {
-      return res.status(502).json({ error: 'Modelo não retornou perguntas válidas' });
+    if (isReview) {
+      if (!Array.isArray(parsed.questoes) || parsed.questoes.length === 0) {
+        return res.status(502).json({ error: 'Modelo não retornou questões válidas' });
+      }
+      const LETRAS = ['A', 'B', 'C', 'D', 'E'];
+      parsed.questoes = parsed.questoes.slice(0, 20).map((q, i) => ({
+        id: i + 1,
+        enunciado: String(q.enunciado || ''),
+        alternativas: {
+          A: String(q.alternativas?.A || ''),
+          B: String(q.alternativas?.B || ''),
+          C: String(q.alternativas?.C || ''),
+          D: String(q.alternativas?.D || ''),
+          E: String(q.alternativas?.E || ''),
+        },
+        correta: LETRAS.includes(String(q.correta).toUpperCase()) ? String(q.correta).toUpperCase() : 'A',
+        explicacao: String(q.explicacao || ''),
+      }));
+    } else {
+      if (!Array.isArray(parsed.perguntas) || parsed.perguntas.length === 0) {
+        return res.status(502).json({ error: 'Modelo não retornou perguntas válidas' });
+      }
+      parsed.perguntas = parsed.perguntas.slice(0, 5).map((p, i) => ({
+        id: i + 1,
+        pergunta: String(p.pergunta || ''),
+        conceito_alvo: String(p.conceito_alvo || ''),
+        dica_examinador: String(p.dica_examinador || ''),
+      }));
     }
-
-    parsed.perguntas = parsed.perguntas.slice(0, 5).map((p, i) => ({
-      id: i + 1,
-      pergunta: String(p.pergunta || ''),
-      conceito_alvo: String(p.conceito_alvo || ''),
-      dica_examinador: String(p.dica_examinador || ''),
-    }));
 
     return res.status(200).json(parsed);
   } catch (err) {

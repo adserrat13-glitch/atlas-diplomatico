@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../../games-theme.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../supabase.js"></script>
+  <script src="../../js/review-schedule.js"></script>
   <style>
     body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
     .container { max-width: 760px; margin: 0 auto; padding: 2rem 1rem; }
@@ -70,6 +71,35 @@
 
     .back-link { display: inline-block; color: var(--text-muted, #888); font-size: 0.8rem; margin-bottom: 1.5rem; text-decoration: none; }
     .back-link:hover { color: var(--dir, #b56a61); }
+
+    /* Quiz de revisão */
+    .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+    .review-counter { font-size: 0.8rem; color: var(--text-muted, #888); }
+    .review-score { font-size: 0.85rem; font-weight: 600; color: var(--dir, #b56a61); }
+    .review-enunciado { font-size: 1rem; line-height: 1.65; margin-bottom: 1.25rem; }
+    .alt-list { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    .alt-btn { background: var(--card-bg, #1a1a1a); border: 1px solid var(--border, #333); color: var(--text); padding: 0.7rem 1rem; border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.9rem; transition: border-color 0.15s, background 0.15s; display: flex; gap: 0.75rem; align-items: flex-start; }
+    .alt-btn:hover:not(:disabled) { border-color: var(--dir, #b56a61); background: var(--card-hover, #222); }
+    .alt-btn:disabled { cursor: default; }
+    .alt-btn.correta { border-color: #22c55e; background: #0e1f13; }
+    .alt-btn.errada { border-color: #ef4444; background: #1f0e0e; opacity: 0.7; }
+    .alt-btn.selecionada-errada { border-color: #ef4444; background: #2a1010; opacity: 1; }
+    .alt-letra { font-weight: 700; min-width: 1.2rem; color: var(--text-muted, #888); }
+    .alt-btn.correta .alt-letra { color: #22c55e; }
+    .alt-btn.selecionada-errada .alt-letra { color: #ef4444; }
+    .review-explicacao { background: var(--card-bg, #1a1a1a); border-left: 3px solid var(--dir, #b56a61); border-radius: 0 6px 6px 0; padding: 0.75rem 1rem; font-size: 0.85rem; line-height: 1.6; color: var(--text-muted, #bbb); margin-bottom: 1rem; display: none; }
+    .review-result { text-align: center; padding: 2rem 1rem; }
+    .review-result .big-score { font-size: 3rem; font-weight: 700; color: var(--dir, #b56a61); }
+    .review-result .sub { color: var(--text-muted, #888); font-size: 0.9rem; }
+
+    .review-banner { background: #130f0f; border: 1px solid #b56a6144; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: none; }
+    .review-banner.visible { display: block; }
+    .review-banner-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #b56a61; margin-bottom: 0.75rem; }
+    .review-banner-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+    .review-banner-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
+    .review-banner-item span { flex: 1; color: var(--text); }
+    .review-banner-btn { background: transparent; border: 1px solid #b56a6166; color: #b56a61; border-radius: 5px; padding: 0.3rem 0.75rem; font-size: 0.78rem; cursor: pointer; white-space: nowrap; }
+    .review-banner-btn:hover { background: #b56a6122; }
   </style>
 </head>
 <body>
@@ -81,11 +111,22 @@
     <p>Selecione um tópico. Responda 5 perguntas. Descubra onde estão suas lacunas reais.</p>
   </div>
 
-  <div id="screen-topics" class="screen active"></div>
+  <div id="screen-topics" class="screen active">
+    <div id="review-banner" class="review-banner">
+      <div class="review-banner-title">🔁 Revisões pendentes hoje</div>
+      <ul id="review-banner-list" class="review-banner-list"></ul>
+    </div>
+    <div id="topics-content"></div>
+  </div>
 
   <div id="screen-quiz" class="screen">
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div id="quiz-content"></div>
+  </div>
+
+  <div id="screen-review" class="screen">
+    <div class="progress-bar"><div class="progress-fill" id="review-progress-fill" style="width:0%"></div></div>
+    <div id="review-content"></div>
   </div>
 
   <div id="screen-report" class="screen">
@@ -97,7 +138,8 @@
     <h3 style="font-size:0.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dir,#b56a61);margin:0 0 1rem">Lacunas identificadas</h3>
     <ul class="gap-list" id="gap-list"></ul>
     <div class="btn-row" style="margin-top:2rem;justify-content:center">
-      <button class="btn btn-primary" onclick="resetToTopics()">Testar outro tópico</button>
+      <button class="btn btn-primary" onclick="startReviewQuiz()">Revisar com Quiz (20 questões) →</button>
+      <button class="btn btn-ghost" onclick="resetToTopics()">Testar outro tópico</button>
     </div>
   </div>
 </div>
@@ -210,7 +252,7 @@ function esc(s) {
 }
 
 function renderTopics() {
-  const el = document.getElementById('screen-topics');
+  const el = document.getElementById('topics-content');
   el.innerHTML = EDITAL.map(sec => `
     <div class="topic-section">
       <h2>${sec.secao}</h2>
@@ -387,10 +429,13 @@ function showReport() {
   }).join('');
 
   document.getElementById('progress-fill').style.width = '100%';
-  saveDetectorSession('DIR').finally(() => {
-    showScreen('screen-report');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  });
+  const _pct = pct;
+  saveDetectorSession('DIR')
+    .then(() => ReviewSchedule.upsertReviewSchedule('DIR', state.topico, total, _pct))
+    .finally(() => {
+      showScreen('screen-report');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
 }
 
 async function saveDetectorSession(subjectId) {
@@ -421,7 +466,88 @@ function resetToTopics() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ── Quiz de revisão ──────────────────────────────────────────────────────────
+
+let reviewState = { questoes: [], currentQ: 0, acertos: 0, respondidas: 0 };
+
+async function startReviewQuiz() {
+  showScreen('screen-review');
+  document.getElementById('review-progress-fill').style.width = '0%';
+  document.getElementById('review-content').innerHTML = `<div class="loading"><span class="spinner"></span>Gerando quiz de revisão personalizado…</div>`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const lacunas = state.avaliacoes
+    .filter(av => av && !av.lacuna_revelada.toLowerCase().startsWith('nenhuma'))
+    .flatMap(av => [av.lacuna_revelada, ...(av.o_que_faltou || [])])
+    .slice(0, 8);
+  try {
+    const res = await fetch('/api/generate-gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico: state.topico, lacunas, mode: 'review' }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao gerar quiz');
+    reviewState = { questoes: data.questoes, currentQ: 0, acertos: 0, respondidas: 0 };
+    renderReviewQuestion(0);
+  } catch (err) {
+    document.getElementById('review-content').innerHTML = `<div class="loading" style="color:#ef4444">${esc(err.message)}</div><div class="btn-row" style="justify-content:center;margin-top:1rem"><button class="btn btn-ghost" onclick="showScreen('screen-report')">← Voltar ao relatório</button></div>`;
+  }
+}
+
+function renderReviewQuestion(idx) {
+  reviewState.currentQ = idx;
+  const q = reviewState.questoes[idx];
+  const total = reviewState.questoes.length;
+  document.getElementById('review-progress-fill').style.width = (idx / total * 100) + '%';
+  document.getElementById('review-content').innerHTML = `
+    <div class="review-header"><span class="review-counter">Questão ${idx + 1} de ${total}</span><span class="review-score">✓ ${reviewState.acertos} acertos</span></div>
+    <div class="review-enunciado">${esc(q.enunciado)}</div>
+    <div class="alt-list" id="alt-list">${['A','B','C','D','E'].map(l => `<button class="alt-btn" id="alt-${l}" onclick="responderReview('${l}')"><span class="alt-letra">${l}</span><span>${esc(q.alternativas[l])}</span></button>`).join('')}</div>
+    <div class="review-explicacao" id="review-explicacao">${esc(q.explicacao)}</div>
+    <div class="btn-row" id="review-next-row" style="display:none">
+      ${idx + 1 < total ? `<button class="btn btn-primary" onclick="renderReviewQuestion(${idx + 1})">Próxima →</button>` : `<button class="btn btn-primary" onclick="showReviewResult()">Ver resultado final →</button>`}
+      <button class="btn btn-ghost" onclick="showScreen('screen-report')">← Relatório</button>
+    </div>`;
+}
+
+function responderReview(letra) {
+  const q = reviewState.questoes[reviewState.currentQ];
+  if (letra === q.correta) reviewState.acertos++;
+  reviewState.respondidas++;
+  ['A','B','C','D','E'].forEach(l => {
+    const btn = document.getElementById('alt-' + l);
+    btn.disabled = true;
+    if (l === q.correta) btn.classList.add('correta');
+    else if (l === letra) btn.classList.add('selecionada-errada');
+    else btn.classList.add('errada');
+  });
+  document.getElementById('review-explicacao').style.display = 'block';
+  document.getElementById('review-next-row').style.display = 'flex';
+  document.getElementById('review-next-row').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showReviewResult() {
+  const total = reviewState.questoes.length;
+  const pct = Math.round((reviewState.acertos / total) * 100);
+  document.getElementById('review-progress-fill').style.width = '100%';
+  const msg = pct >= 85 ? 'Excelente domínio — lacunas superadas!' : pct >= 70 ? 'Bom desempenho — continue revisando os pontos errados.' : pct >= 50 ? 'Progresso razoável — recomenda-se nova revisão.' : 'Lacunas ainda presentes — retorne ao material básico.';
+  document.getElementById('review-content').innerHTML = `<div class="review-result"><div class="big-score">${reviewState.acertos}<span style="font-size:1.5rem;color:var(--text-muted,#888)">/${total}</span></div><div style="font-size:1.1rem;margin:0.25rem 0">${pct}%</div><div class="sub">${msg}</div></div><div class="btn-row" style="justify-content:center;margin-top:1.5rem"><button class="btn btn-primary" onclick="startReviewQuiz()">Novo quiz de revisão</button><button class="btn btn-ghost" onclick="resetToTopics()">Testar outro tópico</button></div>`;
+  DB.getUser().then(u => { if (!u) return; DB.addSession({ type: 'review_quiz', deck: state.topico, subject: 'DIR', total, correct: reviewState.acertos, wrong: total - reviewState.acertos, wrong_items: [] }).catch(() => {}); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function loadReviewBanner() {
+  const pending = await ReviewSchedule.fetchPendingReviews('DIR');
+  if (!pending.length) return;
+  const banner = document.getElementById('review-banner');
+  const list = document.getElementById('review-banner-list');
+  list.innerHTML = pending.map(r => `
+    <li class="review-banner-item">
+      <span>${esc(r.topic)}</span>
+      <button class="review-banner-btn" onclick="startSession(${JSON.stringify(r.topic)})">Revisar agora →</button>
+    </li>
+  `).join('');
+  banner.classList.add('visible');
+}
+
 renderTopics();
+loadReviewBanner();
 </script>
 </body>
 </html>
