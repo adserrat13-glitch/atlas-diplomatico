@@ -5,29 +5,63 @@ const { groqCreate } = require('./_lib/groq-client');
    com temas relevantes ao CACD. NUNCA fornecer gabarito/texto-modelo.
    Saída sempre em JSON estruturado para o front renderizar. */
 
-const CACD_THEMES =
-  'Temas relevantes ao CACD (varie amplamente entre eles, evitando repetição): ' +
-  'reforma do Conselho de Segurança da ONU e multilateralismo; ' +
-  'disputas comerciais e OMC; acordos de livre-comércio e protecionismo; ' +
-  'mudança climática e acordos multilaterais (Acordo de Paris, COPs); ' +
-  'transição energética e segurança energética; ' +
-  'tratados de direitos humanos e direito internacional humanitário; ' +
-  'imunidade diplomática e Convenção de Viena; ' +
-  'processos de integração regional (Mercosul, União Europeia, União Africana, ASEAN); ' +
-  'operações de paz e intervenção humanitária; ' +
-  'não-proliferação nuclear e controle de armamentos; ' +
-  'competição geopolítica no Indo-Pacífico e disputas no Mar do Sul da China; ' +
-  'governança global e reforma das instituições de Bretton Woods; ' +
-  'dívida externa, condicionalidades do FMI e financiamento do desenvolvimento; ' +
-  'migrações, refugiados e proteção internacional; ' +
-  'política externa brasileira e diplomacia presidencial; ' +
-  'BRICS, G20 e cooperação Sul-Sul; ' +
-  'segurança cibernética e governança da internet; ' +
-  'inteligência artificial, regulação tecnológica e geopolítica da tecnologia; ' +
-  'biodiversidade, Amazônia e diplomacia ambiental; ' +
-  'crises regionais contemporâneas (Oriente Médio, Leste Europeu, África); ' +
-  'história diplomática do Brasil (Barão do Rio Branco, política externa republicana); ' +
-  'organizações internacionais (ONU, OMC, FMI, Banco Mundial, OCDE).';
+const CACD_TOPIC_POOL = [
+  'reforma do Conselho de Segurança da ONU e multilateralismo',
+  'disputas comerciais e OMC',
+  'acordos de livre-comércio e protecionismo',
+  'mudança climática e acordos multilaterais (Acordo de Paris, COPs)',
+  'transição energética e segurança energética',
+  'tratados de direitos humanos e direito internacional humanitário',
+  'imunidade diplomática e Convenção de Viena',
+  'integração regional no Mercosul',
+  'integração regional na União Europeia',
+  'integração regional na União Africana e ASEAN',
+  'operações de paz e intervenção humanitária',
+  'não-proliferação nuclear e controle de armamentos',
+  'competição geopolítica no Indo-Pacífico e disputas no Mar do Sul da China',
+  'governança global e reforma das instituições de Bretton Woods',
+  'dívida externa, condicionalidades do FMI e financiamento do desenvolvimento',
+  'migrações, refugiados e proteção internacional',
+  'política externa brasileira e diplomacia presidencial',
+  'BRICS e cooperação Sul-Sul',
+  'G20 e governança econômica global',
+  'segurança cibernética e governança da internet',
+  'inteligência artificial e regulação tecnológica',
+  'geopolítica da tecnologia e disputa por semicondutores',
+  'biodiversidade, Amazônia e diplomacia ambiental',
+  'crise no Oriente Médio e diplomacia regional',
+  'guerra e diplomacia no Leste Europeu',
+  'conflitos e mediação de crises na África',
+  'história diplomática do Brasil e o Barão do Rio Branco',
+  'política externa republicana brasileira',
+  'a ONU e a arquitetura de segurança coletiva',
+  'a OMC e o sistema multilateral de comércio',
+  'o FMI, o Banco Mundial e a arquitetura financeira internacional',
+  'a OCDE e padrões de governança econômica',
+  'diplomacia comercial e cadeias globais de valor',
+  'segurança alimentar e diplomacia agrícola',
+  'saúde global e diplomacia sanitária (OMS, pandemias)',
+  'espaço exterior e direito internacional espacial',
+  'diplomacia cultural e soft power',
+  'diplomacia climática e transição justa',
+  'sanções internacionais e direito internacional',
+  'direito do mar e a Convenção de Montego Bay',
+];
+
+function pickRandomTopics(n) {
+  const pool = [...CACD_TOPIC_POOL];
+  const picked = [];
+  for (let i = 0; i < n && pool.length; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(idx, 1)[0]);
+  }
+  return picked;
+}
+
+function buildThemeInstruction() {
+  const chosen = pickRandomTopics(4);
+  return `Tema obrigatório para este exercício (escolha UM destes, o mais adequado ao formato pedido): ${chosen.join('; ')}. Não utilize nenhum outro tema fora desta lista.`;
+}
 
 const REGISTER_GUIDANCE =
   'Registro e vocabulário: utilize terminologia técnica própria de tratados, ' +
@@ -39,8 +73,9 @@ const REGISTER_GUIDANCE =
 
 const BASE_RULES =
   'Regras: o conteúdo deve ser 100% original e inédito; linguagem sofisticada, ' +
-  'natural e contemporânea; nível entre B2 avançado, C1 e C2. ' + CACD_THEMES +
-  ' ' + REGISTER_GUIDANCE +
+  'natural e contemporânea; nível entre B2 avançado, C1 e C2. ' +
+  REGISTER_GUIDANCE +
+  ' O tema específico do exercício será informado na mensagem do usuário — use exclusivamente esse tema.' +
   ' Responda APENAS em JSON válido, sem markdown e sem texto extra.';
 
 const PROMPTS = {
@@ -147,7 +182,7 @@ module.exports = async function handler(req, res) {
   const isGramatica = mode === 'GRAMATICA_TEORIA' || mode === 'GRAMATICA_QUIZ';
   const userContent = isGramatica
     ? `Language: ${idioma}\nGrammar topic: ${topico}`
-    : `Gere um novo exercício inédito. ref:${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    : `${buildThemeInstruction()}\nGere um novo exercício inédito sobre esse tema. ref:${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const maxTokens = mode === 'GRAMATICA_TEORIA' ? 1200 : mode === 'GRAMATICA_QUIZ' ? 2000 : 2048;
   const temperature = isGramatica ? 0.4 : 0.9;
 
