@@ -48,19 +48,13 @@ const CACD_TOPIC_POOL = [
   'direito do mar e a Convenção de Montego Bay',
 ];
 
-function pickRandomTopics(n) {
-  const pool = [...CACD_TOPIC_POOL];
-  const picked = [];
-  for (let i = 0; i < n && pool.length; i++) {
-    const idx = Math.floor(Math.random() * pool.length);
-    picked.push(pool.splice(idx, 1)[0]);
-  }
-  return picked;
+function pickRandomTopic() {
+  return CACD_TOPIC_POOL[Math.floor(Math.random() * CACD_TOPIC_POOL.length)];
 }
 
 function buildThemeInstruction() {
-  const chosen = pickRandomTopics(4);
-  return `Tema obrigatório para este exercício (escolha UM destes, o mais adequado ao formato pedido): ${chosen.join('; ')}. Não utilize nenhum outro tema fora desta lista.`;
+  const chosen = pickRandomTopic();
+  return `Tema obrigatório para este exercício: "${chosen}". Desenvolva o texto exclusivamente sobre esse tema — não substitua por outro tema, mesmo que pareça mais familiar.`;
 }
 
 const REGISTER_GUIDANCE =
