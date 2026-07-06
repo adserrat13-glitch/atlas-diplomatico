@@ -466,105 +466,14 @@
       return { subjectCode: best.code, subjectLabel: best.label, tags };
     }
 
-    // ─── Classificação POSICIONAL dos TPS ────────────────────────────
-    // Os CSVs de TPS estão ordenados por blocos de disciplina. Classificar
-    // pela posição é muito mais preciso que o regex acima.
-    const TPS_ORDER_2025  = [['HB',40],['HM',40],['GEO',20],['PI',44],['ECO',20],['DIR',20]];
-    const TPS_ORDER_LEGACY = [['PI',44],['GEO',20],['DIR',20],['HB',40],['HM',40],['ECO',20]];
+    // ─── Classificação dos TPS por marcador de seção (###CODIGO) ─────
+    // A matéria de cada questão vem de um marcador explícito no CSV
+    // (ex: "###HB"), lido em processSimData. SUBJECT_RULES/classifyQuestion
+    // continuam servindo de fallback para decks não-TPS sem marcador.
     const TPS_LABELS = {
       HB:'História do Brasil', HM:'História Mundial', GEO:'Geografia',
       PI:'Política Internacional', ECO:'Economia', DIR:'Direito'
     };
-    const TPS_CANON = 184;          // soma dos blocos canônicos
-    const TPS_REFINE_WINDOW = 3;    // posições perto de uma borda elegíveis para ajuste
-
-    function parseYearFromDeck(deckName) {
-      const m = String(deckName || '').match(/(20\d{2})/);
-      return m ? parseInt(m[1], 10) : null;
-    }
-
-    function tpsOrderForYear(year) {
-      if (year === 2025 || year === 2026) return TPS_ORDER_2025;
-      if (year >= 2013 && year <= 2024) return TPS_ORDER_LEGACY;
-      return null; // ano desconhecido → cai no regex
-    }
-
-    // Escala os blocos canônicos para o total real, somando exatamente `total`
-    // (método do maior resto). Retorna [{code,start,size,end}].
-    function scaleBlocks(order, total) {
-      const raw = order.map(([code, size]) => ({ code, exact: size / TPS_CANON * total }));
-      const sizes = raw.map(r => Math.floor(r.exact));
-      let leftover = total - sizes.reduce((a, b) => a + b, 0);
-      const byFrac = raw
-        .map((r, i) => ({ i, frac: r.exact - Math.floor(r.exact) }))
-        .sort((a, b) => b.frac - a.frac);
-      for (let k = 0; k < leftover; k++) sizes[byFrac[k % byFrac.length].i]++;
-      const blocks = []; let acc = 0;
-      for (let i = 0; i < order.length; i++) {
-        blocks.push({ code: order[i][0], start: acc, size: sizes[i], end: acc + sizes[i] });
-        acc += sizes[i];
-      }
-      return blocks;
-    }
-
-    // Voto do regex para UMA disciplina (sem empate). Retorna code ou null.
-    function regexSubjectVote(text) {
-      let best = null, bestScore = 0, tie = false;
-      for (const r of SUBJECT_RULES) {
-        const m = text.match(r.rx);
-        const s = m ? new Set(m.map(x => x.trim().toLowerCase())).size : 0;
-        if (s > bestScore) { bestScore = s; best = r.code; tie = false; }
-        else if (s === bestScore && s > 0) tie = true;
-      }
-      return (best && !tie && bestScore > 0) ? best : null;
-    }
-
-    // Constrói um classificador posicional para o arquivo. Retorna
-    // function(orderedIndex, text) -> {subjectCode, subjectLabel, tags}, ou null.
-    function makeTpsPositionalClassifier(deckName, total) {
-      const year = parseYearFromDeck(deckName);
-      const order = tpsOrderForYear(year);
-      const dn = (deckName || '').toUpperCase();
-      if (!order || !total) {
-        // Arquivo temático sem ano: força matéria pelo nome
-        let forced = null;
-        if (dn.includes('POLITICA') || dn.includes('PI')) forced = { code:'PI', label:'Política Internacional' };
-        else if (dn.includes('HISTORIAMUNDIAL') || dn.includes('HISTORIA MUNDIAL') || dn.includes('HM')) forced = { code:'HM', label:'História Mundial' };
-        else if (dn.includes('HISTORIA') || dn.includes('HB')) forced = { code:'HB', label:'História do Brasil' };
-        else if (dn.includes('ECONOMIA') || dn.includes('ECO')) forced = { code:'ECO', label:'Economia' };
-        else if (dn.includes('DIREITO') || dn.includes('DIP')) forced = { code:'DIP', label:'Direito Internacional' };
-        else if (dn.includes('GEOGRAFIA') || dn.includes('GEO')) forced = { code:'GEO', label:'Geografia' };
-        if (forced) {
-          const rule = SUBJECT_RULES.find(r => r.code === forced.code);
-          return function(idx, text) {
-            const tags = rule ? [...new Set((text.match(rule.rx)||[]).map(m=>m.trim()))].slice(0,3) : [];
-            return { subjectCode: forced.code, subjectLabel: forced.label, tags };
-          };
-        }
-        return null;
-      }
-      const blocks = scaleBlocks(order, total);
-      const blockAt = idx => {
-        for (const b of blocks) if (idx >= b.start && idx < b.end) return b;
-        return blocks[blocks.length - 1]; // clamp para excedentes
-      };
-      return function (idx, text) {
-        text = text || '';
-        let b = blockAt(idx);
-        const bi = blocks.indexOf(b);
-        const nearStart = idx - b.start;
-        const nearEnd = b.end - 1 - idx;
-        const vote = regexSubjectVote(text);
-        if (vote && vote !== b.code) {
-          const prev = blocks[bi - 1], next = blocks[bi + 1];
-          if (nearStart < TPS_REFINE_WINDOW && prev && vote === prev.code) b = prev;
-          else if (nearEnd < TPS_REFINE_WINDOW && next && vote === next.code) b = next;
-        }
-        const rule = SUBJECT_RULES.find(r => r.code === b.code);
-        const tags = rule ? [...new Set((text.match(rule.rx) || []).map(m => m.trim()))].slice(0, 3) : [];
-        return { subjectCode: b.code, subjectLabel: TPS_LABELS[b.code] || b.code, tags };
-      };
-    }
 
     function dominantSubject(answers) {
       const freq = {};
@@ -715,21 +624,25 @@
     }
 
     // ─── Data processing (with classification) ──────────────────────
+    const SECTION_MARKER_RX = /^###([A-Z]+)$/;
     function processSimData(rows) {
       allQuestions = []; sections = {};
-      const collected = []; let currentSection = '';
+      const collected = []; let currentSection = ''; let currentSubject = null;
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
         if (!q) return;
+        const marker = q.match(SECTION_MARKER_RX);
+        if (marker) { currentSubject = marker[1]; return; }
         if (!a) { if (q.length <= 80) currentSection = q; return; }
         const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
         if (!ans) return;
-        collected.push({ q, correct: ans, section: currentSection });
+        collected.push({ q, correct: ans, section: currentSection, subjectCode: currentSubject });
       });
       if (!collected.length) { alert('Nenhuma questão CERTO/ERRADO encontrada.'); return; }
-      const tpsClassify = makeTpsPositionalClassifier(deckName, collected.length);
       collected.forEach((item, i) => {
-        const cls = tpsClassify ? tpsClassify(i, item.q) : classifyQuestion(item.q);
+        const cls = item.subjectCode
+          ? { subjectCode: item.subjectCode, subjectLabel: TPS_LABELS[item.subjectCode] || item.subjectCode, tags: [] }
+          : classifyQuestion(item.q);
         sections[i] = item.section;
         allQuestions.push({ ...item, ...cls });
       });

@@ -1,4 +1,5 @@
 ﻿;
+###PI
 38. (OEA – Cuba, 1962) Em 1962, o Brasil absteve-se da resolução que suspendeu o governo de Cuba da OEA, enquanto o México votou contra, invocando autodeterminação e não intervenção.;CERTO
 39. (Carta Democrática Interamericana) A Carta Democrática Interamericana pode ser acionada tanto em casos de ruptura quanto de risco à ordem democrática, por qualquer Estado-membro ou pelo Secretário-Geral da OEA.;CERTO
 40. (OEA – Venezuela) A Venezuela notificou sua saída da OEA em 2017, desligando-se em 2019, mas a OEA manteve assento para representante da oposição com base em reconhecimento político.;CERTO
@@ -36,6 +37,7 @@
 72. (UE – Conselho Europeu) O Conselho Europeu reúne chefes de Estado ou de governo, define orientações políticas gerais e é presidido por mandato de dois anos e meio, renovável uma vez.;CERTO
 73. (UE – Estado de Direito) A cláusula de condicionalidade de 2020 permite suspender fundos de países que violem o Estado de Direito, como Hungria e Polônia.;CERTO
 74. (UE – Política Econômica) O BCE conduz a política monetária do euro, enquanto a política fiscal permanece nacional, gerando tensões em crises como a da COVID-19.;CERTO
+###GEO
 75. (História da Geografia) A institucionalização da geografia no início do século XIX ocorreu sob influência do positivismo, com busca por princípios científicos como causalidade e extensão, valorizando a interdisciplinaridade.;CERTO
 76. (Escola Alemã) Autores alemães como Ritter, Ratzel, Richthofen e Hettner têm como marca comum o determinismo geográfico.;"ERRADO (Ritter e Hettner não são deterministas; há pluralidade teórica.)"
 77. (Milton Santos – Por uma Geografia Nova) A obra critica correntes tradicionais descritivas e busca aproximar a Geografia Crítica da Nova Geografia (teorético-quantitativa).;"ERRADO (Milton Santos critica a geografia teorético-quantitativa; não busca aproximação.)"
@@ -58,6 +60,7 @@
 94. (Amazônia – Clima) O clima amazônico não apresenta diferenciação na distribuição das chuvas ao longo do ano, tanto na porção ocidental quanto oriental.;ERRADO (Há diferenças, especialmente na Amazônia Oriental.)
 95. (Cerrado – Solos) O Cerrado apresenta solos de alta fertilidade natural (latossolos) devido à lixiviação intensa.;ERRADO (Latossolos são profundamente intemperizados e pouco férteis.)
 96. (Pantanal) O Pantanal é a maior planície alagada contínua do mundo, fortemente influenciada pelos planaltos adjacentes e pelo regime hidrológico do Alto Paraguai.;CERTO
+###DIR
 97. (Homologação de Sentença Estrangeira) Sentença estrangeira condenatória contra o Brasil deverá ser homologada pelo STJ, ocasião em que poderão ser examinadas irregularidades contratuais.;ERRADO (O STJ não reexamina o mérito.)
 98. (Monismo no Brasil) O Brasil adota o monismo para normas internacionais não codificadas, dispensando sua transformação em direito interno.;ERRADO (O Brasil adota posição dualista mitigada.)
 99. (Imunidades Soberanas) A imunidade de execução dos Estados e a imunidade de jurisdição das organizações internacionais baseiam-se exclusivamente em normas convencionais.;ERRADO (Há também base consuetudinária.)
@@ -84,6 +87,7 @@
 120. (Responsabilidade Civil do Estado) Em operação policial com morte e perícia inconclusiva, configura-se responsabilidade civil do Estado.;CERTO
 121. (Modalidades de Licitação) São modalidades de licitação: concorrência, concurso, leilão, pregão, convite, tomada de preços e diálogo competitivo.;CERTO
 122. (Lei do Serviço Exterior Brasileiro) As relações trabalhistas dos auxiliares locais regem-se pela legislação do país-sede da repartição.;CERTO
+###HB
 149. (América portuguesa × espanhola) Diferentemente da América espanhola, o Brasil não possuía universidades nem imprensa, e suas elites formavam-se em Coimbra, o que deu homogeneidade política ao Império.;CERTO
 150. (Reformas pombalinas) O período pombalino não conheceu revoltas coloniais, ao contrário da América hispânica, marcada por sedições contra as reformas bourbônicas.;ERRADO
 151. (Fluxos migratórios no século XVIII) No século XVIII, a América hispânica recebeu mais migrantes que o Brasil, enquanto Rio de Janeiro e Salvador se caracterizaram por emigração reinol.;ERRADO
@@ -117,6 +121,7 @@
 179. Após o adoecimento de Costa e Silva, Pedro Aleixo tentou promover abertura política, mas foi afastado por uma junta militar com base no AI-12.;ERRADO
 180. O terceiro fechamento do Congresso ocorreu antes do Pacote de Abril (1977), e houve um quarto fechamento durante a edição da Lei da Anistia no governo Figueiredo.;ERRADO
 181. Apesar do discurso de abertura lenta, gradual e segura, o governo Geisel reagiu ao avanço da oposição com o Pacote de Abril, para manter controle político e legislativo.;CERTO
+###HM
 182. O pioneirismo britânico na Revolução Industrial gerou uma classe operária mais combativa que a continental, e franceses, alemães, belgas e estadunidenses recusaram participar da I Internacional Socialista.;ERRADO
 183. A degradação ambiental da Revolução Industrial gerou, já na década de 1830, movimentos conservacionistas, tendo o Green England como principal expoente.;ERRADO
 184. A industrialização transformou profundamente as estruturas nacionais e fortaleceu nacionalismos que passaram a ameaçar a hegemonia britânica.;CERTO
@@ -150,6 +155,7 @@
 212. Sob pressão da ONU, Portugal transformou suas colônias africanas em Províncias Ultramarinas, concedendo-lhes autonomia limitada.;CERTO
 213. Diferentemente dos países anglófonos, os africanos francófonos romperam totalmente com a ex-metrópole devido à violência de suas lutas de independência.;ERRADO
 214. Após os Acordos de Madri, o Saara Ocidental foi dividido entre Marrocos e Mauritânia, enquanto a Frente POLISARIO proclamou a República Árabe Saaraui Democrática no exílio.;CERTO
+###ECO
 215. No equilíbrio do consumidor com preferências convexas, a taxa marginal de substituição é inferior ao preço relativo dos bens.;ERRADO
 216. A restrição orçamentária só se altera quando há variação da renda nominal do consumidor.;ERRADO
 217. A transitividade das preferências garante consistência: se A é preferido a B e B a C, então A é preferido a C.;CERTO

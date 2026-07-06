@@ -203,10 +203,9 @@
   const EDITAIS_JSON_PATH = 'editais-aprovados.json';
   const EDITAL_ID = 'media_combinada_2024_2025_2026';
 
-  // Mesma lógica posicional de classificação usada em simulados.html,
+  // Classificação por marcador de seção explícito no CSV (###CODIGO),
   // duplicada aqui de propósito para manter este módulo 100% isolado
   // (nenhuma dependência de simulados.html).
-  const TPS_ORDER_2026 = [['HB',40],['HM',40],['GEO',20],['PI',44],['ECO',20],['DIR',20]];
   const SUBJ_LABELS = {
     HB:'História do Brasil', HM:'História Mundial', GEO:'Geografia',
     PI:'Política Internacional', ECO:'Economia', DIR:'Direito'
@@ -214,23 +213,7 @@
   const SUBJ_COLORS = {
     HB:'#fbbf24', HM:'#f97316', GEO:'#34d399', PI:'#22d3ee', ECO:'#facc15', DIR:'#f87171'
   };
-
-  function scaleBlocks(order, total) {
-    const canon = order.reduce((a,[,s])=>a+s,0);
-    const raw = order.map(([code,size])=>({code, exact:size/canon*total}));
-    const sizes = raw.map(r=>Math.floor(r.exact));
-    let leftover = total - sizes.reduce((a,b)=>a+b,0);
-    const byFrac = raw.map((r,i)=>({i,frac:r.exact-Math.floor(r.exact)})).sort((a,b)=>b.frac-a.frac);
-    for (let k=0;k<leftover;k++) sizes[byFrac[k%byFrac.length].i]++;
-    const blocks=[]; let acc=0;
-    for (let i=0;i<order.length;i++){ blocks.push({code:order[i][0], start:acc, size:sizes[i], end:acc+sizes[i]}); acc+=sizes[i]; }
-    return blocks;
-  }
-
-  function classifyByPosition(idx, blocks) {
-    for (const b of blocks) if (idx>=b.start && idx<b.end) return b.code;
-    return blocks[blocks.length-1].code;
-  }
+  const SECTION_MARKER_RX = /^###([A-Z]+)$/;
 
   let allQuestions = [], queue = [], currentIdx = 0, answers = [];
   let aprovadosData = null;
@@ -265,17 +248,19 @@
     text = text.replace(/^﻿/, '');
     const rows = Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data;
     const collected = [];
+    let currentSubject = null;
     rows.forEach(row=>{
-      const q = (row[0]||'').trim(), a = (row[1]||'').trim();
+      const first = (row[0]||'').trim();
+      const marker = first.match(SECTION_MARKER_RX);
+      if (marker) { currentSubject = marker[1]; return; }
+      const q = first, a = (row[1]||'').trim();
       if (!q || !a) return;
       const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
       if (!ans) return;
-      collected.push({ q, correct: ans, source: path });
+      collected.push({ q, correct: ans, source: path, subjectCode: currentSubject });
     });
     if (!collected.length) throw new Error('Nenhuma questão CERTO/ERRADO encontrada neste arquivo');
-    // Classificação posicional — cada prova tem sua própria distribuição de blocos por disciplina.
-    const blocks = scaleBlocks(TPS_ORDER_2026, collected.length);
-    return collected.map((item,i)=>({ ...item, subjectCode: classifyByPosition(i, blocks) }));
+    return collected;
   }
 
   function renderPicker(){
@@ -360,7 +345,7 @@
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${(currentIdx/queue.length*100)}%"></div></div>
       <div class="question-card">
-        <div class="question-label">Questão ${currentIdx+1} · ${escHtml(SUBJ_LABELS[q.subjectCode]||q.subjectCode)}</div>
+        <div class="question-label">Questão ${currentIdx+1} · ${escHtml(SUBJ_LABELS[q.subjectCode] || (q.subjectCode ? q.subjectCode : 'Não classificado'))}</div>
         <div class="question-text">${escHtml(q.q)}</div>
       </div>
       <div class="answer-btns">

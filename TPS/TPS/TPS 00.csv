@@ -1,4 +1,5 @@
-﻿Principais Indicadores e Crescimento Econômico;
+﻿###ECO
+Principais Indicadores e Crescimento Econômico;
 Os principais indicadores da economia brasileira no século XX foram desemprego, inflação e PIB, com forte crescimento e instabilidade.;Certo
 O PIB brasileiro cresceu cerca de 122 vezes no século XX, a uma taxa média anual próxima de 5%.;Certo
 Na segunda metade do século XX, o PIB brasileiro cresceu aproximadamente 12 vezes.;Certo
@@ -188,6 +189,7 @@ O Plano Bresser adotou congelamento temporário e desvalorização cambial.;Cert
 O Plano Bresser adotou juros reais positivos e tentou reduzir o déficit público.;Certo
 A URP corrigia salários com base na inflação futura esperada.;Errado
 ;
+###HB
 A “urbanização da hegemonia” baseou-se em aliança com setores urbanos e trabalhadores.;Certo
 O populismo de Vargas caracterizou-se pela conciliação de interesses e criação da CLT.;Certo
 O populismo varguista teve uma fase autoritária e outra democrática.;Certo
@@ -196,6 +198,7 @@ O período foi marcado por democratização e pela promulgação da Constituiç�
 ;
 ;
 ;
+###ECO
 A inflação brasileira dos anos 1980 obedecia ao padrão da Curva de Phillips.;Errado
 Choques de petróleo, juros internacionais e câmbio afetaram a economia brasileira no período.;Certo
 No início do governo Sarney, o Brasil apresentava inflação elevada, apesar do crescimento econômico recente.;Certo
@@ -223,6 +226,7 @@ O Plano Bresser adotou congelamento temporário e desvalorização cambial.;Cert
 A URP corrigia salários com base na inflação futura esperada.;Errado
 O Plano Bresser adotou juros reais positivos e tentou reduzir o déficit público.;Certo
 ;
+###PI
 A Guerra do Paraguai resultou na devastação do território paraguaio, grande perda populacional, ocupação militar temporária e fortalecimento da posição brasileira na região.;Certo
 Os Estados Unidos tiveram atuação militar direta e decisiva na Guerra do Paraguai.;Errado. (Atuaram com mediação limitada e tensões diplomáticas.)
 Após a derrota de Solano López, o Brasil passou a gozar de maior estabilidade regional e fortalecimento diplomático.;Certo
@@ -348,6 +352,7 @@ O Brasil é frequentemente classificado como país semiperiférico, com protagon
 As políticas externas de FHC e Lula divergiram totalmente quanto à integração sul-americana.;ERRADO
 A globalização e o regionalismo aberto contribuíram para maior diversificação de mercados e autonomia diplomática do Brasil.;CERTO
 ;
+###GEO
 Na Antiguidade e Era Clássica, autores como Heródoto e Estrabão associaram a geografia ao comércio e à expansão do Estado.;CERTO
 Kant contribuiu para a geografia ao afirmar que ela se dedica ao tempo, enquanto a história se ocupa do espaço.;ERRADO
 No século XIX, a geografia estratégica foi utilizada como instrumento do colonialismo e do nacionalismo.;CERTO
@@ -452,6 +457,7 @@ A Política Nacional do Meio Ambiente foi instituída pela Lei nº 6.938, de 198
 A política ambiental brasileira prevê atuação conjunta da União, estados, municípios e setor privado.;CERTO
 Os desafios ambientais no Brasil envolvem conciliar crescimento econômico, preservação ambiental e redução de desigualdades.;CERTO
 ;
+###ECO
 A microeconomia estuda o comportamento de consumidores e produtores individuais.;CERTO
 A demanda representa a quantidade que o consumidor deseja adquirir a cada nível de preço.;CERTO
 A lei da demanda afirma que, mantidas as demais condições constantes, preço e quantidade demandada variam no mesmo sentido.;ERRADO
@@ -599,6 +605,7 @@ O dumping consiste na venda de produtos abaixo do custo de produção.;CERTO
 Medidas antidumping visam proteger o mercado doméstico.;CERTO
 Barreiras não tarifárias incluem normas técnicas e sanitárias.;CERTO
 ;
+###PI
 As Relações Internacionais são influenciadas apenas por fatores econômicos.;ERRADO
 Geopolítica, poder militar e cultura influenciam as Relações Internacionais.;CERTO
 A globalização corresponde a um processo de integração econômica, política, social e cultural entre países.;CERTO
@@ -606,6 +613,7 @@ As tecnologias da informação e comunicação impulsionaram decisivamente a glo
 A globalização reduz o comércio internacional e o investimento estrangeiro direto.;ERRADO
 A globalização redefiniu o papel do Estado, mas não eliminou sua relevância.;CERTO
 A globalização ampliou o uso de blocos regionais e aumentou a interdependência entre os Estados.;CERTO
+###DIR
 Direito Internacional Público (DIP): Conceitos e Teorias;
 O Direito Internacional Público regula as relações entre os Estados.;CERTO
 A existência do Direito Internacional depende do cumprimento integral de suas normas.;ERRADO
@@ -1228,6 +1236,7 @@ Estados podem intervir em Municípios para assegurar princípios da Constituiç�
 Na intervenção estadual, o único legitimado é o Procurador-Geral de Justiça.;CERTO
 A decisão do Tribunal de Justiça em representação interventiva estadual é irrecorrível.;CERTO
 ;
+###HB
 Antes da colonização, a população indígena brasileira apresentava grande diversidade étnica e cultural.;CERTO
 Estima-se que a população indígena pré-colonial no Brasil variava entre dois e cinco milhões de habitantes.;CERTO
 A economia indígena pré-colonial baseava-se exclusivamente na caça e na pesca.;ERRADO
