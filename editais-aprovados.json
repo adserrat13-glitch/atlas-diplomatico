@@ -1,4 +1,20 @@
 {
+  "media_combinada": {
+    "id": "media_combinada_2024_2025_2026",
+    "edital": "Média combinada dos aprovados (Editais 2024, 2025 e 2026)",
+    "descricao": "Média ponderada pelo número de aprovados de cada edital (139 em 2024, 140 em 2025, 125 em 2026 — total 404 candidatos aprovados/convocados). Usada como referência única para todas as provas desta central, independentemente do ano da prova respondida.",
+    "num_aprovados_amostra": 404,
+    "media_geral_pct": 84.1,
+    "por_disciplina": {
+      "HB":  { "nome": "História do Brasil",       "media_pct": 84.9 },
+      "HM":  { "nome": "História Mundial",          "media_pct": 84.4 },
+      "GEO": { "nome": "Geografia",                 "media_pct": 84.4 },
+      "PI":  { "nome": "Política Internacional",    "media_pct": 85.9 },
+      "ECO": { "nome": "Economia",                  "media_pct": 83.5 },
+      "DIR": { "nome": "Direito",                   "media_pct": 80.2 }
+    },
+    "nota_metodologica": "Média ponderada das três últimas edições do concurso (2024, 2025, 2026), refletindo o perfil de quem foi efetivamente aprovado/convocado nesses três editais."
+  },
   "editais": [
     {
       "id": "irbr_2024_edital4",

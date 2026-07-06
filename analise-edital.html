@@ -179,30 +179,29 @@
 
 <script>
   // Provas dentro de TPS/TPS/ — cada uma isolada, escolhida individualmente
-  // pelo usuário (nenhum outro arquivo/pasta do site é lido). Cada prova é
-  // comparada contra a média dos aprovados do edital do mesmo ano, quando
-  // disponível; caso contrário, usa o edital mais recente disponível como
-  // fallback (deixado explícito na tela).
+  // pelo usuário (nenhum outro arquivo/pasta do site é lido). Todas as provas
+  // são comparadas contra a MESMA referência: a média combinada dos aprovados
+  // dos editais de 2024, 2025 e 2026 — não uma referência por ano de prova.
   const PROVAS = [
-    { label: '2025.1', file: 'TPS/TPS/TPS  2025.1.csv', editalId: 'irbr_2025_edital8' },
-    { label: '00',     file: 'TPS/TPS/TPS 00.csv',       editalId: null },
-    { label: '2013',   file: 'TPS/TPS/TPS 2013.csv',     editalId: null },
-    { label: '2014',   file: 'TPS/TPS/TPS 2014.csv',     editalId: null },
-    { label: '2015',   file: 'TPS/TPS/tps 2015.csv',     editalId: null },
-    { label: '2016',   file: 'TPS/TPS/TPS 2016.csv',     editalId: null },
-    { label: '2017',   file: 'TPS/TPS/TPS 2017.csv',     editalId: null },
-    { label: '2018',   file: 'TPS/TPS/TPS 2018.csv',     editalId: null },
-    { label: '2019',   file: 'TPS/TPS/TPS 2019.csv',     editalId: null },
-    { label: '2021',   file: 'TPS/TPS/TPS 2021.csv',     editalId: null },
-    { label: '2022',   file: 'TPS/TPS/TPS 2022.csv',     editalId: null },
-    { label: '2023',   file: 'TPS/TPS/TPS 2023.csv',     editalId: null },
-    { label: '2024',   file: 'TPS/TPS/TPS 2024.csv',     editalId: 'irbr_2024_edital4' },
-    { label: '2025',   file: 'TPS/TPS/TPS 2025.csv',     editalId: 'irbr_2025_edital8' },
-    { label: '2026.1', file: 'TPS/TPS/TPS 2026.1.csv',   editalId: 'irbr_2026_edital4' },
-    { label: '2026',   file: 'TPS/TPS/TPS 2026.csv',     editalId: 'irbr_2026_edital4' }
+    { label: '2025.1', file: 'TPS/TPS/TPS  2025.1.csv' },
+    { label: '00',     file: 'TPS/TPS/TPS 00.csv' },
+    { label: '2013',   file: 'TPS/TPS/TPS 2013.csv' },
+    { label: '2014',   file: 'TPS/TPS/TPS 2014.csv' },
+    { label: '2015',   file: 'TPS/TPS/tps 2015.csv' },
+    { label: '2016',   file: 'TPS/TPS/TPS 2016.csv' },
+    { label: '2017',   file: 'TPS/TPS/TPS 2017.csv' },
+    { label: '2018',   file: 'TPS/TPS/TPS 2018.csv' },
+    { label: '2019',   file: 'TPS/TPS/TPS 2019.csv' },
+    { label: '2021',   file: 'TPS/TPS/TPS 2021.csv' },
+    { label: '2022',   file: 'TPS/TPS/TPS 2022.csv' },
+    { label: '2023',   file: 'TPS/TPS/TPS 2023.csv' },
+    { label: '2024',   file: 'TPS/TPS/TPS 2024.csv' },
+    { label: '2025',   file: 'TPS/TPS/TPS 2025.csv' },
+    { label: '2026.1', file: 'TPS/TPS/TPS 2026.1.csv' },
+    { label: '2026',   file: 'TPS/TPS/TPS 2026.csv' }
   ];
   const EDITAIS_JSON_PATH = 'editais-aprovados.json';
-  const FALLBACK_EDITAL_ID = 'irbr_2026_edital4'; // edital mais recente, usado quando a prova não tem edital correspondente
+  const EDITAL_ID = 'media_combinada_2024_2025_2026';
 
   // Mesma lógica posicional de classificação usada em simulados.html,
   // duplicada aqui de propósito para manter este módulo 100% isolado
@@ -234,9 +233,7 @@
   }
 
   let allQuestions = [], queue = [], currentIdx = 0, answers = [];
-  let editaisMap = {};
   let aprovadosData = null;
-  let currentEditalId = FALLBACK_EDITAL_ID;
   let timerSecs = 0, timerInterval = null;
   let currentProvaLabel = '';
 
@@ -246,17 +243,16 @@
     try {
       const res = await fetch(EDITAIS_JSON_PATH);
       const data = await res.json();
-      (data.editais||[]).forEach(e=>{ editaisMap[e.id] = e; });
-    } catch(e) { editaisMap = {}; }
-    aprovadosData = editaisMap[FALLBACK_EDITAL_ID] || Object.values(editaisMap)[0] || null;
+      aprovadosData = data.media_combinada || null;
+    } catch(e) { aprovadosData = null; }
     renderRefBanner();
   }
 
   function renderRefBanner(){
     const el = document.getElementById('refBanner');
     if (!aprovadosData) { el.innerHTML = 'Não foi possível carregar os dados de referência dos aprovados.'; return; }
-    el.innerHTML = `📊 Referência: <b>média dos ${aprovadosData.num_aprovados_amostra} candidatos aprovados</b> no ${escHtml(aprovadosData.edital)} — média geral de acerto: <b>${aprovadosData.media_geral_pct}%</b>.
-      <div class="small">Escolha uma prova por ano da pasta <b>TPS/TPS/</b> abaixo. Cada prova é comparada contra a média dos aprovados do edital do mesmo ano, quando disponível (2024, 2025 ou 2026); caso contrário, usa o edital mais recente como referência. ${escHtml(aprovadosData.nota_metodologica||'')}</div>`;
+    el.innerHTML = `📊 Referência: <b>${escHtml(aprovadosData.edital)}</b> (${aprovadosData.num_aprovados_amostra} candidatos) — média geral de acerto: <b>${aprovadosData.media_geral_pct}%</b>.
+      <div class="small">Esta mesma média é usada como referência para <b>todas</b> as provas de <b>TPS/TPS/</b> abaixo, independentemente do ano da prova respondida. ${escHtml(aprovadosData.nota_metodologica||'')}</div>`;
   }
 
   async function loadOneCsv(path){
@@ -307,8 +303,6 @@
       return;
     }
     currentProvaLabel = prova.label;
-    currentEditalId = prova.editalId && editaisMap[prova.editalId] ? prova.editalId : FALLBACK_EDITAL_ID;
-    aprovadosData = editaisMap[currentEditalId] || aprovadosData;
     queue = allQuestions.slice();
     currentIdx = 0; answers = [];
     timerSecs = 0;
@@ -368,7 +362,7 @@
 
     try {
       await DB.addEditalSession({
-        edital_id: currentEditalId,
+        edital_id: EDITAL_ID,
         total, correct, wrong, time_seconds: timerSecs,
         subjects_breakdown: breakdown,
         wrong_items: answers.filter(a=>!a.isCorrect).map(a=>({q:a.q, answer:a.correct, userAns:a.userAns, subjectCode:a.subjectCode}))
