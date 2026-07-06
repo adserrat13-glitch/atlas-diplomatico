@@ -251,8 +251,7 @@
   function renderRefBanner(){
     const el = document.getElementById('refBanner');
     if (!aprovadosData) { el.innerHTML = 'Não foi possível carregar os dados de referência dos aprovados.'; return; }
-    el.innerHTML = `📊 Referência: <b>${escHtml(aprovadosData.edital)}</b> (${aprovadosData.num_aprovados_amostra} candidatos) — média geral de acerto: <b>${aprovadosData.media_geral_pct}%</b>.
-      <div class="small">Esta mesma média é usada como referência para <b>todas</b> as provas de <b>TPS/TPS/</b> abaixo, independentemente do ano da prova respondida. ${escHtml(aprovadosData.nota_metodologica||'')}</div>`;
+    el.innerHTML = `📊 Referência: <b>${escHtml(aprovadosData.edital)}</b> — média geral de acerto: <b>${aprovadosData.media_geral_pct}%</b>`;
   }
 
   async function loadOneCsv(path){
@@ -419,7 +418,10 @@
 
     document.getElementById('mainContent').innerHTML = `
       ${secLabel('Resultado Geral vs. Aprovados')}
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Prova: <b>TPS ${escHtml(currentProvaLabel)}</b> · Referência: <b>${escHtml(aprovadosData.edital)}</b></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+        Prova: <b>TPS ${escHtml(currentProvaLabel)}</b> · Referência: <b>${escHtml(aprovadosData.edital)}</b> (${aprovadosData.num_aprovados_amostra} candidatos)
+        <div style="margin-top:6px;line-height:1.5">${escHtml(aprovadosData.nota_metodologica||'')}</div>
+      </div>
       <div class="exec-grid">
         <div class="exec-card">
           <div class="exec-val" style="color:${myPct>=refPct?'var(--green)':'var(--red)'}">${myPct}%</div>
