@@ -236,6 +236,7 @@
   let aprovadosData = null;
   let timerSecs = 0, timerInterval = null;
   let currentProvaLabel = '';
+  let currentProvaKey = '';
 
   function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -279,6 +280,9 @@
 
   function renderPicker(){
     document.getElementById('mainContent').innerHTML = `
+      <div class="card" style="margin-bottom:14px;text-align:center">
+        <button class="btn btn-secondary" onclick="showAggregatedAnalysis()">📈 Ver minha análise acumulada</button>
+      </div>
       <div class="card">
         <h3>Escolha a prova (ano/edital)</h3>
         <div class="picker-grid" id="pickerGrid">
@@ -302,6 +306,7 @@
       return;
     }
     currentProvaLabel = prova.label;
+    currentProvaKey = prova.file; // uma sessão incremental por arquivo de prova
     queue = allQuestions.slice();
     currentIdx = 0; answers = [];
     timerSecs = 0;
@@ -312,6 +317,36 @@
   window.selectProva = selectProva;
 
   function startStudy(){ renderPicker(); }
+
+  function computeBreakdown(list){
+    const breakdown = {};
+    list.forEach(a=>{
+      const sc = a.subjectCode;
+      if (!breakdown[sc]) breakdown[sc] = {total:0, correct:0};
+      breakdown[sc].total++;
+      if (a.isCorrect) breakdown[sc].correct++;
+    });
+    return breakdown;
+  }
+
+  /** Grava o progresso atual (sessão em andamento) — chamado após cada resposta,
+   * para que a análise fique disponível continuamente, sem esperar o fim da prova. */
+  async function saveProgressIncremental(){
+    if (!currentProvaKey || !answers.length) return;
+    const total = answers.length;
+    const correct = answers.filter(a=>a.isCorrect).length;
+    const wrong = total - correct;
+    try {
+      await DB.upsertEditalSession({
+        edital_id: EDITAL_ID,
+        prova_key: currentProvaKey,
+        status: 'in_progress',
+        total, correct, wrong, time_seconds: timerSecs,
+        subjects_breakdown: computeBreakdown(answers),
+        wrong_items: answers.filter(a=>!a.isCorrect).map(a=>({q:a.q, answer:a.correct, userAns:a.userAns, subjectCode:a.subjectCode}))
+      });
+    } catch(e) { console.warn('Falha ao salvar progresso incremental:', e); }
+  }
 
   function renderStudyView(){
     if (currentIdx >= queue.length) { clearInterval(timerInterval); finishStudy(); return; }
@@ -338,6 +373,7 @@
     const q = queue[currentIdx];
     answers.push({ q: q.q, correct: q.correct, userAns, isCorrect: userAns===q.correct, subjectCode: q.subjectCode });
     currentIdx++;
+    saveProgressIncremental();
     renderStudyView();
   }
 
@@ -350,18 +386,13 @@
     const total = answers.length;
     const correct = answers.filter(a=>a.isCorrect).length;
     const wrong = total - correct;
-
-    const breakdown = {};
-    answers.forEach(a=>{
-      const sc = a.subjectCode;
-      if (!breakdown[sc]) breakdown[sc] = {total:0, correct:0};
-      breakdown[sc].total++;
-      if (a.isCorrect) breakdown[sc].correct++;
-    });
+    const breakdown = computeBreakdown(answers);
 
     try {
-      await DB.addEditalSession({
+      await DB.upsertEditalSession({
         edital_id: EDITAL_ID,
+        prova_key: currentProvaKey,
+        status: 'completed',
         total, correct, wrong, time_seconds: timerSecs,
         subjects_breakdown: breakdown,
         wrong_items: answers.filter(a=>!a.isCorrect).map(a=>({q:a.q, answer:a.correct, userAns:a.userAns, subjectCode:a.subjectCode}))
@@ -371,7 +402,7 @@
     renderComparison(breakdown, total, correct);
   }
 
-  function renderComparison(breakdown, total, correct){
+  function renderComparison(breakdown, total, correct, ctx){
     if (!aprovadosData) {
       document.getElementById('mainContent').innerHTML = `<div class="empty-msg">Dados de referência dos aprovados indisponíveis.</div>`;
       return;
@@ -417,9 +448,9 @@
     });
 
     document.getElementById('mainContent').innerHTML = `
-      ${secLabel('Resultado Geral vs. Aprovados')}
+      ${secLabel(ctx ? ctx.title : 'Resultado Geral vs. Aprovados')}
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
-        Prova: <b>TPS ${escHtml(currentProvaLabel)}</b> · Referência: <b>${escHtml(aprovadosData.edital)}</b> (${aprovadosData.num_aprovados_amostra} candidatos)
+        ${ctx ? escHtml(ctx.subtitle) : `Prova: <b>TPS ${escHtml(currentProvaLabel)}</b>`} · Referência: <b>${escHtml(aprovadosData.edital)}</b> (${aprovadosData.num_aprovados_amostra} candidatos)
         <div style="margin-top:6px;line-height:1.5">${escHtml(aprovadosData.nota_metodologica||'')}</div>
       </div>
       <div class="exec-grid">
@@ -455,8 +486,10 @@
         </div>
       </div>
 
+      ${ctx && ctx.historyHtml ? `${secLabel('Histórico de Sessões')}<div class="card"><div class="reco-list">${ctx.historyHtml}</div></div>` : ''}
+
       <div style="text-align:center;margin-top:24px">
-        <button class="btn btn-secondary" onclick="renderPicker()">🔁 Escolher outra prova</button>
+        <button class="btn btn-secondary" onclick="${ctx ? ctx.backAction : 'renderPicker()'}">${ctx ? escHtml(ctx.backLabel) : '🔁 Escolher outra prova'}</button>
       </div>
     `;
 
@@ -475,6 +508,57 @@
       scales:{ y:{ min:0, max:100, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:v=>v+'%'} }, x:{ grid:{display:false} } }
     }});
   }
+
+  /** Análise contínua: agrega todas as sessões salvas (completas + em andamento)
+   * para que o desempenho fique visível a qualquer momento, sem precisar
+   * terminar uma prova inteira. */
+  async function showAggregatedAnalysis(){
+    document.getElementById('mainContent').innerHTML = `<div class="empty-msg">Carregando histórico de sessões...</div>`;
+    let sessions = [];
+    try { sessions = await DB.getAllEditalSessions(); } catch(e) { sessions = []; }
+
+    if (!sessions.length){
+      document.getElementById('mainContent').innerHTML = `
+        <div class="empty-msg">
+          Nenhuma sessão salva ainda. Responda ao menos uma questão em uma prova para começar a acompanhar sua evolução aqui.
+          <div style="margin-top:16px"><button class="btn btn-secondary" onclick="renderPicker()">← Voltar</button></div>
+        </div>`;
+      return;
+    }
+
+    const totalQ = sessions.reduce((a,s)=>a+s.total,0);
+    const totalC = sessions.reduce((a,s)=>a+s.correct,0);
+    const breakdown = {};
+    sessions.forEach(s=>{
+      const sb = s.subjects_breakdown || {};
+      Object.keys(sb).forEach(code=>{
+        if (!breakdown[code]) breakdown[code] = {total:0, correct:0};
+        breakdown[code].total += sb[code].total||0;
+        breakdown[code].correct += sb[code].correct||0;
+      });
+    });
+
+    const historyRows = sessions.map(s=>{
+      const p = s.total>0 ? Math.round(s.correct/s.total*100) : 0;
+      const provaLabel = (PROVAS.find(pr=>pr.file===s.prova_key)||{label:s.prova_key}).label;
+      const statusBadge = s.status==='completed'
+        ? '<span style="color:var(--green);font-size:11px">✓ concluída</span>'
+        : '<span style="color:var(--yellow);font-size:11px">em andamento</span>';
+      return `<div class="reco-item" style="display:flex;justify-content:space-between;align-items:center">
+        <span>TPS ${escHtml(provaLabel)} ${statusBadge}</span>
+        <span>${s.correct}/${s.total} (${p}%)</span>
+      </div>`;
+    }).join('');
+
+    renderComparison(breakdown, totalQ, totalC, {
+      title: 'Análise Acumulada — Todas as Sessões',
+      subtitle: `${sessions.length} sessão${sessions.length>1?'ões':''} salva${sessions.length>1?'s':''} (inclui provas em andamento)`,
+      historyHtml: historyRows,
+      backLabel: '← Voltar para escolher prova',
+      backAction: 'renderPicker()'
+    });
+  }
+  window.showAggregatedAnalysis = showAggregatedAnalysis;
 
   function secLabel(t){ return `<div class="section-label">${t}</div>`; }
 

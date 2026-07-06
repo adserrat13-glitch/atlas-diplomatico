@@ -229,22 +229,37 @@ const DB = {
     return data || [];
   },
 
-  async addEditalSession(session) {
+  /** Todas as sessões de edital do usuário (completas e em andamento), para a análise agregada. */
+  async getAllEditalSessions() {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data } = await _sb.from('edital_sessions')
+      .select('*').eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+    return data || [];
+  },
+
+  /** Grava/atualiza incrementalmente uma sessão identificada por prova_key —
+   * chamado a cada resposta, não só ao final, para permitir análise contínua. */
+  async upsertEditalSession(session) {
     const user = await this.getUser();
     if (!user) return null;
     const today = new Date().toISOString().split('T')[0];
-    const { data, error } = await _sb.from('edital_sessions').insert({
+    const { data, error } = await _sb.from('edital_sessions').upsert({
       user_id: user.id,
       edital_id: session.edital_id,
+      prova_key: session.prova_key,
+      status: session.status || 'in_progress',
       date: today,
       total:   session.total,
       correct: session.correct,
       wrong:   session.wrong,
       time_seconds: session.time_seconds || 0,
       subjects_breakdown: session.subjects_breakdown || {},
-      wrong_items: session.wrong_items || []
-    }).select().single();
-    if (error) console.warn('addEditalSession error:', error.message);
+      wrong_items: session.wrong_items || [],
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,prova_key' }).select().single();
+    if (error) console.warn('upsertEditalSession error:', error.message);
     return data;
   },
 
