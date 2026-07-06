@@ -529,6 +529,7 @@
         // Arquivo temático sem ano: força matéria pelo nome
         let forced = null;
         if (dn.includes('POLITICA') || dn.includes('PI')) forced = { code:'PI', label:'Política Internacional' };
+        else if (dn.includes('HISTORIAMUNDIAL') || dn.includes('HISTORIA MUNDIAL') || dn.includes('HM')) forced = { code:'HM', label:'História Mundial' };
         else if (dn.includes('HISTORIA') || dn.includes('HB')) forced = { code:'HB', label:'História do Brasil' };
         else if (dn.includes('ECONOMIA') || dn.includes('ECO')) forced = { code:'ECO', label:'Economia' };
         else if (dn.includes('DIREITO') || dn.includes('DIP')) forced = { code:'DIP', label:'Direito Internacional' };
@@ -621,6 +622,11 @@
       return (m.tps || []);
     }
 
+    async function scanQuestoesFolder() {
+      const m = await loadManifest();
+      return (m.tps_questoes || {});
+    }
+
     async function scanFolder(folderPath) {
       const m = await loadManifest();
       const key = folderPath.replace(/^FLASHCARDS\//i, '');
@@ -629,29 +635,46 @@
 
     async function loadSimBrowser() {
       const files = await scanSimuladosFolder();
+      const questoes = await scanQuestoesFolder();
       const browser = document.getElementById('simBrowser');
+      let html = '';
       if (!files.length) {
-        browser.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Coloque arquivos CSV em SIMULADOS/ para aparecerem aqui</div>';
-        return;
+        html += '<div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Coloque arquivos CSV em SIMULADOS/ para aparecerem aqui</div>';
+      } else {
+        html += files.map(f => {
+          const label = f.replace(/\.csv$/i, '').replace(/^\d+\s*/, '');
+          const safe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          return `<div class="sb-file" onclick="loadSimFromPath('${safe}')">
+            <span>${label}</span><span class="arr">→</span>
+          </div>`;
+        }).join('');
       }
-      browser.innerHTML = files.map(f => {
-        const label = f.replace(/\.csv$/i, '').replace(/^\d+\s*/, '');
-        const safe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        return `<div class="sb-file" onclick="loadSimFromPath('${safe}')">
-          <span>${label}</span><span class="arr">→</span>
-        </div>`;
-      }).join('');
+      Object.keys(questoes).forEach(folder => {
+        const folderSafe = folder.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        html += `<div class="section-label" style="grid-column:1/-1">${escHtml(folder)}</div>`;
+        html += questoes[folder].map(f => {
+          const label = f.replace(/\.csv$/i, '');
+          const fileSafe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          return `<div class="sb-file" onclick="loadSimFromPath('${fileSafe}', '${folderSafe}')">
+            <span>${label}</span><span class="arr">→</span>
+          </div>`;
+        }).join('');
+      });
+      browser.innerHTML = html;
     }
 
-    async function loadSimFromPath(filename) {
-      const res = await fetch('TPS/' + encodeURIComponent(filename));
+    async function loadSimFromPath(filename, folder) {
+      const path = folder ? `TPS/questões/${folder}/${filename}` : `TPS/${filename}`;
+      const res = await fetch(path.split('/').map(encodeURIComponent).join('/'));
       if (!res.ok) { alert('Erro ao carregar ' + filename); return; }
       const buf = await res.arrayBuffer();
       let text;
       try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
       catch { text = new TextDecoder('windows-1252').decode(buf); }
       text = text.replace(/^﻿/, '');
-      deckName = filename.replace(/\.csv$/i, '').trim();
+      deckName = folder
+        ? `${folder} - ${filename.replace(/\.csv$/i, '').trim()}`
+        : filename.replace(/\.csv$/i, '').trim();
       const progKey = 'sim_prog_' + deckName.replace(/\s+/g, '_');
       currentProgressKey = progKey;
       window._pendingSimText = text;
