@@ -402,7 +402,7 @@
     renderComparison(breakdown, total, correct);
   }
 
-  function renderComparison(breakdown, total, correct, ctx){
+  function renderComparison(breakdown, total, correct, viewCtx){
     if (!aprovadosData) {
       document.getElementById('mainContent').innerHTML = `<div class="empty-msg">Dados de referência dos aprovados indisponíveis.</div>`;
       return;
@@ -448,9 +448,9 @@
     });
 
     document.getElementById('mainContent').innerHTML = `
-      ${secLabel(ctx ? ctx.title : 'Resultado Geral vs. Aprovados')}
+      ${secLabel(viewCtx ? viewCtx.title : 'Resultado Geral vs. Aprovados')}
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
-        ${ctx ? escHtml(ctx.subtitle) : `Prova: <b>TPS ${escHtml(currentProvaLabel)}</b>`} · Referência: <b>${escHtml(aprovadosData.edital)}</b> (${aprovadosData.num_aprovados_amostra} candidatos)
+        ${viewCtx ? escHtml(viewCtx.subtitle) : `Prova: <b>TPS ${escHtml(currentProvaLabel)}</b>`} · Referência: <b>${escHtml(aprovadosData.edital)}</b> (${aprovadosData.num_aprovados_amostra} candidatos)
         <div style="margin-top:6px;line-height:1.5">${escHtml(aprovadosData.nota_metodologica||'')}</div>
       </div>
       <div class="exec-grid">
@@ -486,10 +486,10 @@
         </div>
       </div>
 
-      ${ctx && ctx.historyHtml ? `${secLabel('Histórico de Sessões')}<div class="card"><div class="reco-list">${ctx.historyHtml}</div></div>` : ''}
+      ${viewCtx && viewCtx.historyHtml ? `${secLabel('Histórico de Sessões')}<div class="card"><div class="reco-list">${viewCtx.historyHtml}</div></div>` : ''}
 
       <div style="text-align:center;margin-top:24px">
-        <button class="btn btn-secondary" onclick="${ctx ? ctx.backAction : 'renderPicker()'}">${ctx ? escHtml(ctx.backLabel) : '🔁 Escolher outra prova'}</button>
+        <button class="btn btn-secondary" onclick="${viewCtx ? viewCtx.backAction : 'renderPicker()'}">${viewCtx ? escHtml(viewCtx.backLabel) : '🔁 Escolher outra prova'}</button>
       </div>
     `;
 
