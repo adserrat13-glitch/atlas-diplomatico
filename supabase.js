@@ -216,6 +216,38 @@ const DB = {
       .eq('deck_name', deck_name);
   },
 
+  // ── EDITAL SESSIONS (Central de Análise por Edital — módulo isolado) ─
+  // Tabela própria `edital_sessions`, nunca `sessions`. Usada exclusivamente
+  // por analise-edital.html; não afeta nem é afetada pela Central TPS.
+
+  async getEditalSessions(editalId) {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data } = await _sb.from('edital_sessions')
+      .select('*').eq('user_id', user.id).eq('edital_id', editalId)
+      .order('created_at', { ascending: false });
+    return data || [];
+  },
+
+  async addEditalSession(session) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await _sb.from('edital_sessions').insert({
+      user_id: user.id,
+      edital_id: session.edital_id,
+      date: today,
+      total:   session.total,
+      correct: session.correct,
+      wrong:   session.wrong,
+      time_seconds: session.time_seconds || 0,
+      subjects_breakdown: session.subjects_breakdown || {},
+      wrong_items: session.wrong_items || []
+    }).select().single();
+    if (error) console.warn('addEditalSession error:', error.message);
+    return data;
+  },
+
   // ── CARD STATUS ─────────────────────────────────────────────────────
 
   /** Returns map: { question: {status, reviews} } for a deck */

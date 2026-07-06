@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central de Análise por Edital — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"
+          integrity="sha512-R7SG6Yqk+wFTPZ3+/1Yj8VG29tpH7NnT9ihWl5wilb+iVUnhKENvfXeUXfsC7NX5sPnvpxLKb6DzhAOD/GRNpg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"
+          integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/dist/umd/supabase.js"
+          integrity="sha384-nD3dwv4+ZqdYnmZKe/249ImlV04om7xTCcsoSeQYI+RO+XlKPoqAWaJR1M5SJH9p"
+          crossorigin="anonymous"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1115; --card:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#9ca3af; --accent:#d4af37;
+      --green:#34d399; --red:#f87171; --yellow:#facc15; --blue:#8ea7ff;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
+    .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; }
+
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-ham { background:none; border:none; color:#888; font-size:16px; cursor:pointer;
+      padding:4px 8px; border-radius:6px; transition:.15s; flex-shrink:0; margin-right:4px; }
+    .nav-ham:hover { color:#fff; background:rgba(255,255,255,.07); }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:#d4af37; }
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:#d4af37; border-bottom:2px solid #d4af37; border-radius:0; padding-bottom:3px; }
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+
+    main { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:32px 24px; }
+
+    .page-header { margin-bottom:20px; }
+    .page-header h1 { font-size:22px; font-weight:700; letter-spacing:1px; }
+    .page-header p { font-size:13px; color:var(--muted); margin-top:4px; }
+
+    .ref-banner { background:rgba(212,175,55,.07); border:1px solid rgba(212,175,55,.25);
+      border-radius:12px; padding:14px 18px; margin-bottom:24px; font-size:13px; line-height:1.6; }
+    .ref-banner b { color:var(--accent); }
+    .ref-banner .small { font-size:11px; color:var(--muted); margin-top:6px; }
+
+    .section-label { font-size:11px; font-weight:700; letter-spacing:2px; color:var(--muted);
+      text-transform:uppercase; margin-bottom:14px; margin-top:28px;
+      display:flex; align-items:center; gap:8px; }
+    .section-label:first-child { margin-top:0; }
+    .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    .card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:22px; }
+    .card h3 { font-size:12px; font-weight:700; letter-spacing:1.5px; color:var(--muted);
+      text-transform:uppercase; margin-bottom:16px; }
+
+    /* START / EMPTY STATE */
+    .start-card { text-align:center; padding:48px 24px; }
+    .start-card .emoji { font-size:36px; margin-bottom:12px; }
+    .start-card h2 { font-size:18px; margin-bottom:8px; }
+    .start-card p { font-size:13px; color:var(--muted); margin-bottom:20px; max-width:480px; margin-inline:auto; }
+    .btn { padding:11px 26px; border-radius:11px; font-size:14px; font-weight:600;
+      cursor:pointer; border:none; transition:0.2s; font-family:inherit; }
+    .btn-primary { background:var(--accent); color:#0f1117; }
+    .btn-primary:hover { opacity:0.85; }
+    .btn-secondary { background:rgba(255,255,255,0.07); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { background:rgba(255,255,255,0.12); }
+
+    /* STUDY VIEW */
+    .study-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+    .study-deck { font-size:13px; color:var(--muted); font-weight:500; }
+    .study-spacer { flex:1; }
+    .study-counter { font-size:13px; color:var(--muted); }
+    .study-exit { background:none; border:1px solid var(--border); color:var(--muted);
+      padding:5px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+    .progress-bar { width:100%; height:5px; background:rgba(255,255,255,0.07); border-radius:20px; overflow:hidden; margin-bottom:16px; }
+    .progress-fill { height:100%; background:var(--accent); border-radius:20px; transition:width 0.3s ease; }
+    .question-card { width:100%; background:rgba(255,255,255,0.05); border:1px solid var(--border);
+      border-radius:20px; padding:32px 36px; margin-bottom:20px; }
+    .question-label { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:14px; }
+    .question-text { font-size:16px; line-height:1.7; }
+    .answer-btns { display:flex; gap:16px; justify-content:center; }
+    .btn-certo { padding:14px 40px; font-size:15px; font-weight:700; border-radius:14px;
+      background:rgba(110,231,183,0.12); border:2px solid var(--green); color:var(--green);
+      cursor:pointer; font-family:inherit; transition:0.2s; }
+    .btn-certo:hover { background:rgba(110,231,183,0.22); }
+    .btn-errado { padding:14px 40px; font-size:15px; font-weight:700; border-radius:14px;
+      background:rgba(248,113,113,0.12); border:2px solid var(--red); color:var(--red);
+      cursor:pointer; font-family:inherit; transition:0.2s; }
+    .btn-errado:hover { background:rgba(248,113,113,0.22); }
+
+    /* COMPARISON CARDS */
+    .subject-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .subj-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; }
+    .subj-card-name { font-size:13px; font-weight:600; margin-bottom:10px; }
+    .subj-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; }
+    .subj-row .lbl { color:var(--muted); }
+    .subj-diff { font-size:20px; font-weight:700; margin-top:8px; }
+    .subj-diff.pos { color:var(--green); }
+    .subj-diff.neg { color:var(--red); }
+    .subj-status { font-size:11px; margin-top:4px; padding:2px 8px; border-radius:20px; display:inline-block; }
+    .status-above  { background:rgba(52,211,153,.12); color:var(--green); border:1px solid rgba(52,211,153,.25); }
+    .status-equal  { background:rgba(250,204,21,.1);  color:var(--yellow); border:1px solid rgba(250,204,21,.25); }
+    .status-below  { background:rgba(248,113,113,.1); color:var(--red); border:1px solid rgba(248,113,113,.25); }
+
+    .exec-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .exec-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; text-align:center; }
+    .exec-val { font-size:30px; font-weight:700; }
+    .exec-lbl { font-size:11px; color:var(--muted); margin-top:6px; text-transform:uppercase; letter-spacing:.5px; }
+    .exec-sub { font-size:11px; color:var(--muted); margin-top:6px; }
+
+    .chart-wrap { position:relative; height:300px; }
+
+    .reco-list { display:flex; flex-direction:column; gap:8px; }
+    .reco-item { border-radius:10px; padding:12px 16px; font-size:13px; }
+    .reco-item.high { background:rgba(248,113,113,.07); border:1px solid rgba(248,113,113,.2); }
+    .reco-item.ok   { background:rgba(52,211,153,.05); border:1px solid rgba(52,211,153,.15); }
+
+    .empty-msg { color:var(--muted); font-size:14px; text-align:center; padding:40px;
+      background:var(--card); border:1px solid var(--border); border-radius:14px; }
+
+    @media(max-width:800px){
+      .subject-grid { grid-template-columns:repeat(2,1fr); }
+      .exec-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <button class="nav-ham" onclick="openSidebar()">☰</button>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">Início</a>
+    <a href="simulados.html">Simulados</a>
+    <a href="analise-tps.html">Análise TPS</a>
+    <a href="analise-edital.html" class="active">Análise por Edital</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <h1>CENTRAL DE ANÁLISE POR EDITAL</h1>
+      <p>Comparação isolada com o perfil de quem foi aprovado — não com todos os candidatos.</p>
+    </div>
+
+    <div class="ref-banner" id="refBanner">Carregando referência do edital...</div>
+
+    <div id="mainContent">
+      <div class="start-card card">
+        <div class="emoji">🎯</div>
+        <h2>Prova de referência: Edital nº 4/2026</h2>
+        <p>Esta central usa exclusivamente a prova <b>TPS 2026.csv</b> (184 questões) e compara seu desempenho apenas com a <b>média dos candidatos aprovados/convocados</b> deste edital — nunca com a média de todos os candidatos.</p>
+        <button class="btn btn-primary" onclick="startStudy()">▶ Responder prova de referência</button>
+      </div>
+    </div>
+  </main>
+
+<script>
+  const EDITAL_ID = 'irbr_2026_edital4';
+  const PROVA_CSV_PATH = 'TPS/TPS/TPS 2026.csv';
+  const APROVADOS_JSON_PATH = 'edital-2026-aprovados.json';
+
+  // Mesma lógica posicional de classificação usada em simulados.html,
+  // duplicada aqui de propósito para manter este módulo 100% isolado
+  // (nenhuma dependência de simulados.html).
+  const TPS_ORDER_2026 = [['HB',40],['HM',40],['GEO',20],['PI',44],['ECO',20],['DIR',20]];
+  const SUBJ_LABELS = {
+    HB:'História do Brasil', HM:'História Mundial', GEO:'Geografia',
+    PI:'Política Internacional', ECO:'Economia', DIR:'Direito'
+  };
+  const SUBJ_COLORS = {
+    HB:'#fbbf24', HM:'#f97316', GEO:'#34d399', PI:'#22d3ee', ECO:'#facc15', DIR:'#f87171'
+  };
+
+  function scaleBlocks(order, total) {
+    const canon = order.reduce((a,[,s])=>a+s,0);
+    const raw = order.map(([code,size])=>({code, exact:size/canon*total}));
+    const sizes = raw.map(r=>Math.floor(r.exact));
+    let leftover = total - sizes.reduce((a,b)=>a+b,0);
+    const byFrac = raw.map((r,i)=>({i,frac:r.exact-Math.floor(r.exact)})).sort((a,b)=>b.frac-a.frac);
+    for (let k=0;k<leftover;k++) sizes[byFrac[k%byFrac.length].i]++;
+    const blocks=[]; let acc=0;
+    for (let i=0;i<order.length;i++){ blocks.push({code:order[i][0], start:acc, size:sizes[i], end:acc+sizes[i]}); acc+=sizes[i]; }
+    return blocks;
+  }
+
+  function classifyByPosition(idx, blocks) {
+    for (const b of blocks) if (idx>=b.start && idx<b.end) return b.code;
+    return blocks[blocks.length-1].code;
+  }
+
+  let allQuestions = [], queue = [], currentIdx = 0, answers = [];
+  let aprovadosData = null;
+  let timerSecs = 0, timerInterval = null;
+
+  function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  async function loadAprovados(){
+    try {
+      const res = await fetch(APROVADOS_JSON_PATH);
+      aprovadosData = await res.json();
+    } catch(e) { aprovadosData = null; }
+    renderRefBanner();
+  }
+
+  function renderRefBanner(){
+    const el = document.getElementById('refBanner');
+    if (!aprovadosData) { el.innerHTML = 'Não foi possível carregar os dados de referência dos aprovados.'; return; }
+    el.innerHTML = `📊 Referência: <b>média dos ${aprovadosData.num_aprovados_amostra} candidatos aprovados</b> no ${escHtml(aprovadosData.edital)} — média geral de acerto: <b>${aprovadosData.media_geral_pct}%</b>.
+      <div class="small">${escHtml(aprovadosData.nota_metodologica)}</div>`;
+  }
+
+  async function loadProva(){
+    const res = await fetch(PROVA_CSV_PATH);
+    if (!res.ok) throw new Error('Falha ao carregar prova de referência');
+    const buf = await res.arrayBuffer();
+    let text;
+    try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+    catch { text = new TextDecoder('windows-1252').decode(buf); }
+    text = text.replace(/^﻿/, '');
+    const rows = Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data;
+    const collected = [];
+    rows.forEach(row=>{
+      const q = (row[0]||'').trim(), a = (row[1]||'').trim();
+      if (!q || !a) return;
+      const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
+      if (!ans) return;
+      collected.push({ q, correct: ans });
+    });
+    const blocks = scaleBlocks(TPS_ORDER_2026, collected.length);
+    allQuestions = collected.map((item,i)=>({ ...item, subjectCode: classifyByPosition(i, blocks) }));
+  }
+
+  async function startStudy(){
+    document.getElementById('mainContent').innerHTML = `<div class="empty-msg">Carregando prova de referência...</div>`;
+    try {
+      await loadProva();
+    } catch(e) {
+      document.getElementById('mainContent').innerHTML = `<div class="empty-msg">${escHtml(e.message)}</div>`;
+      return;
+    }
+    queue = allQuestions.slice();
+    currentIdx = 0; answers = [];
+    timerSecs = 0;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(()=>{ timerSecs++; }, 1000);
+    renderStudyView();
+  }
+
+  function renderStudyView(){
+    if (currentIdx >= queue.length) { clearInterval(timerInterval); finishStudy(); return; }
+    const q = queue[currentIdx];
+    document.getElementById('mainContent').innerHTML = `
+      <div class="study-header">
+        <span class="study-deck">Edital nº 4/2026 — Prova de referência</span>
+        <div class="study-spacer"></div>
+        <span class="study-counter">${currentIdx+1}/${queue.length}</span>
+        <button class="study-exit" onclick="cancelStudy()">✕ Sair</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${(currentIdx/queue.length*100)}%"></div></div>
+      <div class="question-card">
+        <div class="question-label">Questão ${currentIdx+1} · ${escHtml(SUBJ_LABELS[q.subjectCode]||q.subjectCode)}</div>
+        <div class="question-text">${escHtml(q.q)}</div>
+      </div>
+      <div class="answer-btns">
+        <button class="btn-certo" onclick="answer('CERTO')">CERTO</button>
+        <button class="btn-errado" onclick="answer('ERRADO')">ERRADO</button>
+      </div>`;
+  }
+
+  function answer(userAns){
+    const q = queue[currentIdx];
+    answers.push({ q: q.q, correct: q.correct, userAns, isCorrect: userAns===q.correct, subjectCode: q.subjectCode });
+    currentIdx++;
+    renderStudyView();
+  }
+
+  function cancelStudy(){
+    clearInterval(timerInterval);
+    document.getElementById('mainContent').innerHTML = `
+      <div class="start-card card">
+        <div class="emoji">🎯</div>
+        <h2>Prova de referência: Edital nº 4/2026</h2>
+        <p>Esta central usa exclusivamente a prova <b>TPS 2026.csv</b> (184 questões) e compara seu desempenho apenas com a <b>média dos candidatos aprovados/convocados</b> deste edital.</p>
+        <button class="btn btn-primary" onclick="startStudy()">▶ Responder prova de referência</button>
+      </div>`;
+  }
+
+  async function finishStudy(){
+    const total = answers.length;
+    const correct = answers.filter(a=>a.isCorrect).length;
+    const wrong = total - correct;
+
+    const breakdown = {};
+    answers.forEach(a=>{
+      const sc = a.subjectCode;
+      if (!breakdown[sc]) breakdown[sc] = {total:0, correct:0};
+      breakdown[sc].total++;
+      if (a.isCorrect) breakdown[sc].correct++;
+    });
+
+    try {
+      await DB.addEditalSession({
+        edital_id: EDITAL_ID,
+        total, correct, wrong, time_seconds: timerSecs,
+        subjects_breakdown: breakdown,
+        wrong_items: answers.filter(a=>!a.isCorrect).map(a=>({q:a.q, answer:a.correct, userAns:a.userAns, subjectCode:a.subjectCode}))
+      });
+    } catch(e) { console.warn('Falha ao salvar sessão de edital:', e); }
+
+    renderComparison(breakdown, total, correct);
+  }
+
+  function renderComparison(breakdown, total, correct){
+    if (!aprovadosData) {
+      document.getElementById('mainContent').innerHTML = `<div class="empty-msg">Dados de referência dos aprovados indisponíveis.</div>`;
+      return;
+    }
+    const myPct = total>0 ? Math.round(correct/total*100) : 0;
+    const refPct = aprovadosData.media_geral_pct;
+    const diffGeral = Math.round((myPct - refPct)*10)/10;
+
+    const subjHtml = Object.keys(SUBJ_LABELS).map(code=>{
+      const b = breakdown[code];
+      const myP = b && b.total>0 ? Math.round(b.correct/b.total*100) : null;
+      const ref = aprovadosData.por_disciplina[code];
+      const refP = ref ? ref.media_pct : null;
+      let statusCls='status-equal', statusTxt='dados insuficientes', diffTxt='—', diffCls='';
+      if (myP!==null && refP!==null){
+        const d = Math.round((myP-refP)*10)/10;
+        diffCls = d>=0?'pos':'neg';
+        diffTxt = (d>=0?'+':'')+d+'pp';
+        if (d>3) { statusCls='status-above'; statusTxt='acima da média dos aprovados'; }
+        else if (d<-3) { statusCls='status-below'; statusTxt='abaixo da média dos aprovados'; }
+        else { statusCls='status-equal'; statusTxt='na média dos aprovados'; }
+      }
+      return `<div class="subj-card">
+        <div class="subj-card-name" style="color:${SUBJ_COLORS[code]}">${escHtml(SUBJ_LABELS[code])}</div>
+        <div class="subj-row"><span class="lbl">Minha nota</span><span>${myP!==null?myP+'%':'—'}</span></div>
+        <div class="subj-row"><span class="lbl">Média aprovados</span><span>${refP!==null?refP+'%':'—'}</span></div>
+        <div class="subj-diff ${diffCls}">${diffTxt}</div>
+        <span class="subj-status ${statusCls}">${statusTxt}</span>
+      </div>`;
+    }).join('');
+
+    const priority = Object.keys(SUBJ_LABELS).filter(code=>{
+      const b = breakdown[code]; const ref = aprovadosData.por_disciplina[code];
+      if (!b || !ref || b.total===0) return false;
+      const myP = Math.round(b.correct/b.total*100);
+      return myP < ref.media_pct - 3;
+    });
+    const strong = Object.keys(SUBJ_LABELS).filter(code=>{
+      const b = breakdown[code]; const ref = aprovadosData.por_disciplina[code];
+      if (!b || !ref || b.total===0) return false;
+      const myP = Math.round(b.correct/b.total*100);
+      return myP > ref.media_pct + 3;
+    });
+
+    document.getElementById('mainContent').innerHTML = `
+      ${secLabel('Resultado Geral vs. Aprovados')}
+      <div class="exec-grid">
+        <div class="exec-card">
+          <div class="exec-val" style="color:${myPct>=refPct?'var(--green)':'var(--red)'}">${myPct}%</div>
+          <div class="exec-lbl">Minha nota geral</div>
+          <div class="exec-sub">${correct}/${total} questões</div>
+        </div>
+        <div class="exec-card">
+          <div class="exec-val" style="color:var(--accent)">${refPct}%</div>
+          <div class="exec-lbl">Média dos aprovados</div>
+          <div class="exec-sub">${aprovadosData.num_aprovados_amostra} candidatos</div>
+        </div>
+        <div class="exec-card">
+          <div class="exec-val" style="color:${diffGeral>=0?'var(--green)':'var(--red)'}">${diffGeral>=0?'+':''}${diffGeral}pp</div>
+          <div class="exec-lbl">Diferença</div>
+          <div class="exec-sub">${diffGeral>=0?'Acima':'Abaixo'} da média dos aprovados</div>
+        </div>
+      </div>
+
+      ${secLabel('Comparação por Disciplina')}
+      <div class="subject-grid">${subjHtml}</div>
+
+      ${secLabel('Gráfico Comparativo')}
+      <div class="card"><div class="chart-wrap"><canvas id="chartCompare"></canvas></div></div>
+
+      ${secLabel('Recomendações')}
+      <div class="card">
+        <div class="reco-list">
+          ${priority.length ? priority.map(c=>`<div class="reco-item high">🔴 <b>${escHtml(SUBJ_LABELS[c])}</b> — priorize revisão, você está abaixo da média dos aprovados.</div>`).join('') : ''}
+          ${strong.length ? strong.map(c=>`<div class="reco-item ok">🟢 <b>${escHtml(SUBJ_LABELS[c])}</b> — já está acima da média dos aprovados.</div>`).join('') : ''}
+          ${(!priority.length && !strong.length) ? '<div style="color:var(--muted);font-size:13px">Sem disciplinas com diferença relevante (±3pp) em relação à média dos aprovados.</div>' : ''}
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:24px">
+        <button class="btn btn-secondary" onclick="startStudy()">🔁 Refazer prova</button>
+      </div>
+    `;
+
+    const ctx = document.getElementById('chartCompare').getContext('2d');
+    const labels = Object.keys(SUBJ_LABELS).map(c=>SUBJ_LABELS[c]);
+    const mine = Object.keys(SUBJ_LABELS).map(c=>{
+      const b = breakdown[c]; return b && b.total>0 ? Math.round(b.correct/b.total*100) : null;
+    });
+    const ref = Object.keys(SUBJ_LABELS).map(c=> aprovadosData.por_disciplina[c] ? aprovadosData.por_disciplina[c].media_pct : null);
+    new Chart(ctx, { type:'bar', data:{ labels, datasets:[
+      {label:'Meu desempenho', data:mine, backgroundColor:'rgba(142,167,255,0.75)', borderRadius:4},
+      {label:'Média dos aprovados', data:ref, backgroundColor:'rgba(212,175,55,0.55)', borderRadius:4}
+    ]}, options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ font:{size:11} } } },
+      scales:{ y:{ min:0, max:100, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{callback:v=>v+'%'} }, x:{ grid:{display:false} } }
+    }});
+  }
+
+  function secLabel(t){ return `<div class="section-label">${t}</div>`; }
+
+  (async ()=>{
+    const user = await DB.requireAuth();
+    const profile = await DB.getProfile();
+    const nu = document.getElementById('navUser');
+    if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+    await loadAprovados();
+  })();
+</script>
+
+<aside id="sidebar"></aside>
+<script src="_sidebar.js"></script>
+</body>
+</html>

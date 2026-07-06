@@ -14,6 +14,7 @@
         { href: '/flashcards.html',         icon: 'cards',    name: 'Flashcards' },
         { href: '/simulados.html',          icon: 'sim',      name: 'Simulados' },
         { href: '/analise.html',              icon: 'chart',    name: 'Análise' },
+        { href: '/analise-edital.html',     icon: 'chart',    name: 'Análise por Edital' },
         { href: '/GAMES/INGLES/MATCHING%20WORDS/index.html', icon: 'words', name: 'Vocab. ING' },
         { href: '/gramatica-matching.html', icon: 'grammar',  name: 'Gramática' },
       ]
