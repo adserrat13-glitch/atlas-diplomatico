@@ -166,16 +166,37 @@
     <div id="mainContent">
       <div class="start-card card">
         <div class="emoji">🎯</div>
-        <h2>Prova de referência: Edital nº 4/2026</h2>
-        <p>Esta central usa exclusivamente a prova <b>TPS 2026.csv</b> (184 questões) e compara seu desempenho apenas com a <b>média dos candidatos aprovados/convocados</b> deste edital — nunca com a média de todos os candidatos.</p>
-        <button class="btn btn-primary" onclick="startStudy()">▶ Responder prova de referência</button>
+        <h2>Banco de provas: TPS/TPS/ (todos os anos)</h2>
+        <p>Esta central usa exclusivamente as provas dentro da pasta <b>TPS/TPS/</b> (2013 a 2026, banco combinado) e compara seu desempenho apenas com a <b>média dos candidatos aprovados/convocados do Edital nº 4/2026</b> — nunca com a média de todos os candidatos. A média de referência é sempre a do edital mais recente, independentemente de quais provas você responder.</p>
+        <button class="btn btn-primary" onclick="startStudy()">▶ Responder provas de referência</button>
       </div>
     </div>
   </main>
 
 <script>
   const EDITAL_ID = 'irbr_2026_edital4';
-  const PROVA_CSV_PATH = 'TPS/TPS/TPS 2026.csv';
+  // Todas as provas dentro de TPS/TPS/ — banco combinado isolado deste módulo
+  // (nenhum outro arquivo/pasta do site é lido). A referência de "média dos
+  // aprovados" é sempre a do Edital nº 4/2026 (única disponível), independente
+  // de qual(is) prova(s) o usuário está respondendo.
+  const PROVA_CSV_FILES = [
+    'TPS/TPS/TPS  2025.1.csv',
+    'TPS/TPS/TPS 00.csv',
+    'TPS/TPS/TPS 2013.csv',
+    'TPS/TPS/TPS 2014.csv',
+    'TPS/TPS/tps 2015.csv',
+    'TPS/TPS/TPS 2016.csv',
+    'TPS/TPS/TPS 2017.csv',
+    'TPS/TPS/TPS 2018.csv',
+    'TPS/TPS/TPS 2019.csv',
+    'TPS/TPS/TPS 2021.csv',
+    'TPS/TPS/TPS 2022.csv',
+    'TPS/TPS/TPS 2023.csv',
+    'TPS/TPS/TPS 2024.csv',
+    'TPS/TPS/TPS 2025.csv',
+    'TPS/TPS/TPS 2026.1.csv',
+    'TPS/TPS/TPS 2026.csv'
+  ];
   const APROVADOS_JSON_PATH = 'edital-2026-aprovados.json';
 
   // Mesma lógica posicional de classificação usada em simulados.html,
@@ -225,12 +246,12 @@
     const el = document.getElementById('refBanner');
     if (!aprovadosData) { el.innerHTML = 'Não foi possível carregar os dados de referência dos aprovados.'; return; }
     el.innerHTML = `📊 Referência: <b>média dos ${aprovadosData.num_aprovados_amostra} candidatos aprovados</b> no ${escHtml(aprovadosData.edital)} — média geral de acerto: <b>${aprovadosData.media_geral_pct}%</b>.
-      <div class="small">${escHtml(aprovadosData.nota_metodologica)}</div>`;
+      <div class="small">Banco de questões: todas as provas de <b>TPS/TPS/</b> (2013–2026), combinadas. ${escHtml(aprovadosData.nota_metodologica)}</div>`;
   }
 
-  async function loadProva(){
-    const res = await fetch(PROVA_CSV_PATH);
-    if (!res.ok) throw new Error('Falha ao carregar prova de referência');
+  async function loadOneCsv(path){
+    const res = await fetch(path.split('/').map(encodeURIComponent).join('/'));
+    if (!res.ok) return [];
     const buf = await res.arrayBuffer();
     let text;
     try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
@@ -243,10 +264,18 @@
       if (!q || !a) return;
       const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
       if (!ans) return;
-      collected.push({ q, correct: ans });
+      collected.push({ q, correct: ans, source: path });
     });
+    // Classificação posicional é feita por arquivo — cada prova tem sua
+    // própria distribuição de blocos por disciplina.
     const blocks = scaleBlocks(TPS_ORDER_2026, collected.length);
-    allQuestions = collected.map((item,i)=>({ ...item, subjectCode: classifyByPosition(i, blocks) }));
+    return collected.map((item,i)=>({ ...item, subjectCode: classifyByPosition(i, blocks) }));
+  }
+
+  async function loadProva(){
+    const results = await Promise.all(PROVA_CSV_FILES.map(p => loadOneCsv(p).catch(()=>[])));
+    allQuestions = results.flat();
+    if (!allQuestions.length) throw new Error('Falha ao carregar as provas de referência (TPS/TPS/)');
   }
 
   async function startStudy(){
@@ -265,12 +294,17 @@
     renderStudyView();
   }
 
+  function deckLabelFromSource(path){
+    const name = (path||'').split('/').pop().replace(/\.csv$/i,'').trim();
+    return name || 'TPS';
+  }
+
   function renderStudyView(){
     if (currentIdx >= queue.length) { clearInterval(timerInterval); finishStudy(); return; }
     const q = queue[currentIdx];
     document.getElementById('mainContent').innerHTML = `
       <div class="study-header">
-        <span class="study-deck">Edital nº 4/2026 — Prova de referência</span>
+        <span class="study-deck">${escHtml(deckLabelFromSource(q.source))} — banco combinado TPS/TPS/</span>
         <div class="study-spacer"></div>
         <span class="study-counter">${currentIdx+1}/${queue.length}</span>
         <button class="study-exit" onclick="cancelStudy()">✕ Sair</button>
@@ -298,9 +332,9 @@
     document.getElementById('mainContent').innerHTML = `
       <div class="start-card card">
         <div class="emoji">🎯</div>
-        <h2>Prova de referência: Edital nº 4/2026</h2>
-        <p>Esta central usa exclusivamente a prova <b>TPS 2026.csv</b> (184 questões) e compara seu desempenho apenas com a <b>média dos candidatos aprovados/convocados</b> deste edital.</p>
-        <button class="btn btn-primary" onclick="startStudy()">▶ Responder prova de referência</button>
+        <h2>Banco de provas: TPS/TPS/ (todos os anos)</h2>
+        <p>Esta central usa exclusivamente as provas dentro da pasta <b>TPS/TPS/</b> (banco combinado) e compara seu desempenho apenas com a <b>média dos candidatos aprovados/convocados do Edital nº 4/2026</b>.</p>
+        <button class="btn btn-primary" onclick="startStudy()">▶ Responder provas de referência</button>
       </div>`;
   }
 
