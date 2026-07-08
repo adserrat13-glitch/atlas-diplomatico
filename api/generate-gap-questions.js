@@ -60,7 +60,7 @@ Sua missão NÃO é ensinar profundamente o conteúdo. Sua missão é apenas ati
 
 Nada de introdução, contextualização ou frases de transição. Vá direto aos tópicos.
 
-Formato obrigatório: lista de bullet points curtos (cada um com no máximo 1 linha, estilo telegráfico, sem frases completas de efeito). Use estas categorias como cabeçalhos de grupo, apenas as que fizerem sentido para o tópico:
+Formato obrigatório: lista de bullet points, sem frases de transição entre eles. Use estas categorias como cabeçalhos de grupo, apenas as que fizerem sentido para o tópico:
 - Conceito central
 - Contexto histórico
 - Autores/teorias/instituições
@@ -68,11 +68,11 @@ Formato obrigatório: lista de bullet points curtos (cada um com no máximo 1 li
 - Relaciona com
 - Erro comum
 
-Cada bullet deve ser uma informação factual isolada (termo — definição curta, ou nome — contribuição), não um parágrafo.
+Cada bullet trata de UM termo, conceito ou fato por vez, mas deve EXPLICAR esse termo de forma clara e completa — não apenas nomeá-lo. Não há limite de tamanho por bullet: use quantas frases forem necessárias para a explicação ficar clara e autossuficiente, mas sem redundância nem enrolação.
 
-Regra crítica: todo termo ou distinção citado em "Erro comum" precisa ter sido DEFINIDO antes, em "Conceito central" (ou outro grupo). Nunca aponte uma confusão (ex.: "Confusão entre X e Y") sem antes ter um bullet que defina X e outro que defina Y. Se o tópico tem uma estrutura ou classificação central (ex.: uma divisão tripartite, uma tipologia), liste os elementos dessa estrutura em "Conceito central" antes de qualquer bullet que a mencione de passagem.
+Regra crítica: todo termo ou distinção citado em "Erro comum" precisa ter sido DEFINIDO antes, em "Conceito central" (ou outro grupo), com clareza suficiente para o candidato entender exatamente por que o erro é um erro. Nunca aponte uma confusão (ex.: "Confusão entre X e Y") sem antes ter um bullet que explique o que é X e outro que explique o que é Y. Se o tópico tem uma estrutura ou classificação central (ex.: uma divisão tripartite, uma tipologia), explique cada elemento dessa estrutura em "Conceito central" antes de qualquer bullet que a mencione de passagem.
 
-Máximo 15 bullets no total. Sem exemplos longos. Sem repetir a mesma ideia em bullets diferentes.
+Sem limite fixo de número de bullets ou palavras — o tamanho certo é o que garante clareza total, nem mais nem menos. Sem exemplos longos. Sem repetir a mesma explicação em bullets diferentes.
 
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {
@@ -111,7 +111,7 @@ module.exports = async function handler(req, res) {
           { role: 'user', content: `Tópico do edital CACD: ${topico.trim()}` },
         ],
         temperature: 0.5,
-        max_tokens: 1024,
+        max_tokens: 2048,
       });
 
       const raw = completion.choices[0]?.message?.content;
