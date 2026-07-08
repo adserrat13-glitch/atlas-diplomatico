@@ -70,6 +70,8 @@ Formato obrigatório: lista de bullet points curtos (cada um com no máximo 1 li
 
 Cada bullet deve ser uma informação factual isolada (termo — definição curta, ou nome — contribuição), não um parágrafo.
 
+Regra crítica: todo termo ou distinção citado em "Erro comum" precisa ter sido DEFINIDO antes, em "Conceito central" (ou outro grupo). Nunca aponte uma confusão (ex.: "Confusão entre X e Y") sem antes ter um bullet que defina X e outro que defina Y. Se o tópico tem uma estrutura ou classificação central (ex.: uma divisão tripartite, uma tipologia), liste os elementos dessa estrutura em "Conceito central" antes de qualquer bullet que a mencione de passagem.
+
 Máximo 15 bullets no total. Sem exemplos longos. Sem repetir a mesma ideia em bullets diferentes.
 
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
