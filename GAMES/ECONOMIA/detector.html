@@ -260,10 +260,10 @@ async function startSession(elOrStr) {
   document.getElementById('summary-content').innerHTML = `<div class="loading"><span class="spinner"></span>Gerando revisão rápida de "${esc(topico)}"…</div>`;
 
   try {
-    const res = await fetch('/api/generate-topic-summary', {
+    const res = await fetch('/api/generate-gap-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topico }),
+      body: JSON.stringify({ topico, mode: 'summary' }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao gerar resumo');
