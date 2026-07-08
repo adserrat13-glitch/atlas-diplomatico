@@ -63,6 +63,10 @@
     .back-link { display: inline-block; color: var(--text-muted, #888); font-size: 0.8rem; margin-bottom: 1.5rem; text-decoration: none; }
     .back-link:hover { color: #fb923c; }
 
+    .summary-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: #fb923c; margin-bottom: 0.75rem; }
+    .summary-box { background: var(--card-bg, #1a1a1a); border: 1px solid var(--border, #333); border-radius: 10px; padding: 1.25rem; font-size: 0.92rem; line-height: 1.7; white-space: pre-wrap; }
+    .summary-cta { text-align: center; font-weight: 700; color: #fb923c; margin: 1.25rem 0; font-size: 0.9rem; }
+
     /* Quiz de revisão */
     .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
     .review-counter { font-size: 0.8rem; color: var(--text-muted, #888); }
@@ -107,6 +111,10 @@
     </div>
     <div id="topics-content"></div>
   </div>
+  <div id="screen-summary" class="screen">
+    <div id="summary-content"></div>
+  </div>
+
   <div id="screen-quiz" class="screen">
     <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
     <div id="quiz-content"></div>
@@ -238,10 +246,27 @@ function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.cl
 async function startSession(elOrStr) {
   const topico = typeof elOrStr === 'string' ? elOrStr : elOrStr.dataset.t;
   state = { topico, perguntas: [], respostas: [], avaliacoes: [], currentQ: 0, feedbackShown: false };
-  showScreen('screen-quiz');
-  renderLoading('Gerando perguntas para "' + esc(topico) + '"…');
+  showScreen('screen-summary');
+  document.getElementById('summary-content').innerHTML = `<div class="loading"><span class="spinner"></span>Gerando revisão rápida de "${esc(topico)}"…</div>`;
   try {
-    const res = await fetch('/api/generate-gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico }) });
+    const res = await fetch('/api/generate-topic-summary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao gerar resumo');
+    renderSummary(data.resumo);
+  } catch (err) {
+    document.getElementById('summary-content').innerHTML = `<div class="loading" style="color:#ef4444">${esc(err.message)}</div><div class="btn-row" style="justify-content:center"><button class="btn btn-primary" onclick="startQuestions()">Pular para as perguntas →</button><button class="btn btn-ghost" onclick="resetToTopics()">← Voltar</button></div>`;
+  }
+}
+
+function renderSummary(resumo) {
+  document.getElementById('summary-content').innerHTML = `<div class="summary-label"># Revisão rápida — ${esc(state.topico)}</div><div class="summary-box">${esc(resumo)}</div><div class="summary-cta">Agora responda às perguntas sem consultar o resumo.</div><div class="btn-row" style="justify-content:center"><button class="btn btn-primary" onclick="startQuestions()">Responder às perguntas →</button><button class="btn btn-ghost" onclick="resetToTopics()">Abandonar</button></div>`;
+}
+
+async function startQuestions() {
+  showScreen('screen-quiz');
+  renderLoading('Gerando perguntas para "' + esc(state.topico) + '"…');
+  try {
+    const res = await fetch('/api/generate-gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico: state.topico }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao gerar perguntas');
     state.perguntas = data.perguntas; renderQuestion(0);
