@@ -56,27 +56,30 @@ Responda APENAS em JSON válido, sem markdown, sem texto extra:
 
 const PROMPT_SUMMARY = `Você é um professor especialista em preparação para o CACD.
 
-Sua missão NÃO é ensinar profundamente o conteúdo. Sua missão é apenas ativar a memória do estudante antes da avaliação.
+Sua missão NÃO é ensinar profundamente o conteúdo. Sua missão é apenas ativar a memória do estudante antes da avaliação, no formato de um mapa mental rápido.
 
-Produza um resumo extremamente objetivo do tópico do edital fornecido.
+Nada de introdução, contextualização ou frases de transição. Vá direto aos tópicos.
 
-O resumo deve servir apenas para relembrar os conceitos principais, sem responder antecipadamente a perguntas de avaliação.
+Formato obrigatório: lista de bullet points curtos (cada um com no máximo 1 linha, estilo telegráfico, sem frases completas de efeito). Use estas categorias como cabeçalhos de grupo, apenas as que fizerem sentido para o tópico:
+- Conceito central
+- Contexto histórico
+- Autores/teorias/instituições
+- Testado em prova
+- Relaciona com
+- Erro comum
 
-Em no máximo 250 palavras explique:
-- conceito central do tema;
-- contexto histórico (quando aplicável);
-- principais autores, instituições ou teorias;
-- conceitos que costumam aparecer em provas do CACD;
-- relações com outros assuntos importantes;
-- erros comuns cometidos pelos candidatos.
+Cada bullet deve ser uma informação factual isolada (termo — definição curta, ou nome — contribuição), não um parágrafo.
 
-Não escreva exemplos longos.
-Não faça listas extensas.
-Não aprofunde discussões.
+Máximo 15 bullets no total. Sem exemplos longos. Sem repetir a mesma ideia em bullets diferentes.
 
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {
-  "resumo": "<texto do resumo, máximo 250 palavras>"
+  "grupos": [
+    {
+      "categoria": "<uma das categorias acima>",
+      "bullets": ["<bullet curto 1>", "<bullet curto 2>"]
+    }
+  ]
 }`;
 
 module.exports = async function handler(req, res) {
@@ -117,10 +120,19 @@ module.exports = async function handler(req, res) {
         return res.status(502).json({ error: 'Resposta do modelo não é JSON válido' });
       }
 
-      const resumo = String(parsed.resumo || '').trim();
-      if (!resumo) return res.status(502).json({ error: 'Modelo não retornou um resumo válido' });
+      if (!Array.isArray(parsed.grupos) || parsed.grupos.length === 0) {
+        return res.status(502).json({ error: 'Modelo não retornou um resumo válido' });
+      }
+      const grupos = parsed.grupos
+        .map(g => ({
+          categoria: String(g.categoria || '').trim(),
+          bullets: Array.isArray(g.bullets) ? g.bullets.map(String).filter(Boolean) : [],
+        }))
+        .filter(g => g.categoria && g.bullets.length > 0);
 
-      return res.status(200).json({ resumo });
+      if (grupos.length === 0) return res.status(502).json({ error: 'Modelo não retornou um resumo válido' });
+
+      return res.status(200).json({ grupos });
     } catch (err) {
       return res.status(err?.status || 500).json({ error: err?.message || 'Erro interno' });
     }
