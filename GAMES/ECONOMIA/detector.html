@@ -478,7 +478,14 @@ async function saveDetectorSession(subjectId) {
       wrong: maxScore - total,
       wrong_items: wrongItems,
     });
-  } catch (e) { console.warn('detector save:', e); }
+  } catch (e) {
+    console.error('detector save error:', e);
+    const t = document.createElement('div');
+    t.textContent = '⚠ Erro ao salvar sessão: ' + (e?.message || String(e));
+    t.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#ef4444;color:#fff;padding:10px 16px;border-radius:8px;z-index:9999;font-size:13px;max-width:320px';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 10000);
+  }
 }
 
 function resetToTopics() {
@@ -604,7 +611,7 @@ function showReviewResult() {
       <button class="btn btn-ghost" onclick="resetToTopics()">Testar outro tópico</button>
     </div>
   `;
-  DB.getUser().then(u => { if (!u) return; DB.addSession({ type: 'review_quiz', deck: state.topico, subject: 'ECO', total, correct: reviewState.acertos, wrong: total - reviewState.acertos, wrong_items: [] }).catch(() => {}); });
+  DB.getUser().then(u => { if (!u) return; DB.addSession({ type: 'review_quiz', deck: state.topico, subject: 'ECO', total, correct: reviewState.acertos, wrong: total - reviewState.acertos, wrong_items: [] }).catch(e => console.error('review_quiz save:', e)); });
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -623,7 +630,7 @@ async function loadReviewBanner() {
 }
 
 renderTopics();
-loadReviewBanner();
+DB.requireAuth().then(() => loadReviewBanner()).catch(() => {});
 </script>
 </body>
 </html>
