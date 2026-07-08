@@ -69,22 +69,22 @@
       "REZEK .csv"
     ],
     "DIREITOINTERNACIONAL": [
-      "DIP PORTELA 11111111111111111.csv",
-      "DIP PORTELA 222222222222222.csv",
+      "DIP PORTELA part 1.csv",
+      "DIP PORTELA part 2.csv",
       "DIREITO INTERNACIONAL TPS .csv",
       "DIREITOS HUMANOS.csv"
     ],
     "ECONOMIA": [
-      "ECO 22222 2.csv",
+      "ECO 2.csv",
       "ECONOMIA TPS.csv",
-      "FEB 222222.csv",
+      "ECONOMIA.csv",
+      "FEB 2.csv",
       "FEB MANUAL.csv",
-      "ORDEM E PROGRESSO certo.csv",
-      "economia .csv"
+      "ORDEM E PROGRESSO.csv"
     ],
     "GEOGRAFIA": [
       "GEOGRAFIA  APOSTILA NOVA.csv",
-      "geo manual funag.csv"
+      "GEOGRAFIA FUNAG.csv"
     ],
     "HISTORIADOBRASIL": [
       "BRASIL IMPERIO.csv",
@@ -98,11 +98,11 @@
       "brasil republica .csv"
     ],
     "HISTORIAMUNDIAL": [
+      "BURNS.csv",
+      "HM DIPLOMACIA.csv",
       "HM MANUAL.csv",
       "HM SOMBRA SARAIVA.csv",
-      "HSITORIA DIFICIL.csv",
-      "historia mundial diplomatas novo.csv",
-      "hitoria mundial burns .csv"
+      "HSITORIA DIFICIL.csv"
     ],
     "POLITICA INTERNACIONAL": [
       "ATUALIDADES 2024.csv",
