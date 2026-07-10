@@ -156,19 +156,26 @@ const { groqCreate } = require('./_lib/groq-client');
 /* Avalia se a resposta digitada pelo usuário captura a ideia central do
    gabarito, sem exigir correspondência literal de texto. */
 
-const SYSTEM_PROMPT = `Você é um corretor de flashcards de estudo para o CACD (Concurso de Admissão à Carreira de Diplomata). Você receberá uma PERGUNTA, o GABARITO (resposta esperada) e a RESPOSTA DO CANDIDATO.
+const SYSTEM_PROMPT = `Você é um corretor RIGOROSO de flashcards de estudo para o CACD (Concurso de Admissão à Carreira de Diplomata). Você receberá uma PERGUNTA e o GABARITO (resposta esperada) e a RESPOSTA DO CANDIDATO.
 
-Avalie se a resposta do candidato captura a ideia central do gabarito, mesmo que use palavras ou estrutura diferentes. NÃO exija correspondência literal de texto — isto não é comparação de string, é avaliação de conceito.
+O candidato está usando este modo justamente porque flashcards de "sei/não sei" o deixam se enganar — ele marca como "sei" mesmo sem saber de verdade. Sua função é o oposto: ser um juiz externo honesto que NÃO deixa passar respostas vagas, incompletas ou que acertam só a ideia geral sem os detalhes que importam. Se você for complacente, o corretor perde sua função.
 
-Critérios:
-- Nota alta (90-100): a ideia central do gabarito está presente e correta, mesmo com paráfrase.
-- Nota média (50-89): captura parte do conceito, mas omite um elemento-chave ou é impreciso.
-- Nota baixa (0-49): não captura o conceito, está errado, ou é vago demais para valer.
+PASSO 1 — Antes de avaliar, decomponha mentalmente o GABARITO em 2 a 4 ELEMENTOS-CHAVE: os fatos, mecanismos, causas/efeitos, nomes ou definições específicas que tornam a resposta correta E completa (não apenas o tema geral). Um elemento-chave é algo que, se omitido, muda o sentido ou a precisão da resposta — não invente elementos que não estão no gabarito, e não conte como elemento separado meras variações de fraseado.
+
+PASSO 2 — Para cada elemento-chave, verifique se a RESPOSTA DO CANDIDATO o contém (mesmo com palavras diferentes — não exija correspondência literal de texto, isto não é comparação de string). Classifique cada elemento como: presente, parcial (mencionado mas impreciso/incompleto) ou ausente.
+
+PASSO 3 — Calcule a nota com base na proporção de elementos-chave presentes:
+- Todos os elementos presentes e corretos → 90-100.
+- A maioria presente, mas 1 elemento parcial ou levemente impreciso → 70-89.
+- Só a ideia geral/tema está certa, mas falta pelo menos 1 elemento-chave inteiro (ex: descreveu o efeito mas não a causa, ou vice-versa) → 30-69, proporcional ao que falta.
+- Resposta vaga, superficial, incorreta, ou que apenas repete a pergunta sem explicar → 0-29.
+
+Nunca dê nota ≥90 se um elemento-chave estiver ausente. É melhor ser rigoroso demais do que deixar passar uma resposta incompleta — o candidato prefere descobrir agora que não sabe um detalhe do que descobrir na prova.
 
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {
   "score": <inteiro 0-100>,
-  "feedback": "<1-2 frases curtas e diretas: o que acertou e o que faltou ou divergiu, em português>"
+  "feedback": "<1-2 frases curtas e diretas em português: quais elementos-chave estavam presentes e qual(is) faltou/faltaram ou ficou(aram) impreciso(s). Seja específico sobre o que faltou, não genérico>"
 }`;
 
 module.exports = async function handler(req, res) {
@@ -240,7 +247,17 @@ curl -s -X POST http://localhost:3000/api/grade-flashcard \
   -d '{"question":"O que é PIB?","gabarito":"Valor dos bens e serviços finais.","resposta":"É o valor total de tudo que um país produz."}'
 ```
 
-Expected: JSON response with `score` >= 80 (paraphrase of the correct concept) and a short `feedback` string. If `vercel dev` isn't available in this environment, defer this step to Task 4's end-to-end verification, where it's exercised through the UI instead.
+Expected: JSON response with `score` >= 80 (captures the single key element — total value of final production) and a short `feedback` string.
+
+Now test the strict-grading case — a gabarito with two key elements where the answer only captures one:
+
+```bash
+curl -s -X POST http://localhost:3000/api/grade-flashcard \
+  -H "Content-Type: application/json" \
+  -d '{"question":"O que é inflação de demanda?","gabarito":"Aumento de gastos que supera a capacidade de produção.","resposta":"É quando os preços sobem muito."}'
+```
+
+Expected: JSON response with `score` < 60 — the answer describes the general effect (rising prices) but omits the key causal mechanism (spending exceeding production capacity), and `feedback` should name that specific gap. This confirms the rubric penalizes vague/incomplete answers rather than rewarding "got the general idea." If `vercel dev` isn't available in this environment, defer both checks to Task 4's end-to-end verification, where they're exercised through the UI instead.
 
 - [ ] **Step 4: Commit**
 
@@ -797,6 +814,7 @@ With the local dev server running and `GROQ_API_KEY` set:
 3. Click "Estudar tudo". Confirm round 1 shows gabarito, submit gives feedback, "Próximo" advances to round 2 (same question, no gabarito).
 4. Submit an answer that's a correct paraphrase (e.g. for "O que é PIB?" type "É a soma de tudo que o país produziu"). Confirm score ≥ 80.
 5. Submit an answer that's clearly wrong. Confirm score is low (< 50).
+5b. Submit an answer that only captures the general topic but misses a key element of the gabarito (e.g. for a card whose gabarito has a cause + effect, type only the effect). Confirm the score lands in the 30-69 range (not ≥90) and the feedback names the specific missing element — this is the core acceptance check for the feature: the grader must not let "got the general idea" pass as full credit.
 6. Complete 3 cards, reach the summary screen, confirm avg % and weak count match what was submitted in round 2.
 7. In Supabase Table Editor, confirm `digitar_status` has 3 rows for this user/deck with the round-2 scores.
 8. Go back (`viewLoader` → same deck), confirm `viewOptions` now shows the updated avg/weak counts from step 7.
