@@ -54,6 +54,36 @@ Responda APENAS em JSON válido, sem markdown, sem texto extra:
   ]
 }`;
 
+const PROMPT_SUMMARY = `Você é um professor especialista em preparação para o CACD.
+
+Sua missão NÃO é ensinar profundamente o conteúdo. Sua missão é apenas ativar a memória do estudante antes da avaliação, no formato de um mapa mental rápido.
+
+Nada de introdução, contextualização ou frases de transição. Vá direto aos tópicos.
+
+Formato obrigatório: lista de bullet points, sem frases de transição entre eles. Use estas categorias como cabeçalhos de grupo, apenas as que fizerem sentido para o tópico:
+- Conceito central
+- Contexto histórico
+- Autores/teorias/instituições
+- Testado em prova
+- Relaciona com
+- Erro comum
+
+Cada bullet trata de UM termo, conceito ou fato por vez, mas deve EXPLICAR esse termo de forma clara e completa — não apenas nomeá-lo. Não há limite de tamanho por bullet: use quantas frases forem necessárias para a explicação ficar clara e autossuficiente, mas sem redundância nem enrolação.
+
+Regra crítica: todo termo ou distinção citado em "Erro comum" precisa ter sido DEFINIDO antes, em "Conceito central" (ou outro grupo), com clareza suficiente para o candidato entender exatamente por que o erro é um erro. Nunca aponte uma confusão (ex.: "Confusão entre X e Y") sem antes ter um bullet que explique o que é X e outro que explique o que é Y. Se o tópico tem uma estrutura ou classificação central (ex.: uma divisão tripartite, uma tipologia), explique cada elemento dessa estrutura em "Conceito central" antes de qualquer bullet que a mencione de passagem.
+
+Sem limite fixo de número de bullets ou palavras — o tamanho certo é o que garante clareza total, nem mais nem menos. Sem exemplos longos. Sem repetir a mesma explicação em bullets diferentes.
+
+Responda APENAS em JSON válido, sem markdown, sem texto extra:
+{
+  "grupos": [
+    {
+      "categoria": "<uma das categorias acima>",
+      "bullets": ["<bullet curto 1>", "<bullet curto 2>"]
+    }
+  ]
+}`;
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -68,6 +98,46 @@ module.exports = async function handler(req, res) {
   const { topico, mode, lacunas } = req.body || {};
   if (!topico || typeof topico !== 'string') {
     return res.status(400).json({ error: 'topico é obrigatório' });
+  }
+
+  if (mode === 'summary') {
+    try {
+      const groq = new Groq({ apiKey });
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: PROMPT_SUMMARY },
+          { role: 'user', content: `Tópico do edital CACD: ${topico.trim()}` },
+        ],
+        temperature: 0.5,
+        max_tokens: 2048,
+      });
+
+      const raw = completion.choices[0]?.message?.content;
+      if (!raw) return res.status(502).json({ error: 'Resposta vazia do modelo' });
+
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch {
+        return res.status(502).json({ error: 'Resposta do modelo não é JSON válido' });
+      }
+
+      if (!Array.isArray(parsed.grupos) || parsed.grupos.length === 0) {
+        return res.status(502).json({ error: 'Modelo não retornou um resumo válido' });
+      }
+      const grupos = parsed.grupos
+        .map(g => ({
+          categoria: String(g.categoria || '').trim(),
+          bullets: Array.isArray(g.bullets) ? g.bullets.map(String).filter(Boolean) : [],
+        }))
+        .filter(g => g.categoria && g.bullets.length > 0);
+
+      if (grupos.length === 0) return res.status(502).json({ error: 'Modelo não retornou um resumo válido' });
+
+      return res.status(200).json({ grupos });
+    } catch (err) {
+      return res.status(err?.status || 500).json({ error: err?.message || 'Erro interno' });
+    }
   }
 
   const isReview = mode === 'review';

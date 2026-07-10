@@ -440,6 +440,16 @@
       ING: 'INGLÊS',
     };
 
+    const FOLDER_TO_SUBJECT = {
+      'DIREITOCONSTITUCIONAL': { code: 'DIR', label: 'Direito' },
+      'DIREITOINTERNACIONAL':  { code: 'DIP', label: 'Direito Internacional' },
+      'ECONOMIA':              { code: 'ECO', label: 'Economia' },
+      'GEOGRAFIA':             { code: 'GEO', label: 'Geografia' },
+      'HISTORIADOBRASIL':      { code: 'HB',  label: 'História do Brasil' },
+      'HISTORIAMUNDIAL':       { code: 'HM',  label: 'História Mundial' },
+      'POLITICA INTERNACIONAL': { code: 'PI', label: 'Política Internacional' },
+    };
+
     const STOPWORDS = new Set([
       'de','da','do','em','para','com','que','se','no','na','os','as','um','uma',
       'por','mas','ou','e','a','o','ao','à','dos','das','nos','nas','num','numa',
@@ -596,7 +606,7 @@
       const localLastDone = localSaved ? (localSaved.lastDone || 0) : 0;
       window._lastDone = Math.max(localLastDone, remoteLastDone);
       // Sempre processa o CSV para popular allQuestions, depois showOptions mostra o banner
-      processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data);
+      processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data, folder);
     }
 
 
@@ -625,9 +635,10 @@
 
     // ─── Data processing (with classification) ──────────────────────
     const SECTION_MARKER_RX = /^###([A-Z]+)$/;
-    function processSimData(rows) {
+    function processSimData(rows, folder) {
       allQuestions = []; sections = {};
       const collected = []; let currentSection = ''; let currentSubject = null;
+      const folderSubject = folder ? FOLDER_TO_SUBJECT[folder] : null;
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
         if (!q) return;
@@ -642,6 +653,8 @@
       collected.forEach((item, i) => {
         const cls = item.subjectCode
           ? { subjectCode: item.subjectCode, subjectLabel: TPS_LABELS[item.subjectCode] || item.subjectCode, tags: [] }
+          : folderSubject
+          ? { subjectCode: folderSubject.code, subjectLabel: folderSubject.label, tags: [] }
           : classifyQuestion(item.q);
         sections[i] = item.section;
         allQuestions.push({ ...item, ...cls });

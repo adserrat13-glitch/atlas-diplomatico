@@ -72,6 +72,15 @@
     .back-link { display: inline-block; color: var(--text-muted, #888); font-size: 0.8rem; margin-bottom: 1.5rem; text-decoration: none; }
     .back-link:hover { color: var(--dir, #b56a61); }
 
+    .summary-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dir, #b56a61); margin-bottom: 0.75rem; }
+    .summary-box { background: var(--card-bg, #1a1a1a); border: 1px solid var(--border, #333); border-radius: 10px; padding: 1.25rem; font-size: 0.92rem; line-height: 1.7; }
+    .summary-group { margin-bottom: 1rem; }
+    .summary-group:last-child { margin-bottom: 0; }
+    .summary-group h4 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dir, #b56a61); margin: 0 0 0.4rem; }
+    .summary-group ul { margin: 0; padding-left: 1.1rem; }
+    .summary-group li { margin-bottom: 0.3rem; }
+    .summary-cta { text-align: center; font-weight: 700; color: var(--dir, #b56a61); margin: 1.25rem 0; font-size: 0.9rem; }
+
     /* Quiz de revisão */
     .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
     .review-counter { font-size: 0.8rem; color: var(--text-muted, #888); }
@@ -117,6 +126,10 @@
       <ul id="review-banner-list" class="review-banner-list"></ul>
     </div>
     <div id="topics-content"></div>
+  </div>
+
+  <div id="screen-summary" class="screen">
+    <div id="summary-content"></div>
   </div>
 
   <div id="screen-quiz" class="screen">
@@ -271,14 +284,56 @@ function showScreen(id) {
 async function startSession(elOrStr) {
   const topico = typeof elOrStr === 'string' ? elOrStr : elOrStr.dataset.t;
   state = { topico, perguntas: [], respostas: [], avaliacoes: [], currentQ: 0, feedbackShown: false };
-  showScreen('screen-quiz');
-  renderLoading('Gerando perguntas para "' + esc(topico) + '"…');
+  showScreen('screen-summary');
+  document.getElementById('summary-content').innerHTML = `<div class="loading"><span class="spinner"></span>Gerando revisão rápida de "${esc(topico)}"…</div>`;
 
   try {
     const res = await fetch('/api/generate-gap-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topico }),
+      body: JSON.stringify({ topico, mode: 'summary' }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erro ao gerar resumo');
+    renderSummary(data.grupos);
+  } catch (err) {
+    document.getElementById('summary-content').innerHTML = `
+      <div class="loading" style="color:#ef4444">${esc(err.message)}</div>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn btn-primary" onclick="startQuestions()">Pular para as perguntas →</button>
+        <button class="btn btn-ghost" onclick="resetToTopics()">← Voltar</button>
+      </div>`;
+  }
+}
+
+function renderSummary(grupos) {
+  const groupsHtml = grupos.map(g => `
+    <div class="summary-group">
+      <h4>${esc(g.categoria)}</h4>
+      <ul>${g.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+
+  document.getElementById('summary-content').innerHTML = `
+    <div class="summary-label"># Revisão rápida — ${esc(state.topico)}</div>
+    <div class="summary-box">${groupsHtml}</div>
+    <div class="summary-cta">Agora responda às perguntas sem consultar o resumo.</div>
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn btn-primary" onclick="startQuestions()">Responder às perguntas →</button>
+      <button class="btn btn-ghost" onclick="resetToTopics()">Abandonar</button>
+    </div>
+  `;
+}
+
+async function startQuestions() {
+  showScreen('screen-quiz');
+  renderLoading('Gerando perguntas para "' + esc(state.topico) + '"…');
+
+  try {
+    const res = await fetch('/api/generate-gap-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topico: state.topico }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao gerar perguntas');
