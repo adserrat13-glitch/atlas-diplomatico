@@ -293,6 +293,35 @@ const DB = {
     });
   },
 
+  // ── DIGITAR STATUS (AI-graded typing mode) ────────────────────────────
+
+  /** Returns map: { question: {score, last_review} } for a deck */
+  async getDigitarScoreMap(deckName) {
+    const user = await this.getUser();
+    if (!user) return {};
+    const { data } = await _sb.from('digitar_status')
+      .select('question, score, last_review')
+      .eq('user_id', user.id).eq('deck_name', deckName);
+    const map = {};
+    (data || []).forEach(r => { map[r.question] = { score: r.score, last_review: r.last_review }; });
+    return map;
+  },
+
+  async upsertDigitarScore(deckName, question, score) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('digitar_status').upsert({
+      user_id: user.id,
+      deck_name: deckName,
+      question,
+      score,
+      last_review: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,deck_name,question',
+      ignoreDuplicates: false
+    });
+  },
+
   // ── ACTIVITY ────────────────────────────────────────────────────────
 
   async getActivity(userId) {
