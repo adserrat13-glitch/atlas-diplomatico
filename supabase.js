@@ -260,6 +260,7 @@ const DB = {
       updated_at: new Date().toISOString()
     }, { onConflict: 'user_id,prova_key' }).select().single();
     if (error) console.warn('upsertEditalSession error:', error.message);
+    else await _sb.rpc('upsert_activity', { p_user_id: user.id, p_date: today });
     return data;
   },
 
