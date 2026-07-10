@@ -82,7 +82,7 @@
     .btn:disabled { opacity:0.5; cursor:not-allowed; }
 
     /* ===== STUDY VIEW ===== */
-    #viewStudy { gap:18px; width:100%; max-width:680px; }
+    #viewStudy { gap:14px; width:100%; max-width:1180px; }
     .study-header { width:100%; display:flex; align-items:center; gap:12px; }
     .study-cat-name { font-size:13px; color:var(--muted); font-weight:500; }
     .study-spacer { flex:1; }
@@ -95,29 +95,33 @@
     .progress-fill { height:100%; background:var(--accent); border-radius:20px; transition:width 0.4s ease; }
 
     .dg-question { background:var(--card); border:1px solid var(--border); border-radius:16px;
-      padding:24px; width:100%; font-size:16px; line-height:1.6; }
-    .dg-question-label { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
+      padding:18px 22px; width:100%; font-size:15px; line-height:1.5; }
+    .dg-question-label { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+
+    /* two-column layout: answer input (left) + reference/feedback (right), side by side */
+    .study-columns { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+    @media (max-width:900px) { .study-columns { grid-template-columns:1fr; } }
+    .study-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
+
     .dg-answer-box { width:100%; }
-    .dg-textarea { width:100%; min-height:160px; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+    .dg-textarea { width:100%; min-height:220px; background:rgba(255,255,255,0.04); border:1px solid var(--border);
       border-radius:12px; padding:14px 16px; color:var(--text); font-family:inherit; font-size:14px;
       line-height:1.5; resize:vertical; }
     .dg-textarea:focus { outline:none; border-color:var(--accent); }
     .dg-textarea:disabled { opacity:.7; }
 
-    .result-grid { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    @media (max-width:640px) { .result-grid { grid-template-columns:1fr; } }
-    .result-box { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; font-size:13px; line-height:1.6; }
-    .result-box-label { font-size:11px; color:var(--muted); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px; }
+    .result-box { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; font-size:13px; line-height:1.5; max-height:140px; overflow-y:auto; }
+    .result-box-label { font-size:11px; color:var(--muted); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:6px; }
 
-    .dg-feedback { width:100%; border-radius:14px; padding:18px 22px; display:flex; flex-direction:column; gap:12px; }
+    .dg-feedback { width:100%; border-radius:14px; padding:14px 18px; display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
     .dg-feedback.good { background:rgba(110,231,183,0.1); border:1px solid rgba(110,231,183,0.3); }
     .dg-feedback.bad { background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); }
     .dg-score-row { display:flex; align-items:center; gap:14px; }
-    .dg-score { font-size:26px; font-weight:700; }
+    .dg-score { font-size:22px; font-weight:700; }
     .dg-score-pct { font-size:13px; color:var(--muted); }
-    .dg-feedback-text { font-size:13px; color:var(--text); line-height:1.5; }
-    .points-list { font-size:13px; line-height:1.7; }
-    .points-list ul { padding-left:18px; margin-top:4px; }
+    .dg-feedback-text { font-size:13px; color:var(--text); line-height:1.4; }
+    .points-list { font-size:12px; line-height:1.5; }
+    .points-list ul { padding-left:16px; margin-top:2px; }
     .points-correct { color:var(--green); }
     .points-missing { color:#f5e642; }
     .points-errors { color:var(--red); }
@@ -195,30 +199,33 @@
         <div id="dqText"></div>
       </div>
 
-      <div class="dg-answer-box">
-        <textarea class="dg-textarea" id="dqAnswerInput" placeholder="Digite sua resposta..."></textarea>
-      </div>
+      <div class="study-columns">
+        <div class="study-col">
+          <div class="dg-answer-box">
+            <textarea class="dg-textarea" id="dqAnswerInput" placeholder="Digite sua resposta..."></textarea>
+          </div>
+          <div class="result-box" id="resultUserBox" style="display:none">
+            <div class="result-box-label">Sua resposta</div>
+            <div id="resultUserAnswer"></div>
+          </div>
+        </div>
 
-      <div class="result-grid" id="resultGrid" style="display:none">
-        <div class="result-box">
-          <div class="result-box-label">Sua resposta</div>
-          <div id="resultUserAnswer"></div>
+        <div class="study-col">
+          <div class="result-box" id="resultRefBox" style="display:none">
+            <div class="result-box-label">Resposta de referência</div>
+            <div id="resultRefAnswer"></div>
+          </div>
+          <div class="dg-feedback" id="dqFeedback" style="display:none">
+            <div class="dg-score-row">
+              <div class="dg-score" id="dqScoreText"></div>
+              <div class="dg-score-pct" id="dqScorePct"></div>
+            </div>
+            <div class="dg-feedback-text" id="dqFeedbackText"></div>
+            <div class="points-list" id="dqCorrectPoints"></div>
+            <div class="points-list" id="dqMissingPoints"></div>
+            <div class="points-list" id="dqErrorPoints"></div>
+          </div>
         </div>
-        <div class="result-box">
-          <div class="result-box-label">Resposta de referência</div>
-          <div id="resultRefAnswer"></div>
-        </div>
-      </div>
-
-      <div class="dg-feedback" id="dqFeedback" style="display:none">
-        <div class="dg-score-row">
-          <div class="dg-score" id="dqScoreText"></div>
-          <div class="dg-score-pct" id="dqScorePct"></div>
-        </div>
-        <div class="dg-feedback-text" id="dqFeedbackText"></div>
-        <div class="points-list" id="dqCorrectPoints"></div>
-        <div class="points-list" id="dqMissingPoints"></div>
-        <div class="points-list" id="dqErrorPoints"></div>
       </div>
 
       <div class="opt-btns">
@@ -403,7 +410,8 @@
       document.getElementById('dqText').textContent = q.question;
       document.getElementById('dqAnswerInput').value = '';
       document.getElementById('dqAnswerInput').disabled = false;
-      document.getElementById('resultGrid').style.display = 'none';
+      document.getElementById('resultUserBox').style.display = 'none';
+      document.getElementById('resultRefBox').style.display = 'none';
       document.getElementById('dqFeedback').style.display = 'none';
       document.getElementById('dqSubmitBtn').style.display = '';
       document.getElementById('dqRetryBtn').style.display = 'none';
@@ -476,7 +484,8 @@
       document.getElementById('dqAnswerInput').disabled = true;
       document.getElementById('resultUserAnswer').textContent = answer;
       document.getElementById('resultRefAnswer').textContent = q.reference_answer;
-      document.getElementById('resultGrid').style.display = 'grid';
+      document.getElementById('resultUserBox').style.display = 'block';
+      document.getElementById('resultRefBox').style.display = 'block';
 
       const feedbackEl = document.getElementById('dqFeedback');
       feedbackEl.className = 'dg-feedback ' + (result.approved ? 'good' : 'bad');
