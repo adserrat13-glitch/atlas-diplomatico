@@ -398,6 +398,7 @@ const TABS_CONFIG = [
  { id:'notifications', icon:'', label:'Alertas', roles:['super_admin','admin'] },
  { id:'permissions', icon:'', label:'Permissões', roles:['super_admin'] },
  { id:'leaderboard', icon:'', label:'Leaderboard', roles:['super_admin','admin'] },
+ { id:'discursivas', icon:'', label:'Discursivas', roles:['super_admin','admin','moderator'] },
 ];
 
 function roleBadge(role) {
@@ -2277,6 +2278,144 @@ function SettingsTab() {
 // 
 // ROOT APP
 // 
+//
+// DISCURSIVAS TAB
+//
+function DiscursivasTab() {
+ const [stats, setStats] = useState(null);
+ const [loading, setLoading] = useState(true);
+ const chartTimelineRef = useRef(null);
+ const chartTimelineInst = useRef(null);
+ const chartCatRef = useRef(null);
+ const chartCatInst = useRef(null);
+
+ useEffect(() =>{
+ (async () =>{
+ setLoading(true);
+ try { setStats(await DB.getDiscursivasStats()); }
+ catch(e) { console.error(e); }
+ setLoading(false);
+ })();
+ }, []);
+
+ useEffect(() =>{
+ if (!stats) return;
+ if (chartTimelineInst.current) chartTimelineInst.current.destroy();
+ if (chartCatInst.current) chartCatInst.current.destroy();
+
+ const byDay = {};
+ (stats.timeline || []).forEach(t =>{
+ if (!byDay[t.date]) byDay[t.date] = [];
+ byDay[t.date].push(t.score);
+ });
+ const days = Object.keys(byDay).sort();
+ if (chartTimelineRef.current && days.length) {
+ chartTimelineInst.current = new Chart(chartTimelineRef.current.getContext('2d'), {
+ type: 'line',
+ data: {
+ labels: days.map(d =>d.slice(5)),
+ datasets: [{ label:'Nota média', data: days.map(d =>byDay[d].reduce((a,b)=>a+b,0)/byDay[d].length),
+ borderColor:'#d4af37', backgroundColor:'rgba(212,175,55,.15)', fill:true, tension:.3 }]
+ },
+ options: { responsive:true, maintainAspectRatio:false,
+ plugins:{ legend:{display:false} },
+ scales:{ y:{ beginAtZero:true, max:100 }, x:{ grid:{display:false} } } }
+ });
+ }
+
+ const cats = stats.categoryStats || [];
+ if (chartCatRef.current && cats.length) {
+ chartCatInst.current = new Chart(chartCatRef.current.getContext('2d'), {
+ type: 'bar',
+ data: {
+ labels: cats.map(c =>c.category),
+ datasets: [{ label:'Nota média', data: cats.map(c =>Math.round(c.avgScore)),
+ backgroundColor:'rgba(142,167,255,.5)', borderColor:'#8ea7ff', borderWidth:1, borderRadius:3 }]
+ },
+ options: { responsive:true, maintainAspectRatio:false, indexAxis:'y',
+ plugins:{ legend:{display:false} },
+ scales:{ x:{ beginAtZero:true, max:100 } } }
+ });
+ }
+
+ return () =>{
+ chartTimelineInst.current?.destroy();
+ chartCatInst.current?.destroy();
+ };
+ }, [stats]);
+
+ if (loading) return <div className="loading-txt">Carregando estatísticas…</div>;
+ if (!stats) return <div className="empty">Erro ao carregar estatísticas.</div>;
+
+ return (
+ <div>
+ <div className="page-title">Discursivas</div>
+ <div className="page-sub">Progresso em perguntas discursivas (correção por IA)</div>
+
+ <div className="metrics-grid">
+ <div className="metric-card">
+ <div className="metric-val text-accent">{stats.totalQuestions}</div>
+ <div className="metric-lbl">Perguntas cadastradas</div>
+ </div>
+ <div className="metric-card">
+ <div className="metric-val">{stats.answeredQuestions}</div>
+ <div className="metric-lbl">Perguntas respondidas</div>
+ </div>
+ <div className="metric-card">
+ <div className="metric-val text-green">{stats.approvedQuestions}</div>
+ <div className="metric-lbl">Perguntas aprovadas</div>
+ </div>
+ <div className="metric-card">
+ <div className="metric-val" style={{color: stats.approvalRate>=70?'var(--green)':'var(--yellow)'}}>{Math.round(stats.approvalRate)}%</div>
+ <div className="metric-lbl">Taxa de aprovação</div>
+ </div>
+ <div className="metric-card">
+ <div className="metric-val">{Math.round(stats.avgScore)}%</div>
+ <div className="metric-lbl">Nota média</div>
+ </div>
+ <div className="metric-card">
+ <div className="metric-val">{Math.round(stats.avgTimeSeconds)}s</div>
+ <div className="metric-lbl">Tempo médio/resposta</div>
+ </div>
+ <div className="metric-card">
+ <div className="metric-val text-yellow">{stats.currentStreak}</div>
+ <div className="metric-lbl">Sequência atual</div>
+ </div>
+ <div className="metric-card">
+ <div className="metric-val">{stats.maxStreak}</div>
+ <div className="metric-lbl">Sequência máxima</div>
+ </div>
+ </div>
+
+ <div className="charts-row">
+ <div className="card">
+ <div className="card-title">Evolução da nota média</div>
+ <div className="chart-wrap"><canvas ref={chartTimelineRef}></canvas></div>
+ </div>
+ <div className="card">
+ <div className="card-title">Domínio por categoria</div>
+ <div className="chart-wrap"><canvas ref={chartCatRef}></canvas></div>
+ </div>
+ </div>
+
+ {stats.hardestQuestions && stats.hardestQuestions.length >0 && (
+ <div className="card">
+ <div className="card-title">Perguntas mais difíceis</div>
+ <div style={{display:'flex', flexDirection:'column', gap:8, marginTop:8}}>
+ {stats.hardestQuestions.map(q =>(
+ <div key={q.question_id} style={{display:'flex', justifyContent:'space-between', alignItems:'center',
+ background:'rgba(248,113,113,.06)', border:'1px solid rgba(248,113,113,.2)', borderRadius:10, padding:'8px 14px'}}>
+ <span style={{fontSize:12, color:'var(--muted)'}}>{q.attempts} tentativa(s){q.approved ? ' · aprovada' : ' · não aprovada'}</span>
+ <span style={{fontSize:13, fontWeight:700, color:'#ef5350'}}>{Math.round(q.avgScore)}%</span>
+ </div>
+ ))}
+ </div>
+ </div>
+ )}
+ </div>
+ );
+}
+
 function AdminApp() {
  const [activeTab, setActiveTab] = useState('dashboard');
  const [profile, setProfile] = useState(null);
@@ -2321,6 +2460,7 @@ function AdminApp() {
  notifications: <NotificationsTab />,
  permissions: <PermissionsTab />,
  leaderboard: <LeaderboardTab />,
+ discursivas: <DiscursivasTab />,
  };
 
  const safeTab = visibleTabs.find(t=>t.id===activeTab) ? activeTab : visibleTabs[0]?.id;

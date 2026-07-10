@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Importar Discursivas — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1115; --card:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#9ca3af; --accent:#d4af37;
+      --green:#34d399; --red:#f87171;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
+    main { max-width:640px; margin:0 auto; padding:48px 24px; display:flex; flex-direction:column; gap:20px; align-items:center; text-align:center; }
+    h1 { font-size:24px; font-weight:700; }
+    p { color:var(--muted); font-size:14px; }
+    .btn { padding:12px 28px; border-radius:12px; font-size:14px; font-weight:600;
+      cursor:pointer; border:none; transition:0.2s; font-family:inherit; }
+    .btn-primary { background:var(--accent); color:#0f1117; }
+    .btn-primary:hover { opacity:0.85; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    input[type=file] { color:var(--muted); font-size:13px; }
+    #log { width:100%; text-align:left; background:var(--card); border:1px solid var(--border);
+      border-radius:12px; padding:16px; font-size:13px; line-height:1.6; max-height:340px; overflow-y:auto; white-space:pre-wrap; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Importar Perguntas Discursivas</h1>
+    <p>Selecione a pasta "pergutnas" (com subpastas por matéria) contendo os arquivos CSV no formato pergunta;resposta.</p>
+    <input type="file" id="folderInput" webkitdirectory multiple />
+    <button class="btn btn-primary" id="importBtn" onclick="runImport()" disabled>Importar</button>
+    <div id="log"></div>
+  </main>
+
+  <script>
+    let selectedFiles = [];
+
+    (async () => { await DB.requireAuth(); })();
+
+    document.getElementById('folderInput').addEventListener('change', (e) => {
+      selectedFiles = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.csv'));
+      document.getElementById('importBtn').disabled = selectedFiles.length === 0;
+      log(`${selectedFiles.length} arquivo(s) CSV selecionado(s).`);
+    });
+
+    function log(msg) {
+      const el = document.getElementById('log');
+      el.textContent += msg + '\n';
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function readFileAsText(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file, 'UTF-8');
+      });
+    }
+
+    async function runImport() {
+      const btn = document.getElementById('importBtn');
+      btn.disabled = true;
+      document.getElementById('log').textContent = '';
+
+      const items = [];
+      for (const file of selectedFiles) {
+        const relPath = file.webkitRelativePath || file.name;
+        const category = relPath.split('/')[1] || relPath.split('/')[0] || 'Sem categoria';
+        const text = await readFileAsText(file);
+        const parsed = Papa.parse(text, { delimiter: ';', skipEmptyLines: true });
+        const rows = parsed.data
+          .filter(row => row[0]?.trim() && row[1]?.trim())
+          .map(row => ({ category, question: row[0].trim(), reference_answer: row[1].trim() }));
+        items.push(...rows);
+        log(`${file.name}: ${rows.length} pares lidos (categoria: ${category})`);
+      }
+
+      log(`\nEnviando ${items.length} itens...`);
+
+      const BATCH_SIZE = 500;
+      let totalReceived = 0, totalInserted = 0;
+      for (let i = 0; i < items.length; i += BATCH_SIZE) {
+        const batch = items.slice(i, i + BATCH_SIZE);
+        try {
+          const token = await DB.getAccessToken();
+          const res = await fetch('/api/import-discursivas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ items: batch }),
+          });
+          const result = await res.json();
+          if (result.error) throw new Error(result.error);
+          totalReceived += result.received;
+          totalInserted += result.inserted;
+          log(`Lote ${Math.floor(i / BATCH_SIZE) + 1}: ${result.inserted}/${result.received} inseridos`);
+        } catch (e) {
+          log(`Erro no lote ${Math.floor(i / BATCH_SIZE) + 1}: ${e.message}`);
+        }
+      }
+
+      log(`\nConcluído. ${totalInserted} novas perguntas inseridas de ${totalReceived} processadas.`);
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
