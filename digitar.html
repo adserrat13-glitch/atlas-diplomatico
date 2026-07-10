@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digitar — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1115; --card:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#9ca3af; --accent:#d4af37;
+      --green:#34d399; --red:#f87171;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
+    .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; }
+
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span{color:#fff;text-decoration:underline}
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;padding-bottom:3px}
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
+      border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+
+    main { position:relative; z-index:1; max-width:800px; margin:0 auto; padding:32px 24px; }
+
+    .view { display:none; }
+    .view.active { display:flex; flex-direction:column; align-items:center; }
+
+    #viewLoader { gap:24px; }
+    .loader-title { font-size:28px; font-weight:700; letter-spacing:1px; }
+    .loader-sub { color:var(--muted); font-size:14px; }
+
+    .file-browser { width:100%; max-width:640px; display:flex; flex-direction:column; gap:8px; }
+    .fb-loading, .fb-empty { color:var(--muted); font-size:14px; padding:24px; text-align:center; }
+    .fb-subject { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    .fb-subject-header { display:flex; align-items:center; gap:10px; padding:12px 16px; cursor:pointer; transition:.15s; user-select:none; }
+    .fb-subject-header:hover { background:rgba(255,255,255,.04); }
+    .fb-subject-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .fb-subject-name { font-size:13px; font-weight:600; color:#e8e8e8; flex:1; }
+    .fb-subject-count { font-size:11px; color:var(--muted); background:rgba(255,255,255,.08); padding:2px 8px; border-radius:10px; }
+    .fb-chevron { font-size:12px; color:var(--muted); transition:transform .2s; }
+    .fb-subject.collapsed .fb-chevron { transform:rotate(-90deg); }
+    .fb-subject.collapsed .fb-subject-files { display:none; }
+    .fb-subject-files { border-top:1px solid var(--border); }
+    .fb-file-row { display:flex; align-items:center; padding:10px 16px 10px 34px; cursor:pointer; transition:.15s; gap:10px; }
+    .fb-file-row:hover { background:rgba(255,255,255,.04); }
+    .fb-file-name { flex:1; font-size:13px; color:#aaa; }
+    .fb-file-row:hover .fb-file-name { color:#e8e8e8; }
+    .fb-file-arrow { font-size:12px; color:var(--muted); }
+    .fb-file-row:hover .fb-file-arrow { color:var(--accent); }
+
+    .btn {
+      padding:12px 28px; border-radius:12px; font-size:14px; font-weight:600;
+      cursor:pointer; border:none; transition:0.2s; font-family:inherit;
+    }
+    .btn-primary { background:var(--accent); color:#0f1117; }
+    .btn-primary:hover { opacity:0.85; }
+    .btn-secondary { background:rgba(255,255,255,0.07); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { background:rgba(255,255,255,0.12); }
+    .btn-small { padding:8px 18px; font-size:13px; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+    /* ===== OPTIONS VIEW ===== */
+    #viewOptions { gap:16px; text-align:center; width:100%; }
+    .opt-title { font-size:22px; font-weight:700; }
+    .opt-sub { color:var(--muted); font-size:14px; }
+    .opt-stats { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:8px 0; }
+    .opt-stat { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 22px; min-width:100px; }
+    .opt-stat-val { font-size:26px; font-weight:700; }
+    .opt-stat-lbl { font-size:11px; color:var(--muted); margin-top:2px; }
+    .opt-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+
+    /* ===== STUDY VIEW ===== */
+    #viewStudy { gap:18px; width:100%; max-width:640px; }
+    .study-header { width:100%; display:flex; align-items:center; gap:12px; }
+    .study-deck-name { font-size:13px; color:var(--muted); font-weight:500; }
+    .study-spacer { flex:1; }
+    .study-counter { font-size:13px; color:var(--muted); }
+    .study-round { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+    .study-round.r1 { background:rgba(142,167,255,.12); color:#8ea7ff; }
+    .study-round.r2 { background:rgba(212,175,55,.15); color:var(--accent); }
+    .study-exit { background:none; border:1px solid var(--border); color:var(--muted);
+      padding:5px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+    .study-exit:hover { color:var(--text); border-color:rgba(255,255,255,0.3); }
+    .progress-bar { width:100%; height:5px; background:rgba(255,255,255,0.07); border-radius:20px; overflow:hidden; }
+    .progress-fill { height:100%; background:var(--accent); border-radius:20px; transition:width 0.4s ease; }
+
+    .dg-question { background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:24px; width:100%; font-size:16px; line-height:1.6; }
+    .dg-question-label { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
+    .dg-gabarito { background:rgba(142,167,255,0.07); border:1px solid rgba(142,167,255,0.2);
+      border-radius:16px; padding:20px 24px; width:100%; font-size:15px; line-height:1.6; color:#c5d5ff; }
+    .dg-answer-box { width:100%; }
+    .dg-textarea { width:100%; min-height:100px; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+      border-radius:12px; padding:14px 16px; color:var(--text); font-family:inherit; font-size:14px;
+      line-height:1.5; resize:vertical; }
+    .dg-textarea:focus { outline:none; border-color:var(--accent); }
+    .dg-feedback { width:100%; border-radius:14px; padding:16px 20px; display:flex; flex-direction:column; gap:8px; }
+    .dg-feedback.good { background:rgba(110,231,183,0.1); border:1px solid rgba(110,231,183,0.3); }
+    .dg-feedback.mid { background:rgba(245,230,66,0.08); border:1px solid rgba(245,230,66,0.25); }
+    .dg-feedback.bad { background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); }
+    .dg-score { font-size:24px; font-weight:700; }
+    .dg-feedback-text { font-size:13px; color:var(--text); line-height:1.5; }
+
+    /* ===== SUMMARY VIEW ===== */
+    #viewSummary { gap:24px; text-align:center; width:100%; }
+    .summary-icon { font-size:56px; }
+    .summary-title { font-size:26px; font-weight:700; }
+    .summary-sub { color:var(--muted); font-size:14px; }
+    .summary-stats { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+    .s-stat { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 24px; min-width:100px; }
+    .s-stat-val { font-size:28px; font-weight:700; }
+    .s-stat-lbl { font-size:12px; color:var(--muted); margin-top:2px; }
+    .s-green { color:var(--green); }
+    .s-red { color:var(--red); }
+    .summary-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+    .weak-list { width:100%; max-width:600px; text-align:left; }
+    .weak-list h3 { font-size:13px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; }
+    .weak-item { background:rgba(248,113,113,0.07); border:1px solid rgba(248,113,113,0.2);
+      border-radius:12px; padding:12px 16px; margin-bottom:8px; display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    .weak-item-q { font-size:13px; flex:1; }
+    .weak-item-score { font-size:13px; font-weight:700; color:#ef5350; flex-shrink:0; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">Início</a>
+    <a href="flashcards.html">Flashcards</a>
+    <a href="digitar.html" class="active">Digitar</a>
+    <a href="espiral.html">Espiral</a>
+    <a href="analise.html">Análise</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <main>
+    <div class="view active" id="viewLoader">
+      <div class="loader-title">MODO DIGITAR</div>
+      <div class="loader-sub">Escreva a resposta — a IA avalia o conceito, não o texto exato</div>
+      <div class="file-browser" id="fileBrowser">
+        <div class="fb-loading">Carregando decks...</div>
+      </div>
+    </div>
+
+    <div class="view" id="viewOptions">
+      <div class="opt-title" id="deckTitle"></div>
+      <div class="opt-sub" id="deckSub"></div>
+      <div class="opt-stats" id="optStats"></div>
+      <div class="opt-btns">
+        <button class="btn btn-primary" onclick="startDigitarSession('all')">Estudar tudo</button>
+        <button class="btn btn-secondary" onclick="startDigitarSession('weak')" id="btnWeak" style="display:none">Revisar &lt;90</button>
+        <button class="btn btn-secondary btn-small" onclick="showView('viewLoader')">← Outro deck</button>
+      </div>
+    </div>
+
+    <div class="view" id="viewStudy">
+      <div class="study-header">
+        <span class="study-deck-name" id="studyDeckName"></span>
+        <span class="study-round r1" id="studyRound">Rodada 1</span>
+        <div class="study-spacer"></div>
+        <span class="study-counter" id="studyCounter"></span>
+        <button class="study-exit" onclick="showView('viewLoader')">✕ Sair</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+      <div class="dg-question">
+        <div class="dg-question-label">Pergunta</div>
+        <div id="dgQuestionText"></div>
+      </div>
+
+      <div class="dg-gabarito" id="dgGabaritoBox" style="display:none">
+        <div class="dg-question-label">Gabarito</div>
+        <div id="dgGabaritoText"></div>
+      </div>
+
+      <div class="dg-answer-box">
+        <textarea class="dg-textarea" id="dgAnswerInput" placeholder="Digite sua resposta..."></textarea>
+      </div>
+
+      <div class="dg-feedback" id="dgFeedback" style="display:none">
+        <div class="dg-score" id="dgScoreText"></div>
+        <div class="dg-feedback-text" id="dgFeedbackText"></div>
+      </div>
+
+      <div class="opt-btns">
+        <button class="btn btn-primary" id="dgSubmitBtn" onclick="submitDigitarAnswer()">Enviar</button>
+        <button class="btn btn-secondary" id="dgNextBtn" onclick="nextDigitarStep()" style="display:none">Próximo →</button>
+      </div>
+    </div>
+
+    <div class="view" id="viewSummary">
+      <div class="summary-icon">📊</div>
+      <div class="summary-title" id="summaryTitle"></div>
+      <div class="summary-sub" id="summarySub"></div>
+      <div class="summary-stats" id="summaryStats"></div>
+      <div class="summary-btns">
+        <button class="btn btn-primary" id="btnReviewWeak" onclick="startDigitarSession('weak')" style="display:none">Revisar &lt;90</button>
+        <button class="btn btn-secondary" onclick="showView('viewLoader')">Outro deck</button>
+        <a href="index.html" class="btn btn-secondary">← Início</a>
+      </div>
+      <div class="weak-list" id="weakList" style="display:none"></div>
+    </div>
+  </main>
+
+  <script>
+    const SUBJECT_META = {
+      LP:   { name:'Língua Portuguesa',      folder:'PORTUGUÊS' },
+      ING:  { name:'Língua Inglesa',          folder:'INGLÊS' },
+      HB:   { name:'História do Brasil',      folder:'BRASIL' },
+      HM:   { name:'História Mundial',        folder:'HISTORIA' },
+      GEO:  { name:'Geografia',              folder:'GEOGRAFIA' },
+      PI:   { name:'Política Internacional',  folder:'INTERNACIONAL' },
+      ECO:  { name:'Economia',               folder:'ECONOMIA' },
+      DIR:  { name:'Direito',                folder:'DIREITO' },
+    };
+    const FOLDER_COLORS = {
+      'BRASIL': '#ffffff', 'DIREITO': '#cccccc', 'ECONOMIA': '#eeeeee',
+      'GEOGRAFIA': '#ffffff', 'HISTORIA': '#cccccc', 'INTERNACIONAL': '#dddddd',
+      'INGLÊS': '#eeeeee', 'PORTUGUÊS': '#ffffff',
+    };
+
+    let allCards = [], deckName = '';
+
+    (async () => {
+      const user = await DB.requireAuth();
+      const [profile, examDate] = await Promise.all([DB.getProfile(), DB.getExamDate()]);
+      const nu = document.getElementById('navUser');
+      if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+      const nc = document.getElementById('navCountdown');
+      if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+      loadFileBrowser();
+    })();
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    let _manifest = null;
+    async function loadManifest() {
+      if (_manifest) return _manifest;
+      try {
+        const res = await fetch('manifest.json');
+        if (!res.ok) throw new Error();
+        _manifest = await res.json();
+      } catch { _manifest = { flashcards: {} }; }
+      return _manifest;
+    }
+
+    async function scanFolder(folder) {
+      const m = await loadManifest();
+      return (m.flashcards[folder] || []);
+    }
+
+    async function loadFileBrowser() {
+      const browser = document.getElementById('fileBrowser');
+      const m = await loadManifest();
+      const folders = Object.keys(m.flashcards || {});
+      if (!folders.length) {
+        browser.innerHTML = '<div class="fb-empty">Nenhum deck encontrado.</div>';
+        return;
+      }
+      const active = folders
+        .map(folder => ({ folder, files: m.flashcards[folder] || [] }))
+        .filter(s => s.files.length > 0)
+        .sort((a, b) => a.folder.localeCompare(b.folder, 'pt-BR'));
+      browser.innerHTML = active.map(s => {
+        const color = FOLDER_COLORS[s.folder.toUpperCase()] || '#8ea7ff';
+        const fullPath = 'FLASHCARDS/' + s.folder;
+        const sortedFiles = [...s.files].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        return `
+        <div class="fb-subject">
+          <div class="fb-subject-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <span class="fb-subject-dot" style="background:${color}"></span>
+            <span class="fb-subject-name">${s.folder}</span>
+            <span class="fb-subject-count">${s.files.length}</span>
+            <span class="fb-chevron">▾</span>
+          </div>
+          <div class="fb-subject-files">
+            ${sortedFiles.map(f => `<div class="fb-file-row" onclick="loadDeckFromPath('${encodeURIComponent(fullPath+'/'+f)}','${f.replace(/\.csv$/i,'').replace(/'/g,"\\'")}')">
+              <span class="fb-file-name">${f.replace(/\.csv$/i,'')}</span>
+              <span class="fb-file-arrow">→</span>
+            </div>`).join('')}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    async function loadDeckFromPath(encodedPath, name) {
+      const path = decodeURIComponent(encodedPath);
+      try {
+        const res = await fetch(encodeURI(path));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        let text;
+        try { text = new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+        catch { text = new TextDecoder('windows-1252').decode(buf); }
+        deckName = name;
+        const result = Papa.parse(text, { delimiter:';', skipEmptyLines:true });
+        allCards = result.data
+          .filter(row => row[0]&&row[0].trim()&&row[1]&&row[1].trim())
+          .map(row => ({ q:row[0].trim(), a:row[1].trim() }));
+        if (allCards.length) await showDigitarOptions();
+        else alert('Nenhum card encontrado: ' + name);
+      } catch(e) { alert('Erro ao carregar: ' + e.message); }
+    }
+  </script>
+</body>
+</html>
