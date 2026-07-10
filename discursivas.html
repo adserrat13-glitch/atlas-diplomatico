@@ -214,6 +214,10 @@
           <div class="opt-btns" id="submitBtnRow">
             <button class="btn btn-primary" id="dqSubmitBtn" onclick="submitDiscursivaAnswer()">Responder</button>
           </div>
+          <div class="opt-btns" id="nextBtnRow" style="display:none">
+            <button class="btn btn-secondary" id="dqRetryBtn" onclick="retryDiscursiva()" style="display:none">Tentar novamente</button>
+            <button class="btn btn-primary" id="dqNextBtn" onclick="nextDiscursivaStep()" style="display:none">Próxima pergunta →</button>
+          </div>
         </div>
 
         <div class="study-col">
@@ -230,10 +234,6 @@
             <div class="points-list" id="dqCorrectPoints"></div>
             <div class="points-list" id="dqMissingPoints"></div>
             <div class="points-list" id="dqErrorPoints"></div>
-          </div>
-          <div class="opt-btns" id="nextBtnRow" style="display:none">
-            <button class="btn btn-secondary" id="dqRetryBtn" onclick="retryDiscursiva()" style="display:none">Tentar novamente</button>
-            <button class="btn btn-primary" id="dqNextBtn" onclick="nextDiscursivaStep()" style="display:none">Próxima pergunta →</button>
           </div>
         </div>
       </div>
