@@ -174,7 +174,7 @@
       <div class="opt-sub" id="optSub"></div>
       <div class="opt-grid">
         <div class="opt-box"><div class="opt-val" id="optTotal"></div><div class="opt-lbl">Perguntas</div></div>
-        <div class="opt-box"><div class="opt-val" id="optWeak" style="color:var(--red)"></div><div class="opt-lbl">A revisar (&lt;50%)</div></div>
+        <div class="opt-box"><div class="opt-val" id="optWeak" style="color:var(--red)"></div><div class="opt-lbl" id="optWeakLbl">A revisar</div></div>
       </div>
       <div class="resume-inline" id="resumeInline">
         <div class="resume-msg" id="resumeMsg"></div>
@@ -359,6 +359,7 @@
       document.getElementById('optSub').textContent = 'Perguntas discursivas';
       document.getElementById('optTotal').textContent = allQuestions.length;
       document.getElementById('optWeak').textContent = weakQuestions.length;
+      document.getElementById('optWeakLbl').textContent = `A revisar (<${APPROVAL_THRESHOLD}%)`;
 
       const total = allQuestions.length;
       const resumeEl = document.getElementById('resumeInline');
