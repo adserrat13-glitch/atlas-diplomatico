@@ -294,6 +294,35 @@ const DB = {
     });
   },
 
+  // ── DIGITAR STATUS (AI-graded typing mode) ────────────────────────────
+
+  /** Returns map: { question: {score, last_review} } for a deck */
+  async getDigitarScoreMap(deckName) {
+    const user = await this.getUser();
+    if (!user) return {};
+    const { data } = await _sb.from('digitar_status')
+      .select('question, score, last_review')
+      .eq('user_id', user.id).eq('deck_name', deckName);
+    const map = {};
+    (data || []).forEach(r => { map[r.question] = { score: r.score, last_review: r.last_review }; });
+    return map;
+  },
+
+  async upsertDigitarScore(deckName, question, score) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('digitar_status').upsert({
+      user_id: user.id,
+      deck_name: deckName,
+      question,
+      score,
+      last_review: new Date().toISOString()
+    }, {
+      onConflict: 'user_id,deck_name,question',
+      ignoreDuplicates: false
+    });
+  },
+
   // ── ACTIVITY ────────────────────────────────────────────────────────
 
   async getActivity(userId) {
@@ -1343,6 +1372,179 @@ const DB = {
           updated_at: new Date().toISOString() },
         { onConflict: 'user_id,game_key' }
       );
+  },
+
+  // ── DISCURSIVAS (open-ended questions, AI-graded) ───────────────────
+
+  async getDiscursivasCategories() {
+    const { data } = await _sb
+      .from('discursivas_questions')
+      .select('category');
+    const set = new Set((data || []).map(r => r.category));
+    return Array.from(set).sort();
+  },
+
+  /** Returns a study queue: due reviews first, then never-answered questions. */
+  async getDiscursivasQueue(category, limit = 20) {
+    const user = await this.getUser();
+    if (!user) return [];
+
+    let query = _sb.from('discursivas_questions').select('id, category, question, reference_answer');
+    if (category && category !== 'todas') query = query.eq('category', category);
+    const { data: questions } = await query;
+    if (!questions || !questions.length) return [];
+
+    const ids = questions.map(q => q.id);
+    const { data: reviewRows } = await _sb
+      .from('discursivas_review_state')
+      .select('question_id, next_review_at')
+      .eq('user_id', user.id)
+      .in('question_id', ids);
+
+    const reviewMap = {};
+    (reviewRows || []).forEach(r => { reviewMap[r.question_id] = r.next_review_at; });
+
+    const now = Date.now();
+    const due = [];
+    const unseen = [];
+    questions.forEach(q => {
+      const nextReview = reviewMap[q.id];
+      if (!nextReview) unseen.push(q);
+      else if (new Date(nextReview).getTime() <= now) due.push(q);
+    });
+
+    due.sort(() => Math.random() - 0.5);
+    unseen.sort(() => Math.random() - 0.5);
+
+    return [...due, ...unseen].slice(0, limit);
+  },
+
+  async getDiscursivaAttemptCount(questionId) {
+    const user = await this.getUser();
+    if (!user) return 0;
+    const { count } = await _sb
+      .from('discursivas_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('question_id', questionId);
+    return count || 0;
+  },
+
+  async saveDiscursivaAttempt({ questionId, userAnswer, score, approved, correctPoints, missingPoints, errors, feedback, timeSpentSeconds }) {
+    const user = await this.getUser();
+    if (!user) return;
+
+    const attemptNumber = (await this.getDiscursivaAttemptCount(questionId)) + 1;
+
+    await _sb.from('discursivas_attempts').insert({
+      user_id: user.id,
+      question_id: questionId,
+      user_answer: userAnswer,
+      score,
+      approved,
+      correct_points: correctPoints || [],
+      missing_points: missingPoints || [],
+      errors: errors || [],
+      feedback: feedback || '',
+      time_spent_seconds: timeSpentSeconds ?? null,
+      attempt_number: attemptNumber,
+    });
+
+    let days;
+    if (score >= 90) days = 30;
+    else if (score >= 75) days = 14;
+    else if (score >= 50) days = 7;
+    else days = 1;
+
+    const nextReviewAt = new Date(Date.now() + days * 86400000).toISOString();
+    const { data: existing } = await _sb
+      .from('discursivas_review_state')
+      .select('streak')
+      .eq('user_id', user.id)
+      .eq('question_id', questionId)
+      .maybeSingle();
+
+    const streak = approved ? ((existing?.streak || 0) + 1) : 0;
+
+    await _sb.from('discursivas_review_state').upsert({
+      user_id: user.id,
+      question_id: questionId,
+      next_review_at: nextReviewAt,
+      last_score: score,
+      streak,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,question_id' });
+  },
+
+  async getDiscursivasStats() {
+    const user = await this.getUser();
+    if (!user) return null;
+
+    const [{ count: totalQuestions }, { data: attempts }] = await Promise.all([
+      _sb.from('discursivas_questions').select('id', { count: 'exact', head: true }),
+      _sb.from('discursivas_attempts')
+        .select('question_id, score, approved, time_spent_seconds, created_at, discursivas_questions(category)')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true }),
+    ]);
+
+    const rows = attempts || [];
+    const answeredQuestionIds = new Set(rows.map(r => r.question_id));
+    const approvedQuestionIds = new Set(rows.filter(r => r.approved).map(r => r.question_id));
+
+    const avgScore = rows.length ? rows.reduce((s, r) => s + r.score, 0) / rows.length : 0;
+    const avgTime = rows.length
+      ? rows.filter(r => r.time_spent_seconds != null).reduce((s, r) => s + r.time_spent_seconds, 0) / (rows.filter(r => r.time_spent_seconds != null).length || 1)
+      : 0;
+
+    const byDay = new Set(rows.map(r => r.created_at.slice(0, 10)));
+    const sortedDays = Array.from(byDay).sort();
+    let currentStreak = 0, maxStreak = 0, prevDate = null;
+    sortedDays.forEach(day => {
+      if (prevDate) {
+        const diff = (new Date(day) - new Date(prevDate)) / 86400000;
+        currentStreak = diff === 1 ? currentStreak + 1 : 1;
+      } else {
+        currentStreak = 1;
+      }
+      maxStreak = Math.max(maxStreak, currentStreak);
+      prevDate = day;
+    });
+
+    const byQuestion = {};
+    rows.forEach(r => {
+      if (!byQuestion[r.question_id]) byQuestion[r.question_id] = { scores: [], approved: false, category: r.discursivas_questions?.category };
+      byQuestion[r.question_id].scores.push(r.score);
+      if (r.approved) byQuestion[r.question_id].approved = true;
+    });
+    const hardest = Object.entries(byQuestion)
+      .map(([id, v]) => ({ question_id: id, avgScore: v.scores.reduce((a, b) => a + b, 0) / v.scores.length, attempts: v.scores.length, approved: v.approved }))
+      .sort((a, b) => a.avgScore - b.avgScore)
+      .slice(0, 10);
+
+    const byCategory = {};
+    rows.forEach(r => {
+      const cat = r.discursivas_questions?.category || 'Sem categoria';
+      if (!byCategory[cat]) byCategory[cat] = [];
+      byCategory[cat].push(r.score);
+    });
+    const categoryStats = Object.entries(byCategory).map(([category, scores]) => ({
+      category, avgScore: scores.reduce((a, b) => a + b, 0) / scores.length, count: scores.length,
+    }));
+
+    return {
+      totalQuestions: totalQuestions || 0,
+      answeredQuestions: answeredQuestionIds.size,
+      approvedQuestions: approvedQuestionIds.size,
+      approvalRate: rows.length ? (rows.filter(r => r.approved).length / rows.length) * 100 : 0,
+      avgScore,
+      avgTimeSeconds: avgTime,
+      currentStreak,
+      maxStreak,
+      hardestQuestions: hardest,
+      categoryStats,
+      timeline: rows.map(r => ({ date: r.created_at.slice(0, 10), score: r.score })),
+    };
   },
 };
 

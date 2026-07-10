@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discursivas — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1115; --card:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#9ca3af; --accent:#d4af37;
+      --green:#34d399; --red:#f87171;
+    }
+    body { background:var(--bg); color:var(--text); font-family:Inter,sans-serif; min-height:100vh; }
+    .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; }
+
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span{color:#fff;text-decoration:underline}
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active{color:#d4af37;border-bottom:2px solid #d4af37;border-radius:0;padding-bottom:3px}
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1);
+      border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px;
+      white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1);
+      display:flex; align-items:center; justify-content:center; font-size:11px;
+      font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+
+    main { position:relative; z-index:1; max-width:800px; margin:0 auto; padding:32px 24px; }
+
+    .view { display:none; }
+    .view.active { display:flex; flex-direction:column; align-items:center; }
+
+    #viewLoader { gap:20px; text-align:center; }
+    .loader-title { font-size:28px; font-weight:700; letter-spacing:1px; }
+    .loader-sub { color:var(--muted); font-size:14px; }
+    .cat-list { width:100%; max-width:480px; display:flex; flex-direction:column; gap:8px; }
+    .cat-item { background:var(--card); border:1px solid var(--border); border-radius:14px;
+      padding:14px 18px; cursor:pointer; transition:.15s; display:flex; justify-content:space-between; align-items:center; }
+    .cat-item:hover { background:rgba(255,255,255,.06); }
+    .cat-item-name { font-size:14px; font-weight:600; }
+    .cat-item-arrow { color:var(--muted); font-size:12px; }
+
+    .btn {
+      padding:12px 28px; border-radius:12px; font-size:14px; font-weight:600;
+      cursor:pointer; border:none; transition:0.2s; font-family:inherit;
+    }
+    .btn-primary { background:var(--accent); color:#0f1117; }
+    .btn-primary:hover { opacity:0.85; }
+    .btn-secondary { background:rgba(255,255,255,0.07); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { background:rgba(255,255,255,0.12); }
+    .btn-small { padding:8px 18px; font-size:13px; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+    /* ===== STUDY VIEW ===== */
+    #viewStudy { gap:18px; width:100%; max-width:680px; }
+    .study-header { width:100%; display:flex; align-items:center; gap:12px; }
+    .study-cat-name { font-size:13px; color:var(--muted); font-weight:500; }
+    .study-spacer { flex:1; }
+    .study-counter { font-size:13px; color:var(--muted); }
+    .study-timer { font-size:12px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .study-exit { background:none; border:1px solid var(--border); color:var(--muted);
+      padding:5px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
+    .study-exit:hover { color:var(--text); border-color:rgba(255,255,255,0.3); }
+    .progress-bar { width:100%; height:5px; background:rgba(255,255,255,0.07); border-radius:20px; overflow:hidden; }
+    .progress-fill { height:100%; background:var(--accent); border-radius:20px; transition:width 0.4s ease; }
+
+    .dg-question { background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:24px; width:100%; font-size:16px; line-height:1.6; }
+    .dg-question-label { font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
+    .dg-answer-box { width:100%; }
+    .dg-textarea { width:100%; min-height:160px; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+      border-radius:12px; padding:14px 16px; color:var(--text); font-family:inherit; font-size:14px;
+      line-height:1.5; resize:vertical; }
+    .dg-textarea:focus { outline:none; border-color:var(--accent); }
+    .dg-textarea:disabled { opacity:.7; }
+
+    .result-grid { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    @media (max-width:640px) { .result-grid { grid-template-columns:1fr; } }
+    .result-box { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 18px; font-size:13px; line-height:1.6; }
+    .result-box-label { font-size:11px; color:var(--muted); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:8px; }
+
+    .dg-feedback { width:100%; border-radius:14px; padding:18px 22px; display:flex; flex-direction:column; gap:12px; }
+    .dg-feedback.good { background:rgba(110,231,183,0.1); border:1px solid rgba(110,231,183,0.3); }
+    .dg-feedback.bad { background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.3); }
+    .dg-score-row { display:flex; align-items:center; gap:14px; }
+    .dg-score { font-size:26px; font-weight:700; }
+    .dg-score-pct { font-size:13px; color:var(--muted); }
+    .dg-feedback-text { font-size:13px; color:var(--text); line-height:1.5; }
+    .points-list { font-size:13px; line-height:1.7; }
+    .points-list ul { padding-left:18px; margin-top:4px; }
+    .points-correct { color:var(--green); }
+    .points-missing { color:#f5e642; }
+    .points-errors { color:var(--red); }
+
+    .opt-btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">Início</a>
+    <a href="flashcards.html">Flashcards</a>
+    <a href="digitar.html">Digitar</a>
+    <a href="discursivas.html" class="active">Discursivas</a>
+    <a href="espiral.html">Espiral</a>
+    <a href="analise.html">Análise</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <main>
+    <div class="view active" id="viewLoader">
+      <div class="loader-title">PERGUNTAS DISCURSIVAS</div>
+      <div class="loader-sub">Responda com suas palavras — a IA avalia o conteúdo, não o texto exato</div>
+      <div class="cat-list" id="catList">
+        <div class="loader-sub">Carregando categorias...</div>
+      </div>
+    </div>
+
+    <div class="view" id="viewStudy">
+      <div class="study-header">
+        <span class="study-cat-name" id="studyCatName"></span>
+        <div class="study-spacer"></div>
+        <span class="study-timer" id="studyTimer"></span>
+        <span class="study-counter" id="studyCounter"></span>
+        <button class="study-exit" onclick="exitStudy()">✕ Sair</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+      <div class="dg-question">
+        <div class="dg-question-label">Pergunta</div>
+        <div id="dqText"></div>
+      </div>
+
+      <div class="dg-answer-box">
+        <textarea class="dg-textarea" id="dqAnswerInput" placeholder="Digite sua resposta..."></textarea>
+      </div>
+
+      <div class="result-grid" id="resultGrid" style="display:none">
+        <div class="result-box">
+          <div class="result-box-label">Sua resposta</div>
+          <div id="resultUserAnswer"></div>
+        </div>
+        <div class="result-box">
+          <div class="result-box-label">Resposta de referência</div>
+          <div id="resultRefAnswer"></div>
+        </div>
+      </div>
+
+      <div class="dg-feedback" id="dqFeedback" style="display:none">
+        <div class="dg-score-row">
+          <div class="dg-score" id="dqScoreText"></div>
+          <div class="dg-score-pct" id="dqScorePct"></div>
+        </div>
+        <div class="dg-feedback-text" id="dqFeedbackText"></div>
+        <div class="points-list" id="dqCorrectPoints"></div>
+        <div class="points-list" id="dqMissingPoints"></div>
+        <div class="points-list" id="dqErrorPoints"></div>
+      </div>
+
+      <div class="opt-btns">
+        <button class="btn btn-primary" id="dqSubmitBtn" onclick="submitDiscursivaAnswer()">Responder</button>
+        <button class="btn btn-secondary" id="dqRetryBtn" onclick="retryDiscursiva()" style="display:none">Tentar novamente</button>
+        <button class="btn btn-primary" id="dqNextBtn" onclick="nextDiscursivaStep()" style="display:none">Próxima pergunta →</button>
+      </div>
+    </div>
+
+    <div class="view" id="viewSummary">
+      <div style="font-size:56px">📊</div>
+      <div style="font-size:26px;font-weight:700" id="summaryTitle"></div>
+      <div class="loader-sub" id="summarySub"></div>
+      <div class="opt-btns" style="margin-top:16px">
+        <button class="btn btn-secondary" onclick="showView('viewLoader');loadCategories()">Outra categoria</button>
+        <a href="index.html" class="btn btn-secondary">← Início</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const APPROVAL_THRESHOLD = 50;
+
+    let queue = [], qIdx = 0, currentCategory = 'todas';
+    let questionStartedAt = null;
+
+    (async () => {
+      const user = await DB.requireAuth();
+      const [profile, examDate] = await Promise.all([DB.getProfile(), DB.getExamDate()]);
+      const nu = document.getElementById('navUser');
+      if (nu) nu.textContent = (profile?.name || user.email || '?').slice(0,2).toUpperCase();
+      const nc = document.getElementById('navCountdown');
+      if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
+      loadCategories();
+    })();
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    async function loadCategories() {
+      const list = document.getElementById('catList');
+      const categories = await DB.getDiscursivasCategories();
+      if (!categories.length) {
+        list.innerHTML = '<div class="loader-sub">Nenhuma pergunta importada ainda.</div>';
+        return;
+      }
+      list.innerHTML = '';
+      list.appendChild(makeCatItem('todas', 'Todas as matérias'));
+      categories.forEach(c => list.appendChild(makeCatItem(c, c)));
+    }
+
+    function makeCatItem(category, label) {
+      const div = document.createElement('div');
+      div.className = 'cat-item';
+      div.addEventListener('click', () => startCategory(category));
+      const name = document.createElement('span');
+      name.className = 'cat-item-name';
+      name.textContent = label;
+      const arrow = document.createElement('span');
+      arrow.className = 'cat-item-arrow';
+      arrow.textContent = '→';
+      div.appendChild(name);
+      div.appendChild(arrow);
+      return div;
+    }
+
+    async function startCategory(category) {
+      currentCategory = category;
+      queue = await DB.getDiscursivasQueue(category, 20);
+      if (!queue.length) { alert('Nenhuma pergunta disponível nesta categoria.'); return; }
+      qIdx = 0;
+      showView('viewStudy');
+      document.getElementById('studyCatName').textContent = category === 'todas' ? 'Todas as matérias' : category;
+      renderDiscursivaStep();
+    }
+
+    function exitStudy() {
+      showView('viewLoader');
+      loadCategories();
+    }
+
+    function renderDiscursivaStep() {
+      if (qIdx >= queue.length) { showDiscursivaSummary(); return; }
+      const q = queue[qIdx];
+      document.getElementById('studyCounter').textContent = `${qIdx + 1} / ${queue.length}`;
+      document.getElementById('progressFill').style.width = (qIdx / queue.length * 100) + '%';
+      document.getElementById('dqText').textContent = q.question;
+      document.getElementById('dqAnswerInput').value = '';
+      document.getElementById('dqAnswerInput').disabled = false;
+      document.getElementById('resultGrid').style.display = 'none';
+      document.getElementById('dqFeedback').style.display = 'none';
+      document.getElementById('dqSubmitBtn').style.display = '';
+      document.getElementById('dqRetryBtn').style.display = 'none';
+      document.getElementById('dqNextBtn').style.display = 'none';
+      questionStartedAt = Date.now();
+      updateTimer();
+    }
+
+    let timerInterval = null;
+    function updateTimer() {
+      clearInterval(timerInterval);
+      const timerEl = document.getElementById('studyTimer');
+      timerInterval = setInterval(() => {
+        const secs = Math.floor((Date.now() - questionStartedAt) / 1000);
+        const m = String(Math.floor(secs / 60)).padStart(2, '0');
+        const s = String(secs % 60).padStart(2, '0');
+        timerEl.textContent = `${m}:${s}`;
+      }, 1000);
+    }
+
+    function renderPointsList(containerId, labelClass, labelText, points) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      if (!points || !points.length) return;
+      const label = document.createElement('span');
+      label.className = labelClass;
+      label.textContent = labelText;
+      const ul = document.createElement('ul');
+      points.forEach(p => {
+        const li = document.createElement('li');
+        li.textContent = p;
+        ul.appendChild(li);
+      });
+      el.appendChild(label);
+      el.appendChild(ul);
+    }
+
+    async function submitDiscursivaAnswer() {
+      const q = queue[qIdx];
+      const answer = document.getElementById('dqAnswerInput').value.trim();
+      if (answer.length < 5) { alert('Escreva uma resposta antes de enviar.'); return; }
+
+      const submitBtn = document.getElementById('dqSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Avaliando...';
+
+      const timeSpentSeconds = Math.floor((Date.now() - questionStartedAt) / 1000);
+
+      let result;
+      try {
+        const token = await DB.getAccessToken();
+        const res = await fetch('/api/correct-discursiva', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ question: q.question, referenceAnswer: q.reference_answer, userAnswer: answer }),
+        });
+        result = await res.json();
+        if (result.error) throw new Error(result.error);
+      } catch (e) {
+        alert('Erro ao avaliar resposta: ' + e.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Responder';
+        return;
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Responder';
+      clearInterval(timerInterval);
+
+      document.getElementById('dqAnswerInput').disabled = true;
+      document.getElementById('resultUserAnswer').textContent = answer;
+      document.getElementById('resultRefAnswer').textContent = q.reference_answer;
+      document.getElementById('resultGrid').style.display = 'grid';
+
+      const feedbackEl = document.getElementById('dqFeedback');
+      feedbackEl.className = 'dg-feedback ' + (result.approved ? 'good' : 'bad');
+      feedbackEl.style.display = 'flex';
+      document.getElementById('dqScoreText').textContent = result.score + '/100';
+      document.getElementById('dqScorePct').textContent = result.approved ? 'Aprovado' : 'Abaixo do limite (' + APPROVAL_THRESHOLD + '%)';
+      document.getElementById('dqFeedbackText').textContent = result.feedback || '';
+
+      renderPointsList('dqCorrectPoints', 'points-correct', 'Pontos corretos', result.correct_points);
+      renderPointsList('dqMissingPoints', 'points-missing', 'Pontos ausentes', result.missing_points);
+      renderPointsList('dqErrorPoints', 'points-errors', 'Erros', result.errors);
+
+      document.getElementById('dqSubmitBtn').style.display = 'none';
+
+      await DB.saveDiscursivaAttempt({
+        questionId: q.id,
+        userAnswer: answer,
+        score: result.score,
+        approved: result.approved,
+        correctPoints: result.correct_points,
+        missingPoints: result.missing_points,
+        errors: result.errors,
+        feedback: result.feedback,
+        timeSpentSeconds,
+      });
+
+      if (result.approved) {
+        document.getElementById('dqNextBtn').style.display = '';
+      } else {
+        document.getElementById('dqRetryBtn').style.display = '';
+        document.getElementById('dqNextBtn').style.display = '';
+        document.getElementById('dqNextBtn').textContent = 'Ver resposta e avançar →';
+      }
+    }
+
+    function retryDiscursiva() {
+      renderDiscursivaStep();
+    }
+
+    function nextDiscursivaStep() {
+      qIdx++;
+      document.getElementById('dqNextBtn').textContent = 'Próxima pergunta →';
+      renderDiscursivaStep();
+    }
+
+    function showDiscursivaSummary() {
+      showView('viewSummary');
+      document.getElementById('summaryTitle').textContent = 'Sessão concluída!';
+      document.getElementById('summarySub').textContent = `${queue.length} perguntas estudadas`;
+    }
+  </script>
+</body>
+</html>
