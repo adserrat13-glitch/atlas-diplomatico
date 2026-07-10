@@ -1409,6 +1409,26 @@ const DB = {
       .eq('deck_name', deck_name);
   },
 
+  /** Returns questions in this deck whose most recent attempt scored below the
+   *  approval threshold (never got a passing score afterwards). */
+  async getWeakDiscursivaQuestions(deckName, threshold = 50) {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data } = await _sb
+      .from('discursivas_attempts')
+      .select('question, score, created_at')
+      .eq('user_id', user.id)
+      .eq('deck_name', deckName)
+      .order('created_at', { ascending: true });
+
+    const latestByQuestion = {};
+    (data || []).forEach(r => { latestByQuestion[r.question] = r.score; });
+
+    return Object.entries(latestByQuestion)
+      .filter(([, score]) => score < threshold)
+      .map(([question]) => question);
+  },
+
   async getDiscursivaAttemptCount(deckName, question) {
     const user = await this.getUser();
     if (!user) return 0;

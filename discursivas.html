@@ -173,6 +173,7 @@
       <div class="opt-sub" id="optSub"></div>
       <div class="opt-grid">
         <div class="opt-box"><div class="opt-val" id="optTotal"></div><div class="opt-lbl">Perguntas</div></div>
+        <div class="opt-box"><div class="opt-val" id="optWeak" style="color:var(--red)"></div><div class="opt-lbl">A revisar (&lt;50%)</div></div>
       </div>
       <div class="resume-inline" id="resumeInline">
         <div class="resume-msg" id="resumeMsg"></div>
@@ -180,6 +181,7 @@
       </div>
       <div class="opt-btns">
         <button class="btn btn-primary" id="btnStartSeq" onclick="startSeq()">Responder todas (de onde parei)</button>
+        <button class="btn btn-secondary" id="btnReviewWeak" onclick="startReviewWeak()" style="display:none">Revisar erradas</button>
         <button class="btn btn-secondary btn-small" onclick="showView('viewLoader')">← Outro deck</button>
       </div>
     </div>
@@ -258,6 +260,7 @@
     let questionStartedAt = null;
     let lastDone = 0;
     let sessionStartIdx = 0;
+    let isReviewMode = false;
 
     (async () => {
       const user = await DB.requireAuth();
@@ -341,14 +344,20 @@
         try { remoteSaved = await DB.getDiscursivaCheckpoint(deckName); } catch(e) {}
         lastDone = remoteSaved ? (remoteSaved.current_index || 0) : 0;
 
+        weakQuestions = [];
+        try { weakQuestions = await DB.getWeakDiscursivaQuestions(deckName, APPROVAL_THRESHOLD); } catch(e) {}
+
         showOptions();
       } catch(e) { alert('Erro ao carregar: ' + e.message); }
     }
+
+    let weakQuestions = [];
 
     function showOptions() {
       document.getElementById('optTitle').textContent = deckName;
       document.getElementById('optSub').textContent = 'Perguntas discursivas';
       document.getElementById('optTotal').textContent = allQuestions.length;
+      document.getElementById('optWeak').textContent = weakQuestions.length;
 
       const total = allQuestions.length;
       const resumeEl = document.getElementById('resumeInline');
@@ -370,6 +379,8 @@
         resumeEl.style.display = 'none';
       };
 
+      document.getElementById('btnReviewWeak').style.display = weakQuestions.length > 0 ? '' : 'none';
+
       showView('viewOptions');
     }
 
@@ -381,8 +392,21 @@
       queue = allQuestions;
       qIdx = lastDone;
       sessionStartIdx = lastDone;
+      isReviewMode = false;
       showView('viewStudy');
       document.getElementById('studyCatName').textContent = deckName;
+      renderDiscursivaStep();
+    }
+
+    function startReviewWeak() {
+      if (!weakQuestions.length) return;
+      const weakSet = new Set(weakQuestions);
+      queue = allQuestions.filter(q => weakSet.has(q.question));
+      qIdx = 0;
+      sessionStartIdx = 0;
+      isReviewMode = true;
+      showView('viewStudy');
+      document.getElementById('studyCatName').textContent = deckName + ' · revisão';
       renderDiscursivaStep();
     }
 
@@ -395,7 +419,7 @@
     }
 
     function exitStudy() {
-      if (queue.length) {
+      if (queue.length && !isReviewMode) {
         lastDone = Math.max(lastDone, qIdx);
         saveDiscursivaProgress();
       }
@@ -532,8 +556,10 @@
 
     function nextDiscursivaStep() {
       qIdx++;
-      lastDone = qIdx;
-      saveDiscursivaProgress();
+      if (!isReviewMode) {
+        lastDone = qIdx;
+        saveDiscursivaProgress();
+      }
       document.getElementById('dqNextBtn').textContent = 'Próxima pergunta →';
       renderDiscursivaStep();
     }
@@ -541,7 +567,9 @@
     function showDiscursivaSummary() {
       showView('viewSummary');
       document.getElementById('summaryTitle').textContent = 'Sessão concluída!';
-      document.getElementById('summarySub').textContent = `${qIdx - sessionStartIdx} perguntas estudadas nesta sessão · ${qIdx} de ${allQuestions.length} no total`;
+      document.getElementById('summarySub').textContent = isReviewMode
+        ? `${queue.length} pergunta(s) revisada(s) nesta sessão`
+        : `${qIdx - sessionStartIdx} perguntas estudadas nesta sessão · ${qIdx} de ${allQuestions.length} no total`;
     }
   </script>
 </body>
