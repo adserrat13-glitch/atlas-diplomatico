@@ -1447,7 +1447,7 @@ const DB = {
 
     const attemptNumber = (await this.getDiscursivaAttemptCount(deckName, question)) + 1;
 
-    await _sb.from('discursivas_attempts').insert({
+    const { error: insertError } = await _sb.from('discursivas_attempts').insert({
       user_id: user.id,
       deck_name: deckName,
       question,
@@ -1461,6 +1461,7 @@ const DB = {
       time_spent_seconds: timeSpentSeconds ?? null,
       attempt_number: attemptNumber,
     });
+    if (insertError) console.error('saveDiscursivaAttempt insert error:', insertError.message);
 
     let days;
     if (score >= 90) days = 30;

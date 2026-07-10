@@ -1,7 +1,7 @@
 const { groqCreate } = require('./_lib/groq-client');
 const { authenticate } = require('./_lib/auth');
 
-const APPROVAL_THRESHOLD = 50;
+const APPROVAL_THRESHOLD = 80;
 
 const SYSTEM_PROMPT = `Você é um corretor de questões discursivas para um candidato do CACD (Concurso de Admissão à Carreira Diplomática).
 
