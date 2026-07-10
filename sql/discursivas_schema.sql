@@ -44,3 +44,22 @@ create policy "discursivas_review_state_own_rows" on discursivas_review_state
 
 -- Se a versao anterior (com discursivas_questions) ja foi aplicada, remova a tabela obsoleta:
 -- drop table if exists discursivas_questions cascade;
+
+-- Checkpoint de posicao no deck (mesmo padrao de simulado_checkpoints), para
+-- retomar "de onde parei" em decks longos (ex: 1435 perguntas).
+create table if not exists discursivas_checkpoints (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  deck_name text not null,
+  current_index integer not null,
+  total_questions integer not null,
+  saved_at timestamptz default now(),
+  unique(user_id, deck_name)
+);
+alter table discursivas_checkpoints enable row level security;
+drop policy if exists "discursivas_checkpoints_own_rows" on discursivas_checkpoints;
+create policy "discursivas_checkpoints_own_rows" on discursivas_checkpoints
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create index if not exists idx_discursivas_checkpoints_user_deck
+  on discursivas_checkpoints(user_id, deck_name);

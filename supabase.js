@@ -1376,6 +1376,39 @@ const DB = {
 
   // ── DISCURSIVAS (open-ended questions, AI-graded, CSVs em pergutnas/) ──
 
+  async saveDiscursivaCheckpoint({ deck_name, current_index, total_questions }) {
+    const user = await this.getUser();
+    if (!user) return;
+    const { error } = await _sb.from('discursivas_checkpoints').upsert({
+      user_id: user.id,
+      deck_name,
+      current_index,
+      total_questions,
+      saved_at: new Date().toISOString()
+    }, { onConflict: 'user_id,deck_name' });
+    if (error) console.warn('saveDiscursivaCheckpoint error:', error.message);
+  },
+
+  async getDiscursivaCheckpoint(deck_name) {
+    const user = await this.getUser();
+    if (!user) return null;
+    const { data } = await _sb.from('discursivas_checkpoints')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('deck_name', deck_name)
+      .maybeSingle();
+    return data;
+  },
+
+  async clearDiscursivaCheckpoint(deck_name) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('discursivas_checkpoints')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('deck_name', deck_name);
+  },
+
   async getDiscursivaAttemptCount(deckName, question) {
     const user = await this.getUser();
     if (!user) return 0;
