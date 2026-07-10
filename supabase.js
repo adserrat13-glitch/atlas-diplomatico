@@ -1490,6 +1490,18 @@ const DB = {
     }, { onConflict: 'user_id,deck_name,question' });
   },
 
+  async getDiscursivasAttemptsHistory(limit = 200) {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data } = await _sb
+      .from('discursivas_attempts')
+      .select('deck_name, question, score, approved, time_spent_seconds, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    return data || [];
+  },
+
   async getDiscursivasStats() {
     const user = await this.getUser();
     if (!user) return null;

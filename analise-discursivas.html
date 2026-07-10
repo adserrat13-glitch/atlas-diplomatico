@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análise Discursivas — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#0f1115; color:#e5e7eb; font-family:Inter,sans-serif; min-height:100vh; }
+
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px; white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:#d4af37; }
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600; padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap; display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:#d4af37; border-bottom:2px solid #d4af37; border-radius:0; padding-bottom:3px; }
+    .nav-spacer { flex:1; min-width:8px; }
+    .nav-cd { font-size:11px; font-weight:700; color:#f5e642; background:rgba(245,230,66,.1); border:1px solid rgba(245,230,66,.25); padding:3px 10px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
+    .nav-user { width:28px; height:28px; border-radius:50%; background:rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; margin-left:6px; color:#888; }
+
+    main { max-width:1200px; margin:0 auto; padding:32px 24px; display:flex; flex-direction:column; gap:24px; }
+
+    .page-header h1 { font-size:22px; font-weight:900; }
+    .page-header p  { font-size:13px; color:#9ca3af; margin-top:5px; }
+
+    /* STATS */
+    .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .stat { background:rgba(255,255,255,.04); border:1px solid #2a2f3a; border-radius:14px; padding:18px 20px; position:relative; overflow:hidden; }
+    .stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+    .stat.g::before { background:#34d399; } .stat.y::before { background:#facc15; }
+    .stat.b::before { background:#60a5fa; } .stat.r::before { background:#f87171; }
+    .stat-val { font-size:30px; font-weight:900; line-height:1; }
+    .stat-lbl { font-size:10px; color:#9ca3af; margin-top:5px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+    .stat-sub { font-size:11px; color:#6b7280; margin-top:4px; }
+
+    /* SECTION */
+    .sec { background:rgba(255,255,255,.04); border:1px solid #2a2f3a; border-radius:16px; padding:22px; }
+    .sec-title { font-size:10px; font-weight:900; letter-spacing:2px; color:#9ca3af; text-transform:uppercase; margin-bottom:18px; }
+
+    /* HARDEST QUESTIONS */
+    .hardest-list { display:flex; flex-direction:column; gap:8px; }
+    .hardest-item { display:flex; align-items:center; gap:12px; padding:12px 16px;
+      background:rgba(248,113,113,.05); border:1px solid rgba(248,113,113,.18); border-radius:12px; }
+    .hardest-deck { font-size:11px; color:#9ca3af; flex:1; min-width:0; }
+    .hardest-meta { font-size:11px; color:#6b7280; flex-shrink:0; }
+    .hardest-score { font-size:15px; font-weight:900; color:#f87171; flex-shrink:0; min-width:44px; text-align:right; }
+    .hardest-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; background:rgba(52,211,153,.12); color:#34d399; flex-shrink:0; }
+
+    /* DECK CARDS */
+    .deck-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+    .deck-card { background:rgba(255,255,255,.03); border:1px solid #2a2f3a; border-radius:14px; padding:16px; }
+    .deck-name { font-size:12px; font-weight:700; color:#e5e7eb; margin-bottom:8px; }
+    .deck-pct { font-size:24px; font-weight:900; }
+    .deck-count { font-size:11px; color:#9ca3af; margin-top:2px; }
+
+    /* HISTORY TABLE */
+    .hist-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .hist-table th { text-align:left; padding:8px 10px; font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#666; border-bottom:1px solid #2a2f3a; }
+    .hist-table td { padding:9px 10px; border-bottom:1px solid rgba(255,255,255,.04); }
+    .hist-table tr:last-child td { border-bottom:none; }
+    .hist-table td.q-cell { max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .score-pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px; font-weight:700; }
+    .score-pill.hi { background:rgba(52,211,153,.12); color:#34d399; }
+    .score-pill.mid { background:rgba(250,204,21,.12); color:#facc15; }
+    .score-pill.lo { background:rgba(248,113,113,.12); color:#f87171; }
+
+    .empty { text-align:center; padding:48px; color:#666; font-size:13px; }
+
+    @media(max-width:900px) { .stats-row{grid-template-columns:repeat(2,1fr);} }
+    @media(max-width:560px) { main{padding:16px 12px;} }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">Início</a>
+    <a href="discursivas.html">Discursivas</a>
+    <a href="analise-discursivas.html" class="active">Análise</a>
+    <div class="nav-spacer"></div>
+    <div class="nav-cd" id="navCountdown"></div>
+    <div class="nav-user" id="navUser">?</div>
+  </nav>
+
+  <main>
+    <div class="page-header">
+      <h1>Análise · Discursivas</h1>
+      <p>Desempenho nas perguntas discursivas com correção por IA — evolução da nota, domínio por matéria e perguntas mais difíceis.</p>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat g"><div class="stat-val" id="stAprovadas" style="color:#34d399">—</div><div class="stat-lbl">Aprovadas</div><div class="stat-sub" id="stAprovadasSub"></div></div>
+      <div class="stat y"><div class="stat-val" id="stMedia" style="color:#facc15">—</div><div class="stat-lbl">Nota média</div></div>
+      <div class="stat b"><div class="stat-val" id="stRespondidas" style="color:#60a5fa">—</div><div class="stat-lbl">Respondidas</div><div class="stat-sub" id="stRespondidasSub"></div></div>
+      <div class="stat r"><div class="stat-val" id="stStreak" style="color:#f87171">—</div><div class="stat-lbl">Sequência atual</div><div class="stat-sub" id="stStreakSub"></div></div>
+    </div>
+
+    <!-- EVOLUÇÃO -->
+    <div class="sec">
+      <div class="sec-title">Evolução da Nota Média</div>
+      <div style="position:relative;height:260px"><canvas id="chartEv"></canvas></div>
+    </div>
+
+    <!-- RADAR POR MATÉRIA -->
+    <div class="sec">
+      <div class="sec-title">Radar de Domínio por Matéria</div>
+      <div style="position:relative;height:300px"><canvas id="chartRadar"></canvas></div>
+    </div>
+
+    <!-- DOMÍNIO POR MATÉRIA (cards) -->
+    <div class="sec">
+      <div class="sec-title">Domínio por Matéria</div>
+      <div class="deck-grid" id="deckGrid"></div>
+    </div>
+
+    <!-- PERGUNTAS DIFÍCEIS -->
+    <div class="sec">
+      <div class="sec-title">Perguntas mais difíceis</div>
+      <div class="hardest-list" id="hardest"></div>
+    </div>
+
+    <!-- HISTÓRICO -->
+    <div class="sec">
+      <div class="sec-title">Histórico de Tentativas</div>
+      <div id="histWrap"></div>
+    </div>
+  </main>
+
+  <script>
+    const GRID_COLOR = 'rgba(255,255,255,.06)';
+    const TICK_STYLE = { color:'#9ca3af', font:{size:10} };
+    const DECK_COLORS = ['#d9a05f','#60a5fa','#34d399','#f87171','#facc15','#a78bfa','#f472b6','#22d3ee'];
+
+    let _stats = null, _rows = [];
+    let _chartEv = null, _chartRadar = null;
+
+    function fmtTime(s) {
+      if (!s) return '—';
+      if (s < 60) return Math.round(s) + 's';
+      return Math.floor(s/60) + 'm' + String(Math.round(s%60)).padStart(2,'0') + 's';
+    }
+
+    function renderStats() {
+      const s = _stats;
+      document.getElementById('stAprovadas').textContent = Math.round(s.approvalRate) + '%';
+      document.getElementById('stAprovadasSub').textContent = `${s.approvedQuestions} pergunta(s) aprovada(s)`;
+      document.getElementById('stMedia').textContent = Math.round(s.avgScore) + '%';
+      document.getElementById('stRespondidas').textContent = s.answeredQuestions;
+      document.getElementById('stRespondidasSub').textContent = s.totalQuestions ? `de ${s.totalQuestions} disponíveis` : '';
+      document.getElementById('stStreak').textContent = s.currentStreak;
+      document.getElementById('stStreakSub').textContent = `dias · recorde: ${s.maxStreak}`;
+    }
+
+    function renderEv() {
+      const ctx = document.getElementById('chartEv').getContext('2d');
+      const byDay = {};
+      (_stats.timeline || []).forEach(t => {
+        if (!byDay[t.date]) byDay[t.date] = [];
+        byDay[t.date].push(t.score);
+      });
+      const days = Object.keys(byDay).sort();
+      const data = days.map(d => ({ x: d, y: Math.round(byDay[d].reduce((a,b)=>a+b,0)/byDay[d].length) }));
+
+      if (_chartEv) _chartEv.destroy();
+      if (!days.length) return;
+      _chartEv = new Chart(ctx, { type:'line', data:{ datasets:[
+        { label:'Nota média', data, borderColor:'#d4af37', backgroundColor:'#d4af3722',
+          tension:.35, pointRadius:4, borderWidth:2, fill:true },
+        { label:'Aprovação (50%)', data:[{x:days[0],y:50},{x:days[days.length-1],y:50}],
+          borderColor:'#f8717150', borderDash:[6,4], borderWidth:1.5, pointRadius:0, fill:false }
+      ]}, options:{
+        responsive:true, maintainAspectRatio:false,
+        scales:{
+          x:{type:'time',time:{unit:'day',displayFormats:{day:'dd/MM'}},ticks:{...TICK_STYLE,maxTicksLimit:10},grid:{color:GRID_COLOR}},
+          y:{min:0,max:100,ticks:{...TICK_STYLE,callback:v=>v+'%'},grid:{color:GRID_COLOR}}
+        },
+        plugins:{legend:{labels:{color:'#9ca3af',font:{size:11},boxWidth:12}}}
+      }});
+    }
+
+    function renderRadar() {
+      const ctx = document.getElementById('chartRadar').getContext('2d');
+      const cats = _stats.categoryStats || [];
+      if (_chartRadar) _chartRadar.destroy();
+      if (!cats.length) return;
+      _chartRadar = new Chart(ctx, { type:'radar', data:{
+        labels: cats.map(c => c.category),
+        datasets:[{ label:'Nota média %', data: cats.map(c => Math.round(c.avgScore)),
+          backgroundColor:'rgba(212,175,55,.15)', borderColor:'#d4af37',
+          pointBackgroundColor: cats.map((_,i) => DECK_COLORS[i % DECK_COLORS.length]),
+          pointRadius:5, borderWidth:2 }]
+      }, options:{
+        responsive:true, maintainAspectRatio:false,
+        scales:{r:{min:0,max:100,ticks:{color:'#666',font:{size:9},stepSize:20,backdropColor:'transparent'},
+          grid:{color:GRID_COLOR},pointLabels:{color:'#9ca3af',font:{size:11}}}},
+        plugins:{legend:{labels:{color:'#9ca3af',font:{size:11}}}}
+      }});
+    }
+
+    function renderDeckGrid() {
+      const el = document.getElementById('deckGrid');
+      const cats = _stats.categoryStats || [];
+      if (!cats.length) { el.innerHTML = '<div class="empty">Nenhuma matéria estudada ainda.</div>'; return; }
+      el.innerHTML = cats.sort((a,b)=>b.avgScore-a.avgScore).map((c,i) => {
+        const p = Math.round(c.avgScore);
+        const color = p >= 70 ? '#34d399' : p >= 50 ? '#facc15' : '#f87171';
+        return `<div class="deck-card">
+          <div class="deck-name">${c.category}</div>
+          <div class="deck-pct" style="color:${color}">${p}%</div>
+          <div class="deck-count">${c.count} tentativa(s)</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderHardest() {
+      const el = document.getElementById('hardest');
+      const list = _stats.hardestQuestions || [];
+      if (!list.length) { el.innerHTML = '<div class="empty">Nenhuma tentativa registrada ainda. Responda perguntas em Discursivas!</div>'; return; }
+      el.innerHTML = list.map(q => {
+        const deck = (q.question_id || '').split('||')[0] || '—';
+        return `<div class="hardest-item">
+          <div class="hardest-deck">${deck}</div>
+          <div class="hardest-meta">${q.attempts} tentativa(s)</div>
+          ${q.approved ? '<span class="hardest-badge">✓ aprovada</span>' : ''}
+          <div class="hardest-score">${Math.round(q.avgScore)}%</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderHist() {
+      const el = document.getElementById('histWrap');
+      if (!_rows.length) { el.innerHTML = '<div class="empty">Nenhuma tentativa ainda. Acesse Discursivas e responda uma pergunta!</div>'; return; }
+      const rows = _rows.slice(0, 40).map(r => {
+        const p = r.score; const cls = p>=75?'hi':p>=50?'mid':'lo';
+        const dateStr = new Date(r.created_at).toLocaleDateString('pt-BR');
+        return `<tr>
+          <td>${r.deck_name}</td>
+          <td class="q-cell">${r.question}</td>
+          <td>${dateStr}</td>
+          <td>${fmtTime(r.time_spent_seconds)}</td>
+          <td><span class="score-pill ${cls}">${p}%</span></td>
+        </tr>`;
+      }).join('');
+      el.innerHTML = `<table class="hist-table"><thead><tr><th>Matéria</th><th>Pergunta</th><th>Data</th><th>Tempo</th><th>Nota</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────────────
+    (async () => {
+      const user = await DB.requireAuth();
+      const profile = await DB.getProfile();
+      document.getElementById('navUser').textContent = (profile?.name||user.email||'?').slice(0,2).toUpperCase();
+
+      try {
+        const examDate = await DB.getExamDate();
+        const now=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+        const exam=new Date(examDate.toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
+        now.setHours(0,0,0,0); exam.setHours(0,0,0,0);
+        document.getElementById('navCountdown').textContent=`${Math.ceil((exam-now)/86400000)}d CACD`;
+      } catch(e){}
+
+      _stats = await DB.getDiscursivasStats();
+      if (!_stats) _stats = { totalQuestions:0, answeredQuestions:0, approvedQuestions:0, approvalRate:0, avgScore:0, avgTimeSeconds:0, currentStreak:0, maxStreak:0, hardestQuestions:[], categoryStats:[], timeline:[] };
+
+      _rows = await DB.getDiscursivasAttemptsHistory();
+
+      renderStats();
+      renderEv();
+      renderRadar();
+      renderDeckGrid();
+      renderHardest();
+      renderHist();
+    })();
+  </script>
+</body>
+</html>
