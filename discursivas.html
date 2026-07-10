@@ -208,6 +208,9 @@
             <div class="result-box-label">Sua resposta</div>
             <div id="resultUserAnswer"></div>
           </div>
+          <div class="opt-btns" id="submitBtnRow">
+            <button class="btn btn-primary" id="dqSubmitBtn" onclick="submitDiscursivaAnswer()">Responder</button>
+          </div>
         </div>
 
         <div class="study-col">
@@ -225,13 +228,11 @@
             <div class="points-list" id="dqMissingPoints"></div>
             <div class="points-list" id="dqErrorPoints"></div>
           </div>
+          <div class="opt-btns" id="nextBtnRow" style="display:none">
+            <button class="btn btn-secondary" id="dqRetryBtn" onclick="retryDiscursiva()" style="display:none">Tentar novamente</button>
+            <button class="btn btn-primary" id="dqNextBtn" onclick="nextDiscursivaStep()" style="display:none">Próxima pergunta →</button>
+          </div>
         </div>
-      </div>
-
-      <div class="opt-btns">
-        <button class="btn btn-primary" id="dqSubmitBtn" onclick="submitDiscursivaAnswer()">Responder</button>
-        <button class="btn btn-secondary" id="dqRetryBtn" onclick="retryDiscursiva()" style="display:none">Tentar novamente</button>
-        <button class="btn btn-primary" id="dqNextBtn" onclick="nextDiscursivaStep()" style="display:none">Próxima pergunta →</button>
       </div>
     </div>
 
@@ -413,6 +414,8 @@
       document.getElementById('resultUserBox').style.display = 'none';
       document.getElementById('resultRefBox').style.display = 'none';
       document.getElementById('dqFeedback').style.display = 'none';
+      document.getElementById('submitBtnRow').style.display = '';
+      document.getElementById('nextBtnRow').style.display = 'none';
       document.getElementById('dqSubmitBtn').style.display = '';
       document.getElementById('dqRetryBtn').style.display = 'none';
       document.getElementById('dqNextBtn').style.display = 'none';
@@ -498,7 +501,8 @@
       renderPointsList('dqMissingPoints', 'points-missing', 'Pontos ausentes', result.missing_points);
       renderPointsList('dqErrorPoints', 'points-errors', 'Erros', result.errors);
 
-      document.getElementById('dqSubmitBtn').style.display = 'none';
+      document.getElementById('submitBtnRow').style.display = 'none';
+      document.getElementById('nextBtnRow').style.display = '';
 
       await DB.saveDiscursivaAttempt({
         deckName,
