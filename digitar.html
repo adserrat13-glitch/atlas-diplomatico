@@ -329,6 +329,158 @@
         else alert('Nenhum card encontrado: ' + name);
       } catch(e) { alert('Erro ao carregar: ' + e.message); }
     }
+
+    let scoreMap = {};        // { question: {score, last_review} }
+    let queue = [];           // cards for this session
+    let qIdx = 0;
+    let round = 1;            // 1 = with gabarito, 2 = blind
+    let sessionScores = [];   // round-2 scores collected this session, for summary
+    let weakCardsThisRun = [];
+
+    async function showDigitarOptions() {
+      scoreMap = await DB.getDigitarScoreMap(deckName);
+      document.getElementById('deckTitle').textContent = deckName;
+      document.getElementById('deckSub').textContent = `${allCards.length} cards`;
+
+      const scored = allCards.filter(c => scoreMap[c.q]);
+      const avg = scored.length
+        ? Math.round(scored.reduce((s, c) => s + scoreMap[c.q].score, 0) / scored.length)
+        : null;
+      const weakCount = allCards.filter(c => !scoreMap[c.q] || scoreMap[c.q].score < 90).length;
+      const masteredCount = allCards.length - weakCount;
+
+      document.getElementById('optStats').innerHTML = `
+        <div class="opt-stat"><div class="opt-stat-val">${avg === null ? '—' : avg + '%'}</div><div class="opt-stat-lbl">média (rodada 2)</div></div>
+        <div class="opt-stat"><div class="opt-stat-val">${masteredCount}</div><div class="opt-stat-lbl">≥90 dominados</div></div>
+        <div class="opt-stat"><div class="opt-stat-val">${weakCount}</div><div class="opt-stat-lbl">&lt;90 a revisar</div></div>
+      `;
+
+      const btnWeak = document.getElementById('btnWeak');
+      btnWeak.style.display = weakCount > 0 ? '' : 'none';
+
+      showView('viewOptions');
+    }
+
+    function startDigitarSession(mode) {
+      if (mode === 'weak') {
+        queue = allCards.filter(c => !scoreMap[c.q] || scoreMap[c.q].score < 90);
+        if (!queue.length) { alert('Nenhum card abaixo de 90.'); return; }
+      } else {
+        queue = [...allCards];
+      }
+      qIdx = 0;
+      round = mode === 'weak' ? 2 : 1;
+      sessionScores = [];
+      weakCardsThisRun = [];
+      showView('viewStudy');
+      document.getElementById('studyDeckName').textContent = deckName;
+      renderDigitarStep();
+    }
+
+    function renderDigitarStep() {
+      if (qIdx >= queue.length) { showDigitarSummary(); return; }
+      const card = queue[qIdx];
+      const roundEl = document.getElementById('studyRound');
+      roundEl.textContent = round === 1 ? 'Rodada 1' : 'Rodada 2';
+      roundEl.className = 'study-round ' + (round === 1 ? 'r1' : 'r2');
+
+      document.getElementById('studyCounter').textContent = `${qIdx + 1} / ${queue.length}`;
+      document.getElementById('progressFill').style.width = (qIdx / queue.length * 100) + '%';
+      document.getElementById('dgQuestionText').textContent = card.q;
+
+      const gabaritoBox = document.getElementById('dgGabaritoBox');
+      if (round === 1) {
+        document.getElementById('dgGabaritoText').textContent = card.a;
+        gabaritoBox.style.display = '';
+      } else {
+        gabaritoBox.style.display = 'none';
+      }
+
+      document.getElementById('dgAnswerInput').value = '';
+      document.getElementById('dgAnswerInput').disabled = false;
+      document.getElementById('dgFeedback').style.display = 'none';
+      document.getElementById('dgSubmitBtn').style.display = '';
+      document.getElementById('dgNextBtn').style.display = 'none';
+    }
+
+    async function submitDigitarAnswer() {
+      const card = queue[qIdx];
+      const resposta = document.getElementById('dgAnswerInput').value.trim();
+      const submitBtn = document.getElementById('dgSubmitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Avaliando...';
+
+      let result;
+      try {
+        const res = await fetch('/api/grade-flashcard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: card.q, gabarito: card.a, resposta }),
+        });
+        result = await res.json();
+        if (result.error) throw new Error(result.error);
+      } catch (e) {
+        alert('Erro ao avaliar resposta: ' + e.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar';
+        return;
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar';
+
+      const score = result.score;
+      const feedbackEl = document.getElementById('dgFeedback');
+      feedbackEl.className = 'dg-feedback ' + (score >= 90 ? 'good' : score >= 50 ? 'mid' : 'bad');
+      feedbackEl.style.display = 'flex';
+      document.getElementById('dgScoreText').textContent = score + '/100';
+      document.getElementById('dgFeedbackText').textContent = result.feedback || '';
+
+      document.getElementById('dgAnswerInput').disabled = true;
+      document.getElementById('dgSubmitBtn').style.display = 'none';
+      document.getElementById('dgNextBtn').style.display = '';
+
+      if (round === 2) {
+        sessionScores.push(score);
+        if (score < 90) weakCardsThisRun.push({ q: card.q, score });
+        await DB.upsertDigitarScore(deckName, card.q, score);
+      }
+    }
+
+    function nextDigitarStep() {
+      if (round === 1) {
+        round = 2;
+      } else {
+        round = 1;
+        qIdx++;
+      }
+      renderDigitarStep();
+    }
+
+    function showDigitarSummary() {
+      showView('viewSummary');
+      const avg = sessionScores.length
+        ? Math.round(sessionScores.reduce((a,b) => a+b, 0) / sessionScores.length)
+        : 0;
+      document.getElementById('summaryTitle').textContent = avg >= 90 ? 'Excelente!' : avg >= 70 ? 'Bom progresso' : 'Continue praticando';
+      document.getElementById('summarySub').textContent = `${queue.length} cards estudados`;
+      document.getElementById('summaryStats').innerHTML = `
+        <div class="s-stat"><div class="s-stat-val ${avg >= 90 ? 's-green' : ''}">${avg}%</div><div class="s-stat-lbl">média rodada 2</div></div>
+        <div class="s-stat"><div class="s-stat-val s-red">${weakCardsThisRun.length}</div><div class="s-stat-lbl">abaixo de 90</div></div>
+      `;
+      const btnReviewWeak = document.getElementById('btnReviewWeak');
+      const weakListEl = document.getElementById('weakList');
+      if (weakCardsThisRun.length) {
+        btnReviewWeak.style.display = '';
+        weakListEl.style.display = '';
+        weakListEl.innerHTML = '<h3>Cards a revisar</h3>' + weakCardsThisRun.map(c =>
+          `<div class="weak-item"><div class="weak-item-q">${c.q}</div><div class="weak-item-score">${c.score}/100</div></div>`
+        ).join('');
+      } else {
+        btnReviewWeak.style.display = 'none';
+        weakListEl.style.display = 'none';
+      }
+    }
   </script>
 </body>
 </html>
