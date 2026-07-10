@@ -730,7 +730,7 @@
       {name:'TPS 00 (Eco/HB/HM/GEO/PI/DIR)',path:'TPS/TPS 00.csv'},
     ];
     const PAGE_FOR = { fc:'flashcards.html', sim:'simulados.html', rep:'repositorio.html' };
-    let _sessions = [], _activity = {};
+    let _sessions = [], _activity = {}, _todaySessionsCount = 0;
 
     /* ── HELPERS ──────────────────────────────────────────── */
     function setEl(id, val) { const e = document.getElementById(id); if (e) e.textContent = val; }
@@ -832,8 +832,7 @@
       const weekH  = computeWeekHours(_sessions);
       const todayH = computeTodayHours(_sessions);
       setEl('mcStreak', streak);
-      const todayKey = new Date().toISOString().split('T')[0];
-      setEl('mcSessions', _sessions.filter(s=>s.date===todayKey).length);
+      setEl('mcSessions', _todaySessionsCount);
       const elS = document.getElementById('mcSessions'); if(elS) elS.className='mc-val blue';
       const elK = document.getElementById('mcStreak');   if(elK) elK.className='mc-val yellow';
       setEl('weekHours', weekH.toFixed(1)+'h'); setEl('weekSub','de 25h meta');
@@ -1045,12 +1044,20 @@
       const isAdm = await DB.isAdmin();
       if (isAdm) document.getElementById('navAdmin').style.display='';
 
-      const [sessions, activity, announcements, examDate, subjectFilesArr] = await Promise.all([
+      const [sessions, activity, announcements, examDate, subjectFilesArr, terceiraFase, idiomas, edital] = await Promise.all([
         DB.getSessions(user.id), DB.getActivity(user.id),
-        DB.getAnnouncements(), DB.getExamDate(), DB.getSubjectFiles()
+        DB.getAnnouncements(), DB.getExamDate(), DB.getSubjectFiles(),
+        DB.getTerceiraFaseSessions(), DB.getIdiomaSessions(), DB.getAllEditalSessions()
       ]);
       _sessions = sessions;
       _activity = activity;
+
+      const todayKey = new Date().toISOString().split('T')[0];
+      _todaySessionsCount =
+        sessions.filter(s => s.date === todayKey).length +
+        terceiraFase.filter(s => s.date === todayKey).length +
+        edital.filter(s => s.date === todayKey).length +
+        idiomas.filter(s => (s.created_at || '').slice(0, 10) === todayKey).length;
 
       renderHero(examDate);
       renderHeroVisible(examDate);
