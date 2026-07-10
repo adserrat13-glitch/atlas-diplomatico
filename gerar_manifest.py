@@ -8,7 +8,7 @@ import json
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-manifest = {"flashcards": {}, "tps": []}
+manifest = {"flashcards": {}, "tps": [], "discursivas": {}}
 
 # FLASHCARDS
 fc_root = os.path.join(BASE, "FLASHCARDS")
@@ -43,6 +43,16 @@ if os.path.isdir(tq_dir):
             if files:
                 manifest["tps_questoes"][folder] = files
 
+# DISCURSIVAS (pergutnas/<matéria>/*.csv)
+disc_dir = os.path.join(BASE, "pergutnas")
+if os.path.isdir(disc_dir):
+    for folder in sorted(os.listdir(disc_dir)):
+        folder_path = os.path.join(disc_dir, folder)
+        if os.path.isdir(folder_path):
+            files = sorted([f for f in os.listdir(folder_path) if f.lower().endswith('.csv')])
+            if files:
+                manifest["discursivas"][folder] = files
+
 # Salva
 out = os.path.join(BASE, "manifest.json")
 with open(out, "w", encoding="utf-8") as f:
@@ -56,3 +66,5 @@ print(f"  {len(manifest['tps'])} arquivos TPS")
 print(f"  {len(manifest.get('tps_conexoes', []))} arquivos TPS/CONECÇÕES")
 total_tq = sum(len(v) for v in manifest["tps_questoes"].values())
 print(f"  {len(manifest['tps_questoes'])} pastas / {total_tq} arquivos TPS/questões")
+total_disc = sum(len(v) for v in manifest["discursivas"].values())
+print(f"  {len(manifest['discursivas'])} pastas / {total_disc} arquivos discursivas")

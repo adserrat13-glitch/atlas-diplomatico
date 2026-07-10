@@ -114,5 +114,36 @@
       "REPERTORIO FUNAG.csv",
       "TEORIA DAS RELAÇÕES INTERNACIONAIS .csv"
     ]
+  },
+  "discursivas": {
+    "DIREITO": [
+      "DIP COLEÇÃO .csv",
+      "DIREITO MANUAL FLASH .csv",
+      "LINDB.csv",
+      "PORTELA  CONCCEITOS.csv"
+    ],
+    "ECONOMIA": [
+      "ECONOMIA PERGUNTAS E RESPOSTAS .csv"
+    ],
+    "GEOGRAFIA": [
+      "geo manual .csv"
+    ],
+    "HISTORIA DO BRASIL": [
+      "FEB GAMBIAGI .csv",
+      "HB IMPERIO.csv",
+      "HB REPÚBLICA .csv",
+      "HISTORIA DO BRASIL BORIS FAUSTO.csv",
+      "HPEB DORATIOTO.csv"
+    ],
+    "HISTORIA MUNDIAL": [
+      "POLITICA INTERNACIONAL COLEÇÃO.csv",
+      "SARAIVA HM .csv",
+      "martin gilbert.csv"
+    ],
+    "POLITICAINTERNACIONAL": [
+      "LESSA 1 .csv",
+      "LESSA AAAAAA PI.csv",
+      "POLITICA INTERNACCIONAL FLASH .csv"
+    ]
   }
 }

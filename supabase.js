@@ -1374,71 +1374,30 @@ const DB = {
       );
   },
 
-  // ── DISCURSIVAS (open-ended questions, AI-graded) ───────────────────
+  // ── DISCURSIVAS (open-ended questions, AI-graded, CSVs em pergutnas/) ──
 
-  async getDiscursivasCategories() {
-    const { data } = await _sb
-      .from('discursivas_questions')
-      .select('category');
-    const set = new Set((data || []).map(r => r.category));
-    return Array.from(set).sort();
-  },
-
-  /** Returns a study queue: due reviews first, then never-answered questions. */
-  async getDiscursivasQueue(category, limit = 20) {
-    const user = await this.getUser();
-    if (!user) return [];
-
-    let query = _sb.from('discursivas_questions').select('id, category, question, reference_answer');
-    if (category && category !== 'todas') query = query.eq('category', category);
-    const { data: questions } = await query;
-    if (!questions || !questions.length) return [];
-
-    const ids = questions.map(q => q.id);
-    const { data: reviewRows } = await _sb
-      .from('discursivas_review_state')
-      .select('question_id, next_review_at')
-      .eq('user_id', user.id)
-      .in('question_id', ids);
-
-    const reviewMap = {};
-    (reviewRows || []).forEach(r => { reviewMap[r.question_id] = r.next_review_at; });
-
-    const now = Date.now();
-    const due = [];
-    const unseen = [];
-    questions.forEach(q => {
-      const nextReview = reviewMap[q.id];
-      if (!nextReview) unseen.push(q);
-      else if (new Date(nextReview).getTime() <= now) due.push(q);
-    });
-
-    due.sort(() => Math.random() - 0.5);
-    unseen.sort(() => Math.random() - 0.5);
-
-    return [...due, ...unseen].slice(0, limit);
-  },
-
-  async getDiscursivaAttemptCount(questionId) {
+  async getDiscursivaAttemptCount(deckName, question) {
     const user = await this.getUser();
     if (!user) return 0;
     const { count } = await _sb
       .from('discursivas_attempts')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('question_id', questionId);
+      .eq('deck_name', deckName)
+      .eq('question', question);
     return count || 0;
   },
 
-  async saveDiscursivaAttempt({ questionId, userAnswer, score, approved, correctPoints, missingPoints, errors, feedback, timeSpentSeconds }) {
+  async saveDiscursivaAttempt({ deckName, question, userAnswer, score, approved, correctPoints, missingPoints, errors, feedback, timeSpentSeconds }) {
     const user = await this.getUser();
     if (!user) return;
 
-    const attemptNumber = (await this.getDiscursivaAttemptCount(questionId)) + 1;
+    const attemptNumber = (await this.getDiscursivaAttemptCount(deckName, question)) + 1;
 
     await _sb.from('discursivas_attempts').insert({
       user_id: user.id,
-      question_id: questionId,
+      deck_name: deckName,
+      question,
       user_answer: userAnswer,
       score,
       approved,
@@ -1461,36 +1420,37 @@ const DB = {
       .from('discursivas_review_state')
       .select('streak')
       .eq('user_id', user.id)
-      .eq('question_id', questionId)
+      .eq('deck_name', deckName)
+      .eq('question', question)
       .maybeSingle();
 
     const streak = approved ? ((existing?.streak || 0) + 1) : 0;
 
     await _sb.from('discursivas_review_state').upsert({
       user_id: user.id,
-      question_id: questionId,
+      deck_name: deckName,
+      question,
       next_review_at: nextReviewAt,
       last_score: score,
       streak,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,question_id' });
+    }, { onConflict: 'user_id,deck_name,question' });
   },
 
   async getDiscursivasStats() {
     const user = await this.getUser();
     if (!user) return null;
 
-    const [{ count: totalQuestions }, { data: attempts }] = await Promise.all([
-      _sb.from('discursivas_questions').select('id', { count: 'exact', head: true }),
-      _sb.from('discursivas_attempts')
-        .select('question_id, score, approved, time_spent_seconds, created_at, discursivas_questions(category)')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true }),
-    ]);
+    const { data: attempts } = await _sb
+      .from('discursivas_attempts')
+      .select('deck_name, question, score, approved, time_spent_seconds, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true });
 
     const rows = attempts || [];
-    const answeredQuestionIds = new Set(rows.map(r => r.question_id));
-    const approvedQuestionIds = new Set(rows.filter(r => r.approved).map(r => r.question_id));
+    const questionKey = r => r.deck_name + '||' + r.question;
+    const answeredQuestions = new Set(rows.map(questionKey));
+    const approvedQuestions = new Set(rows.filter(r => r.approved).map(questionKey));
 
     const avgScore = rows.length ? rows.reduce((s, r) => s + r.score, 0) / rows.length : 0;
     const avgTime = rows.length
@@ -1513,18 +1473,19 @@ const DB = {
 
     const byQuestion = {};
     rows.forEach(r => {
-      if (!byQuestion[r.question_id]) byQuestion[r.question_id] = { scores: [], approved: false, category: r.discursivas_questions?.category };
-      byQuestion[r.question_id].scores.push(r.score);
-      if (r.approved) byQuestion[r.question_id].approved = true;
+      const key = questionKey(r);
+      if (!byQuestion[key]) byQuestion[key] = { scores: [], approved: false, deckName: r.deck_name };
+      byQuestion[key].scores.push(r.score);
+      if (r.approved) byQuestion[key].approved = true;
     });
     const hardest = Object.entries(byQuestion)
-      .map(([id, v]) => ({ question_id: id, avgScore: v.scores.reduce((a, b) => a + b, 0) / v.scores.length, attempts: v.scores.length, approved: v.approved }))
+      .map(([key, v]) => ({ question_id: key, avgScore: v.scores.reduce((a, b) => a + b, 0) / v.scores.length, attempts: v.scores.length, approved: v.approved }))
       .sort((a, b) => a.avgScore - b.avgScore)
       .slice(0, 10);
 
     const byCategory = {};
     rows.forEach(r => {
-      const cat = r.discursivas_questions?.category || 'Sem categoria';
+      const cat = r.deck_name || 'Sem categoria';
       if (!byCategory[cat]) byCategory[cat] = [];
       byCategory[cat].push(r.score);
     });
@@ -1532,10 +1493,17 @@ const DB = {
       category, avgScore: scores.reduce((a, b) => a + b, 0) / scores.length, count: scores.length,
     }));
 
+    let totalQuestions = 0;
+    try {
+      const res = await fetch('manifest.json');
+      const m = res.ok ? await res.json() : {};
+      totalQuestions = Object.values(m.discursivas || {}).reduce((sum, files) => sum + files.length, 0);
+    } catch {}
+
     return {
-      totalQuestions: totalQuestions || 0,
-      answeredQuestions: answeredQuestionIds.size,
-      approvedQuestions: approvedQuestionIds.size,
+      totalQuestions,
+      answeredQuestions: answeredQuestions.size,
+      approvedQuestions: approvedQuestions.size,
       approvalRate: rows.length ? (rows.filter(r => r.approved).length / rows.length) * 100 : 0,
       avgScore,
       avgTimeSeconds: avgTime,
