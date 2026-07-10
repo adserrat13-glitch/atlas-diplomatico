@@ -318,7 +318,7 @@
       let result;
       try {
         const token = await DB.getAccessToken();
-        const res = await fetch('/api/correct-discursiva', {
+        const res = await fetch('/api/discursivas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
           body: JSON.stringify({ question: q.question, referenceAnswer: q.reference_answer, userAnswer: answer }),

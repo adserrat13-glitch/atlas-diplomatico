@@ -170,7 +170,7 @@ async function generate(){
   updateWordCount();
   setStatus(loadingHTML('Gerando exercício inédito...'));
   try{
-    const data = await postJSON('/api/tutor-generate', {lang:LANG, mode:CURRENT_MODE});
+    const data = await postJSON('/api/tutor', {lang:LANG, mode:CURRENT_MODE});
     CURRENT_EXERCISE = data.exercise;
     renderExercise(CURRENT_MODE, data.exercise);
     setStatus('');
@@ -210,7 +210,7 @@ async function correct(){
   setStatus(loadingHTML('Corrigindo no padrão CACD...'));
   try{
     const promptText = exercisePromptText(CURRENT_MODE, CURRENT_EXERCISE);
-    const fb = await postJSON('/api/tutor-correct', {lang:LANG, mode:CURRENT_MODE, prompt:promptText, answer});
+    const fb = await postJSON('/api/tutor', {lang:LANG, mode:CURRENT_MODE, prompt:promptText, answer});
     renderFeedback(fb);
     setStatus('');
     document.getElementById('feedbackPanel').classList.remove('hidden');

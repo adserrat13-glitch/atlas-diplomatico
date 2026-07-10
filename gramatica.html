@@ -719,7 +719,7 @@ async function loadTheory() {
   showView('viewLoading');
   document.getElementById('loadingMsg').textContent = 'Gerando teoria C2…';
   try {
-    const res = await fetch('/api/tutor-generate', {
+    const res = await fetch('/api/tutor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: 'GRAMATICA_TEORIA', idioma: currentLang, topico: currentTopic }),
@@ -753,7 +753,7 @@ async function loadQuiz() {
   showView('viewLoading');
   document.getElementById('loadingMsg').textContent = 'Gerando quiz C2…';
   try {
-    const res = await fetch('/api/tutor-generate', {
+    const res = await fetch('/api/tutor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: 'GRAMATICA_QUIZ', idioma: currentLang, topico: currentTopic }),

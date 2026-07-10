@@ -1,9 +1,6 @@
 const { groqCreate } = require('./_lib/groq-client');
 
-/* ── Prompts por modo (derivados do system prompt do Tutor de Idiomas CACD) ──
-   Cada prompt instrui o modelo a gerar um exercício INÉDITO, nível B2 avançado/C1/C2,
-   com temas relevantes ao CACD. NUNCA fornecer gabarito/texto-modelo.
-   Saída sempre em JSON estruturado para o front renderizar. */
+/* ─── generate (ex tutor-generate.js) ───────────────────────────────────── */
 
 const CACD_TOPIC_POOL = [
   'reforma do Conselho de Segurança da ONU e multilateralismo',
@@ -73,14 +70,12 @@ const BASE_RULES =
   ' Responda APENAS em JSON válido, sem markdown e sem texto extra.';
 
 const PROMPTS = {
-  // MODO 1 — COMPOSITION (inglês)
   COMPOSITION: `You are a CACD examiner. Generate an ORIGINAL English composition prompt in CACD style.
 ${BASE_RULES}
 JSON schema:
 {"title":"<exam-style title>","task":"<precise instructions in English>","points":["<point 1>","<point 2>","<point 3>"],"word_count":"350-500 words","difficulty":"C1 or C2"}
 Provide 3 to 5 points to consider. Do NOT write the essay.`,
 
-  // MODO 2 — PTEN (português → inglês)
   PTEN: `You are a CACD translation examiner. Generate an ORIGINAL Portuguese text (120-220 words),
 journalistic, essayistic or diplomatic in style, C1/C2 level, on a CACD-relevant theme.
 ${BASE_RULES}
@@ -88,7 +83,6 @@ JSON schema:
 {"source_text":"<texto em português>","instruction":"Translate into English."}
 Do NOT provide any answer key or translation.`,
 
-  // MODO 3 — ENPT (inglês → português)
   ENPT: `You are a CACD translation examiner. Generate an ORIGINAL text (120-220 words),
 C1/C2 level, on a CACD-relevant theme.
 CRITICAL: "source_text" MUST be written ENTIRELY IN ENGLISH (it is the text to be translated INTO Portuguese).
@@ -97,7 +91,6 @@ JSON schema:
 {"source_text":"<the text, in ENGLISH>","instruction":"Translate into Portuguese."}
 Do NOT provide any answer key or translation.`,
 
-  // MODO 4 — SUMMARY (inglês) — texto-fonte EM INGLÊS (resumo EN→EN)
   SUMMARY: `You are a CACD examiner. Generate an ORIGINAL text (350-600 words), C1/C2 level,
 on a CACD-relevant theme, suitable for a summarising exercise.
 CRITICAL: "source_text" MUST be written ENTIRELY IN ENGLISH. Do NOT write it in Portuguese or Spanish.
@@ -107,7 +100,6 @@ JSON schema:
 {"source_text":"<the full text, in ENGLISH>","instruction":"Summarize the text in 120-180 words."}
 Do NOT provide any model summary.`,
 
-  // MODO 5 — PTESP (português → espanhol)
   PTESP: `Eres examinador del CACD. Genera un texto ORIGINAL en portugués (120-220 palabras),
 nivel C1/C2, sobre un tema relevante para el CACD.
 ${BASE_RULES}
@@ -115,7 +107,6 @@ Esquema JSON:
 {"source_text":"<texto en portugués>","instruction":"Traduzca al español."}
 No proporciones ninguna traducción ni clave de respuestas.`,
 
-  // MODO 6 — ESPPT (espanhol → português)
   ESPPT: `Eres examinador del CACD. Genera un texto ORIGINAL (120-220 palabras),
 nivel C1/C2, sobre un tema relevante para el CACD.
 CRÍTICO: "source_text" DEBE estar redactado ENTERAMENTE EN ESPAÑOL (es el texto que se traducirá AL portugués).
@@ -124,7 +115,6 @@ Esquema JSON:
 {"source_text":"<el texto, EN ESPAÑOL>","instruction":"Traduza para o português."}
 No proporciones ninguna traducción ni clave de respuestas.`,
 
-  // MODO 7 — RESUMEN (espanhol) — texto-fonte EM ESPANHOL (resumo ESP→ESP)
   RESUMEN: `Eres examinador del CACD. Genera un texto ORIGINAL (350-600 palabras),
 nivel C1/C2, sobre un tema relevante para el CACD, apto para un ejercicio de resumen.
 CRÍTICO: "source_text" DEBE estar redactado ENTERAMENTE EN ESPAÑOL. NO lo escribas en portugués ni en inglés.
@@ -134,7 +124,6 @@ Esquema JSON:
 {"source_text":"<el texto completo, EN ESPAÑOL>","instruction":"Redacte un resumen de 120-180 palabras."}
 No proporciones ningún resumen modelo.`,
 
-  // MODO 8 — GRAMATICA_TEORIA — teoria gramatical C2
   GRAMATICA_TEORIA: `You are a C2-level grammar expert for the Brazilian diplomatic exam (CACD/IRBr).
 Write a rigorous theoretical explanation for the given grammar topic in the specified language.
 - Portuguese topics: write in formal Brazilian Portuguese
@@ -146,7 +135,6 @@ Length: ~350 words for conteudo, 3-5 illustrative examples.
 Respond ONLY in valid JSON, no markdown, no extra text:
 {"conteudo":"...","exemplos":["...","...","..."]}`,
 
-  // MODO 9 — GRAMATICA_QUIZ — quiz gramatical C2
   GRAMATICA_QUIZ: `You are a C2-level grammar examiner for the Brazilian diplomatic exam (CACD/IRBr).
 Generate 5 multiple-choice questions about the given grammar topic in the specified language.
 - Portuguese topics: questions and options in formal Brazilian Portuguese
@@ -161,14 +149,7 @@ Respond ONLY in valid JSON, no markdown, no extra text:
 {"questoes":[{"enunciado":"...","opcoes":["A) ...","B) ...","C) ...","D) ..."],"correta":0,"explicacao":"..."}]}`,
 };
 
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
-
+async function handleGenerate(req, res) {
   const { mode, idioma, topico } = req.body || {};
   const systemPrompt = PROMPTS[mode];
   if (!systemPrompt) return res.status(400).json({ error: 'mode inválido' });
@@ -203,4 +184,119 @@ module.exports = async function handler(req, res) {
   } catch (err) {
     return res.status(err?.status || 500).json({ error: err?.message || 'Erro interno' });
   }
+}
+
+/* ─── correct (ex tutor-correct.js) ─────────────────────────────────────── */
+
+const SYSTEM_PROMPT_CORRECT = `Você é um examinador e professor do CACD (Concurso de Admissão à Carreira de Diplomata), com domínio nativo de inglês, espanhol e português. Corrija a resposta do candidato simulando o rigor do CACD e padrão equivalente ao nível C2 do CEFR.
+
+Você receberá: o MODO do exercício, o ENUNCIADO/TEXTO-FONTE e a RESPOSTA DO CANDIDATO.
+
+Avalie:
+- Erros gramaticais
+- Erros de vocabulário
+- Problemas de estilo
+- Problemas de coesão
+- Problemas de registro
+- Adequação ao tema/enunciado (e, em traduções, fidelidade ao texto-fonte)
+
+Atribua uma nota de 0 a 100. Se a nota for superior a 90, faça observações refinadas de estilo e naturalidade.
+
+Reescreva trechos problemáticos, mostrando soluções de nível C2 e explicando como um diplomata ou tradutor profissional escreveria a mesma ideia.
+
+Adicionalmente, para cada erro gramatical identificado, inclua uma explicação didática da regra gramatical correspondente NO IDIOMA-ALVO da tradução (inglês nos modos ENPT/PTEN/COMPOSITION/SUMMARY; espanhol nos modos ESPPT/PTESP/RESUMEN), para que o candidato possa revisar a regra original. Isso é especialmente importante nos modos de tradução para português (ENPT, ESPPT), onde os erros revelam dificuldades com estruturas do idioma de origem.
+
+Preste atenção especial a "falsos cognatos" e interferências típicas entre os três idiomas (português, inglês, espanhol) — por exemplo, "actualmente" (ES) ≠ "atualmente" (PT), "embarazada" (ES) ≠ "embaraçada" (PT), "pretend" (EN) ≠ "pretender" (PT/ES), "assist" (EN) ≠ "assistir" (PT). Quando o erro decorrer de interferência entre idiomas, explicite isso no campo "problema".
+
+Responda APENAS em JSON válido, sem markdown, sem texto extra:
+{
+  "score": <inteiro 0-100>,
+  "table": [
+    {"categoria":"Gramática","nota":<0-100>},
+    {"categoria":"Vocabulário","nota":<0-100>},
+    {"categoria":"Clareza","nota":<0-100>},
+    {"categoria":"Estilo","nota":<0-100>},
+    {"categoria":"Adequação ao tema","nota":<0-100>}
+  ],
+  "errors": [
+    {
+      "trecho": "<trecho exato da resposta do candidato que contém o erro>",
+      "trecho_fonte": "<trecho correspondente do texto-fonte no idioma original — mostre de onde veio a expressão>",
+      "problema": "<explicação detalhada do erro: por que essa tradução está errada, qual foi o raciocínio equivocado do candidato, e qual a diferença semântica/estrutural entre os dois idiomas que causou a confusão>",
+      "correcao": "<versão correta substituindo apenas o trecho problemático>"
+    }
+  ],
+  "rewrites": [{"original":"...","c2":"..."}],
+  "grammar_explanations": [
+    {
+      "regra": "<nome da regra gramatical em inglês, ex: 'Passive Voice', 'Conditional Type 2', 'Gerund vs Infinitive'>",
+      "explicacao": "<explicação clara da regra em português, 2-4 frases, com foco em como ela funciona no inglês original>",
+      "exemplo_correto": "<exemplo de frase em inglês aplicando a regra corretamente>",
+      "dica_cacd": "<observação de como essa estrutura aparece em textos diplomáticos/acadêmicos do CACD ou como é cobrada na prova>"
+    }
+  ],
+  "diplomatic_note": "<como um diplomata/tradutor profissional escreveria a mesma ideia>",
+  "summary": "<avaliação geral em 1-2 frases>"
+}`;
+
+async function handleCorrect(req, res) {
+  const { mode, prompt, answer } = req.body || {};
+  if (!answer || answer.trim().length < 10) {
+    return res.status(400).json({ error: 'answer é obrigatório' });
+  }
+
+  const userContent = [
+    `MODO: ${mode || '(não informado)'}`,
+    `ENUNCIADO / TEXTO-FONTE:\n${String(prompt || '').slice(0, 8000)}`,
+    `RESPOSTA DO CANDIDATO:\n${String(answer).slice(0, 8000)}`,
+  ].join('\n\n');
+
+  try {
+    const completion = await groqCreate({
+      model: 'llama-3.3-70b-versatile',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT_CORRECT },
+        { role: 'user', content: userContent },
+      ],
+      temperature: 0.3,
+      max_tokens: 4096,
+    });
+
+    const raw = completion.choices[0]?.message?.content;
+    if (!raw) return res.status(502).json({ error: 'Resposta vazia do modelo' });
+
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch { return res.status(502).json({ error: 'Resposta inválida do modelo' }); }
+
+    return res.status(200).json({
+      score: Number.isFinite(parsed.score) ? Math.max(0, Math.min(100, Math.round(parsed.score))) : null,
+      table: Array.isArray(parsed.table) ? parsed.table.slice(0, 5) : [],
+      errors: Array.isArray(parsed.errors) ? parsed.errors.slice(0, 30) : [],
+      rewrites: Array.isArray(parsed.rewrites) ? parsed.rewrites.slice(0, 30) : [],
+      grammar_explanations: Array.isArray(parsed.grammar_explanations) ? parsed.grammar_explanations.slice(0, 10) : [],
+      diplomatic_note: String(parsed.diplomatic_note || '').trim(),
+      summary: String(parsed.summary || '').trim(),
+    });
+  } catch (err) {
+    return res.status(err?.status || 500).json({ error: err?.message || 'Erro interno' });
+  }
+}
+
+/* ─── router ────────────────────────────────────────────────────────────── */
+
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
+
+  const body = req.body || {};
+  const isCorrect = typeof body.answer === 'string';
+
+  if (isCorrect) return handleCorrect(req, res);
+  return handleGenerate(req, res);
 };

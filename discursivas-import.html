@@ -91,7 +91,7 @@
         const batch = items.slice(i, i + BATCH_SIZE);
         try {
           const token = await DB.getAccessToken();
-          const res = await fetch('/api/import-discursivas', {
+          const res = await fetch('/api/discursivas?action=import', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({ items: batch }),

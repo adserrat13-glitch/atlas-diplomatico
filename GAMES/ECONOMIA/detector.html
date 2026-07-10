@@ -265,7 +265,7 @@ async function startSession(elOrStr) {
   document.getElementById('summary-content').innerHTML = `<div class="loading"><span class="spinner"></span>Gerando revisão rápida de "${esc(topico)}"…</div>`;
 
   try {
-    const res = await fetch('/api/generate-gap-questions', {
+    const res = await fetch('/api/gap-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ topico, mode: 'summary' }),
@@ -307,7 +307,7 @@ async function startQuestions() {
   renderLoading('Gerando perguntas para "' + esc(state.topico) + '"…');
 
   try {
-    const res = await fetch('/api/generate-gap-questions', {
+    const res = await fetch('/api/gap-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ topico: state.topico }),
@@ -370,7 +370,7 @@ async function submitAnswer() {
   state.respostas[state.currentQ] = resposta;
 
   try {
-    const res = await fetch('/api/evaluate-gap-answer', {
+    const res = await fetch('/api/gap-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pergunta: q.pergunta, conceito_alvo: q.conceito_alvo, resposta }),
@@ -526,7 +526,7 @@ async function startReviewQuiz() {
     .slice(0, 8);
 
   try {
-    const res = await fetch('/api/generate-gap-questions', {
+    const res = await fetch('/api/gap-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ topico: state.topico, lacunas, mode: 'review' }),

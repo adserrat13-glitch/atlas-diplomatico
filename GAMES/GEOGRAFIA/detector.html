@@ -217,7 +217,7 @@ async function startSession(elOrStr) {
   showScreen('screen-summary');
   document.getElementById('summary-content').innerHTML = `<div class="loading"><span class="spinner"></span>Gerando revisão rápida de "${esc(topico)}"…</div>`;
   try {
-    const res = await fetch('/api/generate-gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico, mode: 'summary' }) });
+    const res = await fetch('/api/gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico, mode: 'summary' }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao gerar resumo');
     renderSummary(data.grupos);
@@ -235,7 +235,7 @@ async function startQuestions() {
   showScreen('screen-quiz');
   renderLoading('Gerando perguntas para "' + esc(state.topico) + '"…');
   try {
-    const res = await fetch('/api/generate-gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico: state.topico }) });
+    const res = await fetch('/api/gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico: state.topico }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao gerar perguntas');
     state.perguntas = data.perguntas; renderQuestion(0);
@@ -256,7 +256,7 @@ async function submitAnswer() {
   const btn = document.getElementById('btn-submit'); btn.disabled = true; btn.textContent = 'Avaliando…';
   const q = state.perguntas[state.currentQ]; state.respostas[state.currentQ] = resposta;
   try {
-    const res = await fetch('/api/evaluate-gap-answer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pergunta: q.pergunta, conceito_alvo: q.conceito_alvo, resposta }) });
+    const res = await fetch('/api/gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pergunta: q.pergunta, conceito_alvo: q.conceito_alvo, resposta }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro na avaliação');
     state.avaliacoes[state.currentQ] = data; renderFeedback(data, q);
@@ -309,7 +309,7 @@ async function startReviewQuiz() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
   const lacunas = state.avaliacoes.filter(av => av && !av.lacuna_revelada.toLowerCase().startsWith('nenhuma')).flatMap(av => [av.lacuna_revelada, ...(av.o_que_faltou || [])]).slice(0, 8);
   try {
-    const res = await fetch('/api/generate-gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico: state.topico, lacunas, mode: 'review' }) });
+    const res = await fetch('/api/gap-questions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topico: state.topico, lacunas, mode: 'review' }) });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Erro ao gerar quiz');
     reviewState = { questoes: data.questoes, currentQ: 0, acertos: 0, respondidas: 0 };

@@ -1,5 +1,6 @@
 const { groqCreate } = require('./_lib/groq-client');
-const { authenticate } = require('./_lib/auth');
+const { authenticate, requireAdmin } = require('./_lib/auth');
+const { getSupabase } = require('./lp/_lib/supabase-client');
 
 const APPROVAL_THRESHOLD = 50;
 
@@ -26,14 +27,7 @@ Responda APENAS em JSON válido, sem markdown, sem texto extra:
   "feedback": "..."
 }`;
 
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_ORIGIN || '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
-
+async function handleCorrect(req, res) {
   const auth = await authenticate(req);
   if (auth.error) return res.status(401).json({ error: auth.error });
 
@@ -100,4 +94,58 @@ module.exports = async function handler(req, res) {
     const status = err?.status || 500;
     return res.status(status).json({ error: msg });
   }
+}
+
+async function handleImport(req, res) {
+  const auth = await requireAdmin(req);
+  if (auth.error) return res.status(auth.status).json({ error: auth.error });
+
+  const { items } = req.body || {};
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ error: 'items (array) é obrigatório' });
+  }
+
+  const rows = items
+    .filter(it => it && typeof it.category === 'string' && typeof it.question === 'string' && typeof it.reference_answer === 'string')
+    .map(it => ({
+      category: it.category.trim(),
+      question: it.question.trim(),
+      reference_answer: it.reference_answer.trim(),
+    }))
+    .filter(it => it.category && it.question && it.reference_answer);
+
+  if (!rows.length) {
+    return res.status(400).json({ error: 'Nenhum item válido em items' });
+  }
+
+  try {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('discursivas_questions')
+      .upsert(rows, { onConflict: 'category,question', ignoreDuplicates: true })
+      .select('id');
+
+    if (error) throw error;
+
+    return res.status(200).json({
+      received: rows.length,
+      inserted: data ? data.length : 0,
+    });
+  } catch (err) {
+    const msg = err?.message || 'Erro interno';
+    return res.status(500).json({ error: msg });
+  }
+}
+
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_ORIGIN || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
+
+  const action = req.query.action || req.body?.action;
+  if (action === 'import') return handleImport(req, res);
+  return handleCorrect(req, res);
 };
