@@ -81,12 +81,14 @@
   ],
   "tps_questoes": {
     "DIREITOCONSTITUCIONAL": [
-      "CONTROLE DE CONSTITUCIONALIDADE 22222222.csv",
+      "1001 CONST.csv",
+      "CONTROLE DE CONSTITUCIONALIDADE.csv",
       "DIREITO CONSTITUCIONAL.csv",
       "DIREITO MANUAL DO CANDIDATO .csv",
       "REZEK .csv"
     ],
     "DIREITOINTERNACIONAL": [
+      "1001 DIP .csv",
       "DIP PORTELA part 1.csv",
       "DIP PORTELA part 2.csv",
       "DIREITO INTERNACIONAL TPS .csv",
@@ -129,6 +131,7 @@
       "LESSA 2 .csv",
       "PI COLE DIPLO.csv",
       "POLITICA INTERNACIONAL TPS.csv",
+      "POLITICAINTERNACIONAL.csv",
       "REPERTORIO FUNAG.csv",
       "TEORIA DAS RELAÇÕES INTERNACIONAIS .csv"
     ]
