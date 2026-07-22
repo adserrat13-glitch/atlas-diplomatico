@@ -352,8 +352,8 @@
       <div class="summary-stats" id="summaryStats"></div>
       <div class="btns">
         <button class="btn btn-primary" onclick="showReview('wrong')">Revisar erros</button>
+        <button class="btn btn-primary" onclick="startRetryWrong()" id="btnRetryWrong">🔁 Refazer questões erradas</button>
         <button class="btn btn-secondary" onclick="showReview('all')">Ver todas</button>
-        <button class="btn btn-secondary" onclick="startSim('all')">Repetir</button>
         <button class="btn btn-secondary" onclick="showView('viewLoader')">Outro arquivo</button>
         <a href="analise.html" class="btn btn-secondary">Ver Análise</a>
       </div>
@@ -612,6 +612,7 @@
 
     function saveProgress() {
       if (!currentProgressKey) return;
+      if (window._currentSimMode === 'retry-wrong') return;
       try {
         const lastDone = (window._sessionStartIdx || 0) + currentIdx;
         const ts = new Date().toLocaleString('pt-BR');
@@ -741,6 +742,23 @@
       renderQuestion();
       showView('viewStudy');
       document.getElementById('simDeck').textContent = deckName;
+    }
+
+    function startRetryWrong() {
+      const wrong = answers.filter(a => !a.isCorrect);
+      if (!wrong.length) return;
+      queue = wrong.map(a => ({
+        q: a.q, correct: a.correct, section: a.section,
+        subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || []
+      }));
+      currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      window._currentSimMode = 'retry-wrong';
+      timerSecs = 0; updateTimer();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+      renderQuestion();
+      showView('viewStudy');
+      document.getElementById('simDeck').textContent = deckName + ' (Revisão de erros)';
     }
 
     function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
@@ -903,7 +921,8 @@
     // ─── Summary ─────────────────────────────────────────────────────
     function showSummary() {
       // Atualiza _lastDone com o progresso desta sessão (checkpoint já foi salvo em saveProgress)
-      window._lastDone = (window._sessionStartIdx || 0) + answers.length;
+      const isRetry = window._currentSimMode === 'retry-wrong';
+      if (!isRetry) window._lastDone = (window._sessionStartIdx || 0) + answers.length;
       const total = answers.length;
       const correct = answers.filter(a => a.isCorrect).length;
       const wrong = total - correct;
@@ -919,7 +938,7 @@
       });
 
       DB.addSession({
-        type: 'simulado', deck: deckName,
+        type: isRetry ? 'simulado-revisao' : 'simulado', deck: deckName,
         subject: dominantSubject(answers),
         total, correct, wrong, time_seconds: timerSecs,
         subjects_breakdown: subjectsBreakdown,
@@ -937,6 +956,8 @@
         <div class="s-stat"><div class="s-val s-acc">${pct}%</div><div class="s-lbl">Taxa</div></div>
         <div class="s-stat"><div class="s-val">${mins}min</div><div class="s-lbl">Tempo</div></div>`;
       document.getElementById('reviewSection').style.display = 'none';
+      const retryBtn = document.getElementById('btnRetryWrong');
+      if (retryBtn) retryBtn.style.display = wrong > 0 ? 'inline-block' : 'none';
       showView('viewSummary');
 
       // AI deck section
