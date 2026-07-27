@@ -448,6 +448,8 @@
       'HISTORIADOBRASIL':      { code: 'HB',  label: 'História do Brasil' },
       'HISTORIAMUNDIAL':       { code: 'HM',  label: 'História Mundial' },
       'POLITICA INTERNACIONAL': { code: 'PI', label: 'Política Internacional' },
+      'INGLES':                { code: 'ING', label: 'Inglesa' },
+      'PORTUGUES':             { code: 'LP',  label: 'L. Portuguesa' },
     };
 
     const STOPWORDS = new Set([
@@ -482,7 +484,8 @@
     // continuam servindo de fallback para decks não-TPS sem marcador.
     const TPS_LABELS = {
       HB:'História do Brasil', HM:'História Mundial', GEO:'Geografia',
-      PI:'Política Internacional', ECO:'Economia', DIR:'Direito'
+      PI:'Política Internacional', ECO:'Economia', DIR:'Direito',
+      LP:'L. Portuguesa', ING:'Inglesa'
     };
 
     function dominantSubject(answers) {
