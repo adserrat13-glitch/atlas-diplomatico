@@ -309,7 +309,6 @@
         <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:10px;line-height:1.5"></div>
         <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer">Zerar progresso</button>
       </div>
-      <div id="syncDebug" style="display:none;margin-bottom:16px;padding:10px 14px;background:#111318;border:1px dashed #444;border-radius:8px;text-align:left;font-size:11px;color:#9ca3af;font-family:monospace;white-space:pre-wrap"></div>
       <div class="btns">
         <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
@@ -604,13 +603,11 @@
       window._pendingSimFile = filename;
       // Busca checkpoint local e remoto, usa o maior lastDone
       const localSaved = (() => { try { return JSON.parse(localStorage.getItem(progKey)); } catch { return null; } })();
-      let remoteSaved = null, remoteErr = null;
-      try { remoteSaved = await DB.getCheckpoint(deckName); } catch(e) { remoteErr = e; }
+      let remoteSaved = null;
+      try { remoteSaved = await DB.getCheckpoint(deckName); } catch(e) {}
       const remoteLastDone = remoteSaved ? (remoteSaved.current_index || 0) : 0;
       const localLastDone = localSaved ? (localSaved.lastDone || 0) : 0;
       window._lastDone = Math.max(localLastDone, remoteLastDone);
-      window._syncDebugInfo = { deckName, localLastDone, remoteLastDone, remoteSaved, remoteErr: remoteErr ? String(remoteErr) : null, userId: (await DB.getUser())?.id || null };
-      console.log('[syncDebug] loadSimFromPath', window._syncDebugInfo);
       // Sempre processa o CSV para popular allQuestions, depois showOptions mostra o banner
       processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data, folder);
     }
@@ -630,8 +627,7 @@
           total_questions: allQuestions.length,
           mode: 'seq',
           timer_seconds: timerSecs || 0
-        }).then(() => console.log('[syncDebug] saveCheckpoint OK', { deckName, lastDone }))
-          .catch(err => console.error('[syncDebug] saveCheckpoint FAILED', { deckName, lastDone, err }));
+        }).catch(() => {});
       } catch(e) { /* quota exceeded — ignore */ }
     }
 
@@ -721,13 +717,6 @@
         DB.clearCheckpoint(deckName).catch(() => {});
         resumeEl.style.display = 'none';
       };
-      const dbg = document.getElementById('syncDebug');
-      if (dbg && window._syncDebugInfo) {
-        const i = window._syncDebugInfo;
-        dbg.style.display = 'block';
-        dbg.textContent =
-          `SYNC DEBUG\nuser_id: ${i.userId}\ndeck_name: "${i.deckName}"\nlocal lastDone: ${i.localLastDone}\nremote lastDone: ${i.remoteLastDone}\nremote row: ${i.remoteSaved ? JSON.stringify(i.remoteSaved) : 'null (nenhum checkpoint remoto encontrado)'}\nremote error: ${i.remoteErr || 'nenhum'}`;
-      }
       showView('viewOptions');
     }
 
