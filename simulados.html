@@ -77,6 +77,16 @@
     .opt-box { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; text-align:center; }
     .opt-val { font-size:26px; font-weight:700; color:var(--accent); }
     .opt-lbl { font-size:12px; color:var(--muted); margin-top:4px; }
+    .tts-panel { width:100%; max-width:480px; background:var(--card); border:1px solid var(--border);
+      border-radius:14px; padding:16px 20px; margin-bottom:4px; }
+    .tts-panel summary { cursor:pointer; font-size:13px; font-weight:600; color:var(--text); list-style:none; }
+    .tts-panel summary::-webkit-details-marker { display:none; }
+    .tts-panel summary::before { content:'🔊 '; }
+    .tts-row { margin-top:14px; }
+    .tts-row label { display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .tts-row input[type=range] { width:100%; }
+    .tts-row select { width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border);
+      background:var(--bg); color:var(--text); font-size:13px; font-family:inherit; }
     .btns { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
     .btn { padding:11px 26px; border-radius:11px; font-size:14px; font-weight:600;
       cursor:pointer; border:none; transition:0.2s; font-family:inherit; }
@@ -309,6 +319,21 @@
         <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:10px;line-height:1.5"></div>
         <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer">Zerar progresso</button>
       </div>
+      <details class="tts-panel" id="ttsPanel">
+        <summary>Configurar leitura em voz alta</summary>
+        <div class="tts-row">
+          <label><span>Velocidade</span><span id="ttsRateVal"></span></label>
+          <input type="range" id="ttsRate" min="0.5" max="2" step="0.1">
+        </div>
+        <div class="tts-row">
+          <label><span>Tom</span><span id="ttsPitchVal"></span></label>
+          <input type="range" id="ttsPitch" min="0" max="2" step="0.1">
+        </div>
+        <div class="tts-row">
+          <label><span>Voz</span></label>
+          <select id="ttsVoice"></select>
+        </div>
+      </details>
       <div class="btns">
         <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
@@ -772,13 +797,62 @@
       document.getElementById('simTimer').textContent = `${m}:${s}`;
     }
 
+    // ─── TTS config (velocidade, tom, voz) ──────────────────────────
+    const TTS_DEFAULTS = { rate: 1, pitch: 1, voiceName: '' };
+    function loadTtsConfig() {
+      try { return { ...TTS_DEFAULTS, ...JSON.parse(localStorage.getItem('tts_config') || '{}') }; }
+      catch { return { ...TTS_DEFAULTS }; }
+    }
+    function saveTtsConfig(cfg) { localStorage.setItem('tts_config', JSON.stringify(cfg)); }
+
+    function initTtsPanel() {
+      if (!('speechSynthesis' in window)) { document.getElementById('ttsPanel').style.display = 'none'; return; }
+      const cfg = loadTtsConfig();
+      const rateEl = document.getElementById('ttsRate');
+      const pitchEl = document.getElementById('ttsPitch');
+      const voiceEl = document.getElementById('ttsVoice');
+      rateEl.value = cfg.rate;
+      pitchEl.value = cfg.pitch;
+      document.getElementById('ttsRateVal').textContent = cfg.rate + 'x';
+      document.getElementById('ttsPitchVal').textContent = cfg.pitch + 'x';
+
+      function populateVoices() {
+        const voices = speechSynthesis.getVoices().filter(v => v.lang && v.lang.startsWith('pt'));
+        voiceEl.innerHTML = '<option value="">Padrão do navegador</option>' +
+          voices.map(v => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
+        voiceEl.value = cfg.voiceName && voices.some(v => v.name === cfg.voiceName) ? cfg.voiceName : '';
+      }
+      populateVoices();
+      speechSynthesis.addEventListener('voiceschanged', populateVoices);
+
+      rateEl.addEventListener('input', () => {
+        const c = loadTtsConfig(); c.rate = parseFloat(rateEl.value);
+        document.getElementById('ttsRateVal').textContent = c.rate + 'x';
+        saveTtsConfig(c);
+      });
+      pitchEl.addEventListener('input', () => {
+        const c = loadTtsConfig(); c.pitch = parseFloat(pitchEl.value);
+        document.getElementById('ttsPitchVal').textContent = c.pitch + 'x';
+        saveTtsConfig(c);
+      });
+      voiceEl.addEventListener('change', () => {
+        const c = loadTtsConfig(); c.voiceName = voiceEl.value;
+        saveTtsConfig(c);
+      });
+    }
+    initTtsPanel();
+
     function speakQuestion(text) {
       if (!('speechSynthesis' in window)) return;
       speechSynthesis.cancel();
+      const cfg = loadTtsConfig();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'pt-BR';
+      utter.rate = cfg.rate;
+      utter.pitch = cfg.pitch;
       const voices = speechSynthesis.getVoices();
-      const ptVoice = voices.find(v => v.lang === 'pt-BR') || voices.find(v => v.lang && v.lang.startsWith('pt'));
+      const chosen = cfg.voiceName && voices.find(v => v.name === cfg.voiceName);
+      const ptVoice = chosen || voices.find(v => v.lang === 'pt-BR') || voices.find(v => v.lang && v.lang.startsWith('pt'));
       if (ptVoice) utter.voice = ptVoice;
       speechSynthesis.speak(utter);
     }
