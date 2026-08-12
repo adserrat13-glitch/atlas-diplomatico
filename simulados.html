@@ -28,6 +28,7 @@
       border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
       padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
     nav::-webkit-scrollbar { display:none; }
+    body.is-fullscreen nav { display:none; }
     .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
       white-space:nowrap; flex-shrink:0; color:#fff; }
     .nav-logo span { color:#d4af37; }
@@ -841,6 +842,11 @@
       });
     }
     initTtsPanel();
+
+    // ─── Esconde a barra de navegação em modo tela cheia (F11) ──────
+    document.addEventListener('fullscreenchange', () => {
+      document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
+    });
 
     function speakQuestion(text) {
       if (!('speechSynthesis' in window)) return;
