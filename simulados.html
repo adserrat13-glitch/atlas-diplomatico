@@ -772,8 +772,19 @@
       document.getElementById('simTimer').textContent = `${m}:${s}`;
     }
 
+    function speakQuestion(text) {
+      if (!('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'pt-BR';
+      const voices = speechSynthesis.getVoices();
+      const ptVoice = voices.find(v => v.lang === 'pt-BR') || voices.find(v => v.lang && v.lang.startsWith('pt'));
+      if (ptVoice) utter.voice = ptVoice;
+      speechSynthesis.speak(utter);
+    }
+
     function renderQuestion() {
-      if (currentIdx >= queue.length) { clearInterval(timerInterval); showSummary(); return; }
+      if (currentIdx >= queue.length) { clearInterval(timerInterval); if ('speechSynthesis' in window) speechSynthesis.cancel(); showSummary(); return; }
       const q = queue[currentIdx];
       document.getElementById('questionText').textContent = q.q;
       document.getElementById('qNum').textContent = currentIdx + 1;
@@ -782,6 +793,7 @@
       document.getElementById('simCounter').textContent = ` ${currentIdx + 1}/${queue.length}`;
       document.getElementById('questionTags').innerHTML = renderTags(q);
       document.getElementById('progressFill').style.width = (currentIdx / queue.length * 100) + '%';
+      speakQuestion(q.q);
     }
 
     // ─── Answer: avança automaticamente, pill aparece se errar ─────
@@ -1091,11 +1103,13 @@
         if (confirm('Sair? O progresso desta sessão será salvo e você poderá continuar depois.')) {
           // Progresso já foi salvo em saveProgress() após cada resposta — apenas volta
           window._lastDone = (window._sessionStartIdx || 0) + currentIdx;
+          if ('speechSynthesis' in window) speechSynthesis.cancel();
           showView('viewLoader');
         } else {
           timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
         }
       } else {
+        if ('speechSynthesis' in window) speechSynthesis.cancel();
         showView('viewLoader');
       }
     }
