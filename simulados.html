@@ -331,12 +331,19 @@
           <input type="range" id="ttsPitch" min="0" max="2" step="0.1">
         </div>
         <div class="tts-row">
+          <label><span>Idioma de leitura</span></label>
+          <select id="ttsLang">
+            <option value="pt-BR">Português</option>
+            <option value="en-US">Inglês</option>
+            <option value="es-ES">Espanhol</option>
+            <option value="de-DE">Alemão</option>
+            <option value="ru-RU">Russo</option>
+            <option value="fr-FR">Francês</option>
+          </select>
+        </div>
+        <div class="tts-row">
           <label><span>Voz</span></label>
           <select id="ttsVoice"></select>
-        </div>
-        <div class="tts-row" style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" id="ttsTranslateEn" style="width:auto">
-          <label style="margin:0;font-size:12px;color:var(--muted)" for="ttsTranslateEn">Traduzir e ler em inglês (PT→EN)</label>
         </div>
       </details>
       <div class="btns">
@@ -808,8 +815,8 @@
       document.getElementById('simTimer').textContent = `${m}:${s}`;
     }
 
-    // ─── TTS config (velocidade, tom, voz, tradução PT→EN) ──────────
-    const TTS_DEFAULTS = { rate: 1, pitch: 1, voiceName: '', translateEn: false };
+    // ─── TTS config (velocidade, tom, voz, idioma de leitura) ───────
+    const TTS_DEFAULTS = { rate: 1, pitch: 1, voiceName: '', lang: 'pt-BR' };
     function loadTtsConfig() {
       try { return { ...TTS_DEFAULTS, ...JSON.parse(localStorage.getItem('tts_config') || '{}') }; }
       catch { return { ...TTS_DEFAULTS }; }
@@ -822,16 +829,16 @@
       const rateEl = document.getElementById('ttsRate');
       const pitchEl = document.getElementById('ttsPitch');
       const voiceEl = document.getElementById('ttsVoice');
-      const translateEl = document.getElementById('ttsTranslateEn');
+      const langEl = document.getElementById('ttsLang');
       rateEl.value = cfg.rate;
       pitchEl.value = cfg.pitch;
-      translateEl.checked = cfg.translateEn;
+      langEl.value = cfg.lang;
       document.getElementById('ttsRateVal').textContent = cfg.rate + 'x';
       document.getElementById('ttsPitchVal').textContent = cfg.pitch + 'x';
 
       function populateVoices() {
         const c = loadTtsConfig();
-        const prefix = c.translateEn ? 'en' : 'pt';
+        const prefix = c.lang.slice(0, 2);
         const voices = speechSynthesis.getVoices().filter(v => v.lang && v.lang.startsWith(prefix));
         voiceEl.innerHTML = '<option value="">Padrão do navegador</option>' +
           voices.map(v => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
@@ -854,72 +861,32 @@
         const c = loadTtsConfig(); c.voiceName = voiceEl.value;
         saveTtsConfig(c);
       });
-      translateEl.addEventListener('change', () => {
-        const c = loadTtsConfig(); c.translateEn = translateEl.checked; c.voiceName = '';
+      langEl.addEventListener('change', () => {
+        const c = loadTtsConfig(); c.lang = langEl.value; c.voiceName = '';
         saveTtsConfig(c);
         populateVoices();
       });
     }
     initTtsPanel();
 
-    // ─── Tradução PT→EN (Google Translate público, com cache) ───────
-    function simpleHash(str) {
-      let h = 0;
-      for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
-      return h.toString(36);
-    }
-    function getCachedTranslation(text) {
-      return localStorage.getItem('tts_translate_' + simpleHash(text));
-    }
-    async function translateToEnglish(text) {
-      const cacheKey = 'tts_translate_' + simpleHash(text);
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) return cached;
-      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=' + encodeURIComponent(text);
-      const res = await fetch(url);
-      const data = await res.json();
-      const translated = data[0].map(part => part[0]).join('');
-      localStorage.setItem(cacheKey, translated);
-      return translated;
-    }
-    /** Traduz em segundo plano e, se a questão ainda for a atual quando a tradução
-     * chegar, relê em voz alta — necessário porque falar após um await de rede
-     * perde a "user activation" e o navegador descarta speechSynthesis.speak(). */
-    function prefetchTranslationAndMaybeReplay(text, forIdx) {
-      translateToEnglish(text).then(translated => {
-        if (currentIdx === forIdx) speakNow(translated, 'en-US');
-      }).catch(e => console.warn('Falha ao traduzir para inglês:', e));
-    }
-
     // ─── Esconde a barra de navegação em modo tela cheia (F11) ──────
     document.addEventListener('fullscreenchange', () => {
       document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
     });
 
-    function speakNow(spokenText, lang) {
+    function speakQuestion(text) {
       if (!('speechSynthesis' in window)) return;
       speechSynthesis.cancel();
       const cfg = loadTtsConfig();
-      const utter = new SpeechSynthesisUtterance(spokenText);
-      utter.lang = lang;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = cfg.lang;
       utter.rate = cfg.rate;
       utter.pitch = cfg.pitch;
       const voices = speechSynthesis.getVoices();
       const chosen = cfg.voiceName && voices.find(v => v.name === cfg.voiceName);
-      const langVoice = chosen || voices.find(v => v.lang === lang) || voices.find(v => v.lang && v.lang.startsWith(lang.slice(0, 2)));
+      const langVoice = chosen || voices.find(v => v.lang === cfg.lang) || voices.find(v => v.lang && v.lang.startsWith(cfg.lang.slice(0, 2)));
       if (langVoice) utter.voice = langVoice;
       speechSynthesis.speak(utter);
-    }
-
-    function speakQuestion(text, idx) {
-      const cfg = loadTtsConfig();
-      if (!cfg.translateEn) { speakNow(text, 'pt-BR'); return; }
-      const cached = getCachedTranslation(text);
-      if (cached) { speakNow(cached, 'en-US'); return; }
-      // Ainda sem tradução em cache: fala em PT agora (síncrono, não é bloqueado)
-      // e troca para a versão em inglês assim que a tradução chegar.
-      speakNow(text, 'pt-BR');
-      prefetchTranslationAndMaybeReplay(text, idx);
     }
 
     function renderQuestion() {
@@ -932,15 +899,7 @@
       document.getElementById('simCounter').textContent = ` ${currentIdx + 1}/${queue.length}`;
       document.getElementById('questionTags').innerHTML = renderTags(q);
       document.getElementById('progressFill').style.width = (currentIdx / queue.length * 100) + '%';
-      speakQuestion(q.q, currentIdx);
-
-      // Pré-traduz a próxima questão em segundo plano (modo PT→EN) para
-      // já estar em cache quando o usuário chegar nela.
-      const cfg = loadTtsConfig();
-      const next = queue[currentIdx + 1];
-      if (cfg.translateEn && next && !getCachedTranslation(next.q)) {
-        translateToEnglish(next.q).catch(() => {});
-      }
+      speakQuestion(q.q);
     }
 
     // ─── Answer: avança automaticamente, pill aparece se errar ─────
