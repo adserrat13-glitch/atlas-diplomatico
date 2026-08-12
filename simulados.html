@@ -334,6 +334,10 @@
           <label><span>Voz</span></label>
           <select id="ttsVoice"></select>
         </div>
+        <div class="tts-row" style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="ttsTranslateEn" style="width:auto">
+          <label style="margin:0;font-size:12px;color:var(--muted)" for="ttsTranslateEn">Traduzir e ler em inglês (PT→EN)</label>
+        </div>
       </details>
       <div class="btns">
         <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
@@ -798,8 +802,8 @@
       document.getElementById('simTimer').textContent = `${m}:${s}`;
     }
 
-    // ─── TTS config (velocidade, tom, voz) ──────────────────────────
-    const TTS_DEFAULTS = { rate: 1, pitch: 1, voiceName: '' };
+    // ─── TTS config (velocidade, tom, voz, tradução PT→EN) ──────────
+    const TTS_DEFAULTS = { rate: 1, pitch: 1, voiceName: '', translateEn: false };
     function loadTtsConfig() {
       try { return { ...TTS_DEFAULTS, ...JSON.parse(localStorage.getItem('tts_config') || '{}') }; }
       catch { return { ...TTS_DEFAULTS }; }
@@ -812,16 +816,20 @@
       const rateEl = document.getElementById('ttsRate');
       const pitchEl = document.getElementById('ttsPitch');
       const voiceEl = document.getElementById('ttsVoice');
+      const translateEl = document.getElementById('ttsTranslateEn');
       rateEl.value = cfg.rate;
       pitchEl.value = cfg.pitch;
+      translateEl.checked = cfg.translateEn;
       document.getElementById('ttsRateVal').textContent = cfg.rate + 'x';
       document.getElementById('ttsPitchVal').textContent = cfg.pitch + 'x';
 
       function populateVoices() {
-        const voices = speechSynthesis.getVoices().filter(v => v.lang && v.lang.startsWith('pt'));
+        const c = loadTtsConfig();
+        const prefix = c.translateEn ? 'en' : 'pt';
+        const voices = speechSynthesis.getVoices().filter(v => v.lang && v.lang.startsWith(prefix));
         voiceEl.innerHTML = '<option value="">Padrão do navegador</option>' +
           voices.map(v => `<option value="${v.name}">${v.name} (${v.lang})</option>`).join('');
-        voiceEl.value = cfg.voiceName && voices.some(v => v.name === cfg.voiceName) ? cfg.voiceName : '';
+        voiceEl.value = c.voiceName && voices.some(v => v.name === c.voiceName) ? c.voiceName : '';
       }
       populateVoices();
       speechSynthesis.addEventListener('voiceschanged', populateVoices);
@@ -840,26 +848,55 @@
         const c = loadTtsConfig(); c.voiceName = voiceEl.value;
         saveTtsConfig(c);
       });
+      translateEl.addEventListener('change', () => {
+        const c = loadTtsConfig(); c.translateEn = translateEl.checked; c.voiceName = '';
+        saveTtsConfig(c);
+        populateVoices();
+      });
     }
     initTtsPanel();
+
+    // ─── Tradução PT→EN (Google Translate público, com cache) ───────
+    function simpleHash(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
+      return h.toString(36);
+    }
+    async function translateToEnglish(text) {
+      const cacheKey = 'tts_translate_' + simpleHash(text);
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) return cached;
+      const url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=pt&tl=en&dt=t&q=' + encodeURIComponent(text);
+      const res = await fetch(url);
+      const data = await res.json();
+      const translated = data[0].map(part => part[0]).join('');
+      localStorage.setItem(cacheKey, translated);
+      return translated;
+    }
 
     // ─── Esconde a barra de navegação em modo tela cheia (F11) ──────
     document.addEventListener('fullscreenchange', () => {
       document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
     });
 
-    function speakQuestion(text) {
+    async function speakQuestion(text) {
       if (!('speechSynthesis' in window)) return;
       speechSynthesis.cancel();
       const cfg = loadTtsConfig();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'pt-BR';
+      let spokenText = text;
+      let lang = 'pt-BR';
+      if (cfg.translateEn) {
+        try { spokenText = await translateToEnglish(text); lang = 'en-US'; }
+        catch (e) { console.warn('Falha ao traduzir para inglês, lendo em PT:', e); }
+      }
+      const utter = new SpeechSynthesisUtterance(spokenText);
+      utter.lang = lang;
       utter.rate = cfg.rate;
       utter.pitch = cfg.pitch;
       const voices = speechSynthesis.getVoices();
       const chosen = cfg.voiceName && voices.find(v => v.name === cfg.voiceName);
-      const ptVoice = chosen || voices.find(v => v.lang === 'pt-BR') || voices.find(v => v.lang && v.lang.startsWith('pt'));
-      if (ptVoice) utter.voice = ptVoice;
+      const langVoice = chosen || voices.find(v => v.lang === lang) || voices.find(v => v.lang && v.lang.startsWith(lang.slice(0, 2)));
+      if (langVoice) utter.voice = langVoice;
       speechSynthesis.speak(utter);
     }
 
