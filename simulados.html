@@ -862,6 +862,9 @@
       for (let i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) | 0; }
       return h.toString(36);
     }
+    function getCachedTranslation(text) {
+      return localStorage.getItem('tts_translate_' + simpleHash(text));
+    }
     async function translateToEnglish(text) {
       const cacheKey = 'tts_translate_' + simpleHash(text);
       const cached = localStorage.getItem(cacheKey);
@@ -873,22 +876,24 @@
       localStorage.setItem(cacheKey, translated);
       return translated;
     }
+    /** Traduz em segundo plano e, se a questão ainda for a atual quando a tradução
+     * chegar, relê em voz alta — necessário porque falar após um await de rede
+     * perde a "user activation" e o navegador descarta speechSynthesis.speak(). */
+    function prefetchTranslationAndMaybeReplay(text, forIdx) {
+      translateToEnglish(text).then(translated => {
+        if (currentIdx === forIdx) speakNow(translated, 'en-US');
+      }).catch(e => console.warn('Falha ao traduzir para inglês:', e));
+    }
 
     // ─── Esconde a barra de navegação em modo tela cheia (F11) ──────
     document.addEventListener('fullscreenchange', () => {
       document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
     });
 
-    async function speakQuestion(text) {
+    function speakNow(spokenText, lang) {
       if (!('speechSynthesis' in window)) return;
       speechSynthesis.cancel();
       const cfg = loadTtsConfig();
-      let spokenText = text;
-      let lang = 'pt-BR';
-      if (cfg.translateEn) {
-        try { spokenText = await translateToEnglish(text); lang = 'en-US'; }
-        catch (e) { console.warn('Falha ao traduzir para inglês, lendo em PT:', e); }
-      }
       const utter = new SpeechSynthesisUtterance(spokenText);
       utter.lang = lang;
       utter.rate = cfg.rate;
@@ -898,6 +903,17 @@
       const langVoice = chosen || voices.find(v => v.lang === lang) || voices.find(v => v.lang && v.lang.startsWith(lang.slice(0, 2)));
       if (langVoice) utter.voice = langVoice;
       speechSynthesis.speak(utter);
+    }
+
+    function speakQuestion(text, idx) {
+      const cfg = loadTtsConfig();
+      if (!cfg.translateEn) { speakNow(text, 'pt-BR'); return; }
+      const cached = getCachedTranslation(text);
+      if (cached) { speakNow(cached, 'en-US'); return; }
+      // Ainda sem tradução em cache: fala em PT agora (síncrono, não é bloqueado)
+      // e troca para a versão em inglês assim que a tradução chegar.
+      speakNow(text, 'pt-BR');
+      prefetchTranslationAndMaybeReplay(text, idx);
     }
 
     function renderQuestion() {
@@ -910,7 +926,15 @@
       document.getElementById('simCounter').textContent = ` ${currentIdx + 1}/${queue.length}`;
       document.getElementById('questionTags').innerHTML = renderTags(q);
       document.getElementById('progressFill').style.width = (currentIdx / queue.length * 100) + '%';
-      speakQuestion(q.q);
+      speakQuestion(q.q, currentIdx);
+
+      // Pré-traduz a próxima questão em segundo plano (modo PT→EN) para
+      // já estar em cache quando o usuário chegar nela.
+      const cfg = loadTtsConfig();
+      const next = queue[currentIdx + 1];
+      if (cfg.translateEn && next && !getCachedTranslation(next.q)) {
+        translateToEnglish(next.q).catch(() => {});
+      }
     }
 
     // ─── Answer: avança automaticamente, pill aparece se errar ─────
