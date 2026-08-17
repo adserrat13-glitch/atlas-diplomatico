@@ -1,0 +1,10 @@
+{
+  "id": "pt-001",
+  "title": "O dilema do diplomata",
+  "language": "pt-BR",
+  "level": "C1",
+  "source": "Texto de exemplo",
+  "author": "",
+  "category": "politica",
+  "text": "A diplomacia é frequentemente descrita como a arte de fazer com que outra pessoa queira aquilo que você deseja. Na prática, isso exige paciência, linguagem precisa e uma compreensão profunda dos interesses por trás de cada posição de negociação. Este é apenas um texto de exemplo; substitua-o por conteúdo real adicionando um novo arquivo JSON nesta pasta e registrando seu id em content/manifest.json."
+}

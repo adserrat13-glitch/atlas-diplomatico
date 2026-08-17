@@ -1,0 +1,10 @@
+{
+  "id": "de-001",
+  "title": "Das Dilemma des Diplomaten",
+  "language": "de-DE",
+  "level": "B2",
+  "source": "Beispieltext",
+  "author": "",
+  "category": "politics",
+  "text": "Diplomatie wird oft als die Kunst beschrieben, jemand anderen dazu zu bringen, das zu tun, was man selbst möchte. In der Praxis erfordert dies Geduld, präzise Sprache und ein tiefes Verständnis der Interessen, die hinter jeder Verhandlungsposition stehen. Dies ist nur ein Platzhaltertext; ersetzen Sie ihn durch echten Inhalt, indem Sie eine neue JSON-Datei in diesem Ordner hinzufügen und ihre id in content/manifest.json registrieren."
+}

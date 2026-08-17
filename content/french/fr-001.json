@@ -1,0 +1,10 @@
+{
+  "id": "fr-001",
+  "title": "Le dilemme du diplomate",
+  "language": "fr-FR",
+  "level": "B2",
+  "source": "Texte d'exemple",
+  "author": "",
+  "category": "politics",
+  "text": "La diplomatie est souvent décrite comme l'art d'amener quelqu'un d'autre à faire ce que l'on souhaite. En pratique, elle exige patience, précision du langage et une compréhension profonde des intérêts derrière chaque position de négociation. Ceci n'est qu'un texte d'exemple ; remplacez-le par un contenu réel en ajoutant un nouveau fichier JSON dans ce dossier et en enregistrant son id dans content/manifest.json."
+}

@@ -25,6 +25,7 @@
         { href: '/gramatica.html',         icon: 'gramC2', name: 'Gramática C2' },
         { href: '/ingles.html',            icon: 'lang',  name: 'Inglês' },
         { href: '/espanhol.html',          icon: 'flag',  name: 'Espanhol' },
+        { href: '/speed-read.html',        icon: 'speed', name: 'Speed Read' },
         { href: '/idiomas-historico.html', icon: 'chart', name: 'Histórico' },
         { href: '/analise-idiomas.html',   icon: 'chart', name: 'Análise Idiomas' },
       ]

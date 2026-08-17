@@ -1,0 +1,10 @@
+{
+  "id": "es-001",
+  "title": "El dilema del diplomático",
+  "language": "es-ES",
+  "level": "B2",
+  "source": "Texto de ejemplo",
+  "author": "",
+  "category": "politics",
+  "text": "La diplomacia suele describirse como el arte de lograr que otra persona haga lo que uno desea. En la práctica, requiere paciencia, un lenguaje preciso y una comprensión profunda de los intereses detrás de cada posición negociadora. Este es solo un texto de ejemplo; reemplácelo con contenido real agregando un nuevo archivo JSON en esta carpeta y registrando su id en content/manifest.json."
+}

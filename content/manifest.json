@@ -1,0 +1,9 @@
+{
+  "english":        ["en-001"],
+  "russian":        ["ru-001"],
+  "german":         ["de-001"],
+  "french":         ["fr-001"],
+  "greek":          ["el-001"],
+  "spanish":        ["es-001"],
+  "portuguese-br":  ["pt-001"]
+}

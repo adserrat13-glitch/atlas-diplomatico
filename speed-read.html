@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speed Read — Atlas Diplomático</title>
+  <link rel="stylesheet" href="theme.css" />
+  <script src="icons.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:#0f1115; --card:rgba(255,255,255,0.04); --border:#2a2f3a;
+      --text:#e5e7eb; --muted:#9ca3af; --accent:#d4af37;
+      --gold:#d4af37; --gold-dim:rgba(212,175,55,0.12);
+      --green:#34d399; --red:#f87171;
+    }
+    body { background:var(--bg) !important; color:var(--text) !important; font-family:Inter,sans-serif !important; min-height:100vh; overflow:hidden; }
+    .grid-bg { position:fixed; inset:0; pointer-events:none; z-index:0;
+      background-image:linear-gradient(rgba(255,255,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; }
+
+    nav { position:sticky; top:0; z-index:200; height:52px; background:#000;
+      border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center;
+      padding:0 16px; gap:2px; overflow-x:auto; scrollbar-width:none; }
+    nav::-webkit-scrollbar { display:none; }
+    .nav-logo { font-size:13px; font-weight:900; letter-spacing:2.5px; margin-right:14px;
+      white-space:nowrap; flex-shrink:0; color:#fff; }
+    .nav-logo span { color:#d4af37; }
+    nav a { color:#888; text-decoration:none; font-size:11px; font-weight:600;
+      padding:5px 9px; border-radius:6px; transition:.15s; white-space:nowrap;
+      display:flex; align-items:center; gap:4px; flex-shrink:0; letter-spacing:.3px; }
+    nav a:hover { color:#fff; background:rgba(255,255,255,0.06); }
+    nav a.active { color:#d4af37; border-bottom:2px solid #d4af37; border-radius:0; padding-bottom:3px; }
+    .nav-ham { background:none; border:none; color:#888; font-size:16px; cursor:pointer; padding:4px 8px;
+      border-radius:6px; transition:.15s; flex-shrink:0; margin-right:4px; }
+    .nav-ham:hover { color:#fff; background:rgba(255,255,255,.07); }
+    .nav-spacer { flex:1; min-width:8px; }
+
+    main { position:relative; z-index:1; height:calc(100vh - 52px); display:flex; flex-direction:column; padding:0; max-width:none; margin:0; }
+
+    /* ── Top toolbar: language / text / voice pickers ── */
+    .sr-topbar {
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+      padding:12px 20px; border-bottom:1px solid var(--border); background:var(--card);
+      flex-shrink:0;
+    }
+    .sr-select {
+      background:var(--bg); border:1px solid var(--border); color:var(--text);
+      border-radius:8px; padding:7px 10px; font-size:12px; font-family:inherit;
+    }
+    .sr-label { font-size:10px; color:var(--muted); font-weight:700; letter-spacing:.5px; text-transform:uppercase; margin-right:4px; }
+    .sr-spacer { flex:1; }
+
+    /* ── Stage: single centered word ── */
+    .sr-stage {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      padding:24px; text-align:center; position:relative;
+    }
+    .sr-word {
+      font-size:var(--sr-font-size, 72px); font-weight:700; color:var(--sr-text-color, var(--text));
+      font-family:Georgia, serif; min-height:1.2em; line-height:1.2;
+      max-width:90vw;
+    }
+    .sr-word-rule { width:90px; height:1px; background:var(--border); margin-top:22px; }
+    .sr-meta { font-size:12px; color:var(--muted); margin-top:14px; letter-spacing:.3px; }
+
+    .sr-translation { font-size:15px; color:var(--muted); margin-top:20px; max-width:640px;
+      line-height:1.6; font-style:italic; padding:0 16px; }
+
+    .sr-empty { color:var(--muted); font-size:14px; text-align:center; padding:40px; }
+
+    /* ── Focus mode: only the word, everything else hidden ── */
+    body.sr-focus nav,
+    body.sr-focus .sr-topbar,
+    body.sr-focus .sr-word-rule,
+    body.sr-focus .sr-meta,
+    body.sr-focus .sr-translation,
+    body.sr-focus .sr-controls-bar,
+    body.sr-focus #sidebar,
+    body.sr-focus .sr-modal-overlay { display:none !important; }
+    body.sr-focus main { height:100vh; }
+    body.sr-focus .sr-stage { padding:0; cursor:none; }
+    body.sr-focus .sr-word { font-size:min(var(--sr-font-size, 72px), 16vw); }
+    .sr-focus-btn {
+      background:none; border:1px solid var(--border); color:var(--muted);
+      border-radius:8px; width:34px; height:34px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      transition:.15s; font-size:15px;
+    }
+    .sr-focus-btn:hover { color:var(--text); border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.06); }
+    .sr-focus-exit-hint {
+      position:fixed; top:14px; right:16px; z-index:250;
+      font-size:11px; color:var(--muted); background:rgba(0,0,0,.5);
+      border:1px solid var(--border); border-radius:8px; padding:6px 12px;
+      opacity:0; pointer-events:none; transition:opacity .3s;
+    }
+    body.sr-focus .sr-focus-exit-hint.show { opacity:1; }
+
+    /* ── Bottom control bar ── */
+    .sr-controls-bar {
+      display:flex; flex-direction:column; gap:10px;
+      padding:16px 20px; border-top:1px solid var(--border); background:var(--card);
+      flex-shrink:0;
+    }
+    .sr-controls-row { display:flex; align-items:center; justify-content:center; gap:22px; flex-wrap:wrap; }
+    .sr-icon-btn {
+      background:none; border:none; color:var(--muted); cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      width:40px; height:40px; border-radius:50%; transition:.2s;
+      font-size:18px;
+    }
+    .sr-icon-btn:hover { color:var(--text); background:rgba(255,255,255,.07); }
+    .sr-icon-btn.play {
+      width:52px; height:52px; background:var(--accent); color:#0f1117; font-size:18px;
+    }
+    .sr-icon-btn.play:hover { opacity:.85; background:var(--accent); }
+
+    .sr-rate-group { display:flex; align-items:center; gap:4px; margin-left:10px; }
+    .sr-opt { background:transparent; border:1px solid var(--border); color:var(--muted); padding:5px 10px;
+      border-radius:20px; font-size:11px; cursor:pointer; font-family:inherit; font-weight:600; transition:.15s; }
+    .sr-opt:hover { border-color:rgba(255,255,255,.3); color:var(--text); }
+    .sr-opt.active { color:#0f1117; border-color:var(--accent); background:var(--accent); }
+
+    /* ── Settings panel (pitch, volume, appearance, WPM) ── */
+    .sr-settings { display:none; flex-direction:column; gap:18px;
+      border-top:1px solid var(--border); padding-top:14px; }
+    .sr-settings.open { display:flex; }
+    .sr-settings-row { display:flex; align-items:flex-start; justify-content:center; gap:26px; flex-wrap:wrap; }
+    .sr-setting { display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .sr-setting input[type="range"] { width:160px; accent-color:var(--accent); }
+    .sr-setting-val { font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .sr-setting input[type="color"] { width:44px; height:28px; border:1px solid var(--border); border-radius:6px;
+      background:none; cursor:pointer; padding:2px; }
+    .sr-toggle-settings { background:none; border:1px solid var(--border); color:var(--muted);
+      border-radius:8px; padding:5px 14px; font-size:11px; cursor:pointer; font-family:inherit; align-self:center;
+      font-weight:600; transition:.15s; }
+    .sr-toggle-settings:hover { color:var(--text); border-color:rgba(255,255,255,.3); }
+
+    .sr-toggle-switch { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+    .sr-toggle-switch input { display:none; }
+    .sr-toggle-track { width:34px; height:19px; border-radius:20px; background:var(--border); position:relative; transition:.2s; flex-shrink:0; }
+    .sr-toggle-track::after { content:''; position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%;
+      background:var(--muted); transition:.2s; }
+    .sr-toggle-switch input:checked + .sr-toggle-track { background:var(--gold-dim); }
+    .sr-toggle-switch input:checked + .sr-toggle-track::after { transform:translateX(15px); background:var(--accent); }
+    .sr-toggle-switch-label { font-size:12px; color:var(--text); }
+
+    .sr-wpm-group { display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:center; }
+
+    /* Bionic Reading emphasis within the displayed word */
+    .bionic-strong { font-weight:900; }
+    .first-letter-color { color:var(--sr-first-letter-color, var(--accent)); }
+
+    /* ── Buttons (shared with rest of the app) ── */
+    .btn { padding:9px 18px; border-radius:10px; font-size:13px; font-weight:600;
+      cursor:pointer; border:none; transition:0.2s; font-family:inherit; }
+    .btn-primary { background:var(--accent); color:#0f1117; }
+    .btn-primary:hover { opacity:0.85; }
+    .btn-secondary { background:rgba(255,255,255,0.07); color:var(--text); border:1px solid var(--border); }
+    .btn-secondary:hover { background:rgba(255,255,255,0.12); }
+
+    /* ── Paste-text modal ── */
+    .sr-modal-overlay {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:400;
+      align-items:center; justify-content:center;
+    }
+    .sr-modal-overlay.open { display:flex; }
+    .sr-modal {
+      background:#14161c; border:1px solid var(--border); border-radius:16px;
+      padding:24px; width:92%; max-width:480px; max-height:85vh; overflow-y:auto;
+    }
+    .sr-modal h3 { font-size:16px; color:var(--text); margin-bottom:6px; font-weight:700; }
+    .sr-modal-hint { font-size:12px; color:var(--muted); margin-bottom:16px; }
+    .sr-field { margin-bottom:14px; }
+    .sr-field label { display:block; font-size:11px; color:var(--muted); font-weight:700;
+      letter-spacing:.5px; text-transform:uppercase; margin-bottom:6px; }
+    .sr-field select, .sr-field textarea {
+      width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text);
+      border-radius:10px; padding:9px 12px; font-size:13px; font-family:inherit;
+    }
+    .sr-field textarea { min-height:180px; resize:vertical; font-family:Georgia, serif; }
+    .sr-modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <nav>
+    <button class="nav-ham" onclick="openSidebar()">☰</button>
+    <div class="nav-logo">ATLAS <span>DIPL.</span></div>
+    <a href="index.html">Início</a>
+    <a href="speed-read.html" class="active">Speed Read</a>
+    <div class="nav-spacer"></div>
+  </nav>
+
+<main>
+  <div class="sr-topbar">
+    <span class="sr-label">Idioma</span>
+    <select class="sr-select" id="langSelect"></select>
+    <span class="sr-label">Texto</span>
+    <select class="sr-select" id="textSelect"></select>
+    <span class="sr-label">Voz</span>
+    <select class="sr-select" id="voiceSelect"></select>
+    <div class="sr-spacer"></div>
+    <button class="sr-focus-btn" onclick="enterFocusMode()" title="Tela cheia (somente palavra)">⛶</button>
+    <button class="btn btn-secondary" onclick="openPasteModal()">Colar texto</button>
+  </div>
+
+  <div id="emptyState" class="sr-empty" style="display:none;flex:1;display:flex;align-items:center;justify-content:center">
+    Nenhum texto disponível para este idioma ainda. Use "Colar texto" ou adicione um arquivo JSON em content/&lt;idioma&gt;/.
+  </div>
+
+  <div id="readerArea" class="sr-stage" style="flex:1;display:flex" onclick="exitFocusModeIfActive()">
+    <div class="sr-word" id="srWord">—</div>
+    <div class="sr-word-rule"></div>
+    <div class="sr-meta" id="srMeta">Selecione um texto e pressione ▶ para começar</div>
+    <div class="sr-translation" id="srTranslation" style="display:none"></div>
+  </div>
+  <div class="sr-focus-exit-hint" id="focusExitHint">Clique ou pressione Esc para sair da tela cheia</div>
+
+  <div class="sr-controls-bar" id="controlsBar" style="display:none">
+    <div class="sr-controls-row">
+      <button class="sr-icon-btn" onclick="srRestart()" title="Voltar ao início">↺</button>
+      <button class="sr-icon-btn" onclick="srPrev()" title="Frase anterior">◀◀</button>
+      <button class="sr-icon-btn play" id="srPlayBtn" onclick="srPlayToggle()" title="Play/Pause">▶</button>
+      <button class="sr-icon-btn" onclick="srNext()" title="Próxima frase">▶▶</button>
+      <div class="sr-wpm-group" id="wpmGroup">
+        <button class="sr-opt" data-wpm="100" onclick="srSetWPM(this)">100</button>
+        <button class="sr-opt active" data-wpm="200" onclick="srSetWPM(this)">200</button>
+        <button class="sr-opt" data-wpm="300" onclick="srSetWPM(this)">300</button>
+        <button class="sr-opt" data-wpm="400" onclick="srSetWPM(this)">400</button>
+        <button class="sr-opt" data-wpm="500" onclick="srSetWPM(this)">500</button>
+        <button class="sr-opt" data-wpm="600" onclick="srSetWPM(this)">600</button>
+        <span class="sr-label" style="margin-left:2px">WPM</span>
+      </div>
+    </div>
+    <button class="sr-toggle-settings" onclick="toggleSettings()" id="settingsToggleBtn">⚙ Mais configurações</button>
+    <div class="sr-settings" id="settingsPanel">
+      <div class="sr-settings-row">
+        <div class="sr-setting">
+          <label class="sr-label">Tom (pitch)</label>
+          <input type="range" id="pitchRange" min="0" max="2" step="0.1" value="1" oninput="onPitchChange(this)" />
+          <span class="sr-setting-val" id="pitchVal">1.0</span>
+        </div>
+        <div class="sr-setting">
+          <label class="sr-label">Volume</label>
+          <input type="range" id="volumeRange" min="0" max="1" step="0.05" value="1" oninput="onVolumeChange(this)" />
+          <span class="sr-setting-val" id="volumeVal">100%</span>
+        </div>
+      </div>
+      <div class="sr-settings-row">
+        <div class="sr-setting">
+          <label class="sr-label">Tamanho da letra</label>
+          <input type="range" id="fontSizeRange" min="24" max="120" step="4" value="72" oninput="onFontSizeChange(this)" />
+          <span class="sr-setting-val" id="fontSizeVal">72px</span>
+        </div>
+        <div class="sr-setting">
+          <label class="sr-label">Cor do texto</label>
+          <input type="color" id="textColorInput" value="#e5e7eb" oninput="onTextColorChange(this)" />
+        </div>
+        <div class="sr-setting">
+          <label class="sr-label">Cor da 1ª letra</label>
+          <input type="color" id="firstLetterColorInput" value="#d4af37" oninput="onFirstLetterColorChange(this)" />
+        </div>
+      </div>
+      <div class="sr-settings-row">
+        <label class="sr-toggle-switch">
+          <input type="checkbox" id="firstLetterToggle" onchange="onFirstLetterToggle(this)" />
+          <span class="sr-toggle-track"></span>
+          <span class="sr-toggle-switch-label">Colorir 1ª letra</span>
+        </label>
+        <label class="sr-toggle-switch">
+          <input type="checkbox" id="bionicToggle" onchange="onBionicToggle(this)" />
+          <span class="sr-toggle-track"></span>
+          <span class="sr-toggle-switch-label">Bionic Reading</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Paste-text modal (read now, nothing is saved) -->
+<div class="sr-modal-overlay" id="pasteOverlay">
+  <div class="sr-modal">
+    <h3>Colar texto</h3>
+    <div class="sr-modal-hint">O texto é lido apenas nesta sessão — nada fica salvo.</div>
+    <div class="sr-field">
+      <label>Idioma</label>
+      <select id="pasteLang"></select>
+    </div>
+    <div class="sr-field">
+      <label>Texto</label>
+      <textarea id="pasteBody" placeholder="Cole o texto aqui..."></textarea>
+    </div>
+    <div class="sr-field">
+      <label>Tradução (opcional)</label>
+      <textarea id="pasteTranslation" placeholder="Cole a tradução aqui — aparece embaixo do texto conforme a leitura avança, apenas como apoio visual. O áudio lê só o texto original."></textarea>
+    </div>
+    <div class="sr-modal-actions">
+      <button class="btn btn-secondary" onclick="closePasteModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="readPastedText()">Ler</button>
+    </div>
+  </div>
+</div>
+
+<aside id="sidebar"></aside>
+<script src="_sidebar.js"></script>
+
+<script src="tts-engine.js"></script>
+<script>
+  const LANGUAGES = [
+    { key: 'english',       label: 'Inglês' },
+    { key: 'russian',       label: 'Russo' },
+    { key: 'german',        label: 'Alemão' },
+    { key: 'french',        label: 'Francês' },
+    { key: 'greek',         label: 'Grego' },
+    { key: 'spanish',       label: 'Espanhol' },
+    { key: 'portuguese-br', label: 'Português (BR)' }
+  ];
+
+  let manifest = {};
+  let currentText = null;
+  let pastedText = null; // {title, text} when reading an ad-hoc pasted text, cleared once another item is picked
+  let translationSentences = []; // sentence-split translation for the current pasted text, [] if none
+
+  function splitIntoSentences(text) {
+    return (text.match(/[^.!?…]+[.!?…]*/g) || [text]).map(s => s.trim()).filter(Boolean);
+  }
+
+  async function init() {
+    const res = await fetch('content/manifest.json');
+    manifest = await res.json();
+
+    const langSelect = document.getElementById('langSelect');
+    langSelect.innerHTML = LANGUAGES.map(l => `<option value="${l.key}">${l.label}</option>`).join('');
+    langSelect.addEventListener('change', onLanguageChange);
+
+    document.getElementById('pasteLang').innerHTML = LANGUAGES.map(l => `<option value="${l.key}">${l.label}</option>`).join('');
+
+    document.getElementById('textSelect').addEventListener('change', onTextChange);
+    document.getElementById('voiceSelect').addEventListener('change', onVoiceChange);
+
+    TTSEngine.onSentenceChange = (sentence, idx, total) => {
+      document.getElementById('srMeta').textContent = `Frase ${idx + 1} / ${total}`;
+      updateTranslationDisplay(idx);
+    };
+    TTSEngine.onWordBoundary = (word) => {
+      renderWord(word || '—');
+    };
+    TTSEngine.onStateChange = (state) => {
+      document.getElementById('srPlayBtn').textContent = state === 'playing' ? '❚❚' : '▶';
+    };
+
+    if (typeof speechSynthesis !== 'undefined') {
+      speechSynthesis.onvoiceschanged = () => populateVoices();
+    }
+
+    onLanguageChange();
+  }
+
+  function onLanguageChange() {
+    pastedText = null;
+    translationSentences = [];
+    hideTranslation();
+    const lang = document.getElementById('langSelect').value;
+    const ids = manifest[lang] || [];
+    const textSelect = document.getElementById('textSelect');
+    textSelect.innerHTML = ids.map(id => `<option value="${id}">${id}</option>`).join('');
+
+    const hasText = ids.length > 0;
+    document.getElementById('emptyState').style.display = hasText ? 'none' : 'flex';
+    document.getElementById('readerArea').style.display = hasText ? 'flex' : 'none';
+    document.getElementById('controlsBar').style.display = hasText ? 'flex' : 'none';
+
+    if (hasText) loadText(lang, ids[0]);
+  }
+
+  async function onTextChange() {
+    pastedText = null;
+    translationSentences = [];
+    hideTranslation();
+    const lang = document.getElementById('langSelect').value;
+    const id = document.getElementById('textSelect').value;
+    if (id) loadText(lang, id);
+  }
+
+  async function loadText(lang, id) {
+    const res = await fetch(`content/${lang}/${id}.json`);
+    currentText = await res.json();
+    document.getElementById('textSelect').value = id;
+
+    TTSEngine.load(currentText, lang);
+    populateVoices();
+
+    document.getElementById('srWord').textContent = '—';
+    document.getElementById('srMeta').textContent = `Frase 1 / ${TTSEngine.getSentenceCount()}`;
+
+    const opt = document.getElementById('textSelect').querySelector(`option[value="${id}"]`);
+    if (opt) opt.textContent = currentText.title || id;
+  }
+
+  function hideTranslation() {
+    const el = document.getElementById('srTranslation');
+    el.style.display = 'none';
+    el.textContent = '';
+  }
+
+  // ── Focus mode: fullscreen, word only, everything else hidden ──
+  let focusHintTimer = null;
+
+  async function enterFocusMode() {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (e) { /* fullscreen denied/unsupported — still hide UI below */ }
+    document.body.classList.add('sr-focus');
+    showFocusHintBriefly();
+  }
+
+  async function exitFocusMode() {
+    document.body.classList.remove('sr-focus');
+    if (document.fullscreenElement) {
+      try { await document.exitFullscreen(); } catch (e) {}
+    }
+  }
+
+  function exitFocusModeIfActive() {
+    if (document.body.classList.contains('sr-focus')) exitFocusMode();
+  }
+
+  function showFocusHintBriefly() {
+    const hint = document.getElementById('focusExitHint');
+    if (!hint) return;
+    hint.classList.add('show');
+    clearTimeout(focusHintTimer);
+    focusHintTimer = setTimeout(() => hint.classList.remove('show'), 2500);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('sr-focus')) exitFocusMode();
+  });
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) document.body.classList.remove('sr-focus');
+  });
+
+  function updateTranslationDisplay(sentenceIdx) {
+    const el = document.getElementById('srTranslation');
+    if (!translationSentences.length) { hideTranslation(); return; }
+    const t = translationSentences[sentenceIdx] || translationSentences[translationSentences.length - 1];
+    el.textContent = t || '';
+    el.style.display = t ? 'block' : 'none';
+  }
+
+  function populateVoices() {
+    const voices = TTSEngine.getVoicesForLang ? TTSEngine.getVoicesForLang() : [];
+    const voiceSelect = document.getElementById('voiceSelect');
+    if (!voices.length) {
+      voiceSelect.innerHTML = '<option value="">(voz padrão do sistema)</option>';
+      return;
+    }
+    voiceSelect.innerHTML = voices.map(v => `<option value="${v.voiceURI}">${v.name}</option>`).join('');
+  }
+
+  function onVoiceChange() {
+    TTSEngine.setVoiceURI(document.getElementById('voiceSelect').value);
+  }
+
+  // ── Controls: TTS drives the pace, the word display follows it ──
+  function srPlayToggle() {
+    if (TTSEngine.isSpeaking()) TTSEngine.pauseToggle();
+    else TTSEngine.play();
+  }
+  function srRestart() { TTSEngine.restart(); }
+  function srNext() { TTSEngine.next(); }
+  function srPrev() { TTSEngine.prev(); }
+  function srSetWPM(btn) {
+    document.querySelectorAll('#wpmGroup .sr-opt[data-wpm]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    TTSEngine.setTargetWPM(parseInt(btn.dataset.wpm, 10));
+  }
+
+  // ── Extra settings: pitch, volume, appearance ──
+  function toggleSettings() {
+    document.getElementById('settingsPanel').classList.toggle('open');
+  }
+  function onPitchChange(el) {
+    document.getElementById('pitchVal').textContent = parseFloat(el.value).toFixed(1);
+    TTSEngine.setPitch(parseFloat(el.value));
+  }
+  function onVolumeChange(el) {
+    document.getElementById('volumeVal').textContent = Math.round(el.value * 100) + '%';
+    TTSEngine.setVolume(parseFloat(el.value));
+  }
+
+  // ── Appearance: font size, text color, first-letter color, Bionic Reading ──
+  const appearance = { fontSize: 72, textColor: '#e5e7eb', firstLetterColor: '#d4af37', colorFirstLetter: false, bionic: false };
+
+  function onFontSizeChange(el) {
+    appearance.fontSize = parseInt(el.value, 10);
+    document.getElementById('fontSizeVal').textContent = appearance.fontSize + 'px';
+    document.documentElement.style.setProperty('--sr-font-size', appearance.fontSize + 'px');
+  }
+  function onTextColorChange(el) {
+    appearance.textColor = el.value;
+    document.documentElement.style.setProperty('--sr-text-color', appearance.textColor);
+  }
+  function onFirstLetterColorChange(el) {
+    appearance.firstLetterColor = el.value;
+    document.documentElement.style.setProperty('--sr-first-letter-color', appearance.firstLetterColor);
+  }
+  function onFirstLetterToggle(el) { appearance.colorFirstLetter = el.checked; }
+  function onBionicToggle(el) { appearance.bionic = el.checked; }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderWord(word) {
+    const el = document.getElementById('srWord');
+    if (word === '—' || !word) { el.textContent = word; return; }
+
+    // Bionic Reading: bold the first ~40% of the word's letters (min 1).
+    const bionicSplit = appearance.bionic ? Math.max(1, Math.ceil(word.length * 0.4)) : 0;
+    const firstLetterSplit = appearance.colorFirstLetter ? 1 : 0;
+    const splitPoints = [...new Set([bionicSplit, firstLetterSplit].filter(n => n > 0))].sort((a, b) => a - b);
+
+    if (!splitPoints.length) { el.textContent = word; return; }
+
+    let html = '';
+    let pos = 0;
+    splitPoints.forEach(p => {
+      const chunk = word.slice(pos, p);
+      if (!chunk) return;
+      const classes = [];
+      if (appearance.colorFirstLetter && pos < firstLetterSplit) classes.push('first-letter-color');
+      if (appearance.bionic && pos < bionicSplit) classes.push('bionic-strong');
+      html += classes.length ? `<span class="${classes.join(' ')}">${escapeHtml(chunk)}</span>` : escapeHtml(chunk);
+      pos = p;
+    });
+    html += escapeHtml(word.slice(pos));
+    el.innerHTML = html;
+  }
+
+  // ── Paste-text: read now, save nothing ──
+  function openPasteModal() {
+    document.getElementById('pasteBody').value = '';
+    document.getElementById('pasteTranslation').value = '';
+    document.getElementById('pasteLang').value = document.getElementById('langSelect').value;
+    document.getElementById('pasteOverlay').classList.add('open');
+  }
+  function closePasteModal() {
+    document.getElementById('pasteOverlay').classList.remove('open');
+  }
+  function readPastedText() {
+    const lang = document.getElementById('pasteLang').value;
+    const text = document.getElementById('pasteBody').value.trim();
+    const translation = document.getElementById('pasteTranslation').value.trim();
+    if (!text) return;
+
+    pastedText = { id: 'pasted', title: 'Texto colado', text };
+    currentText = pastedText;
+    translationSentences = translation ? splitIntoSentences(translation) : [];
+
+    document.getElementById('langSelect').value = lang;
+    document.getElementById('textSelect').innerHTML = `<option value="pasted">Texto colado</option>`;
+
+    document.getElementById('emptyState').style.display = 'none';
+    document.getElementById('readerArea').style.display = 'flex';
+    document.getElementById('controlsBar').style.display = 'flex';
+
+    TTSEngine.load(currentText, lang);
+    populateVoices();
+    document.getElementById('srWord').textContent = '—';
+    document.getElementById('srMeta').textContent = `Frase 1 / ${TTSEngine.getSentenceCount()}`;
+    hideTranslation();
+    updateTranslationDisplay(0);
+
+    closePasteModal();
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -53,6 +53,12 @@ const ICONS = {
     <path d="M12 9l2 2-2 2" stroke-width="1.3"/>
   </svg>`,
 
+  speed: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="8" cy="8" r="6.5"/>
+    <path d="M8 8l3.2-2.2"/>
+    <path d="M8 4.2V5"/>
+  </svg>`,
+
   games: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
     <rect x="1" y="5" width="14" height="8" rx="2"/>
     <line x1="5" y1="9" x2="7" y2="9"/>
