@@ -98,6 +98,32 @@
     }
     body.sr-focus .sr-focus-exit-hint.show { opacity:1; }
 
+    /* ── Layout toggle: force mobile or desktop styling regardless of viewport ── */
+    .sr-layout-btn {
+      background:none; border:1px solid var(--border); color:var(--muted);
+      border-radius:8px; width:34px; height:34px; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      transition:.15s; font-size:15px;
+    }
+    .sr-layout-btn:hover { color:var(--text); border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.06); }
+
+    body.sr-layout-mobile .sr-topbar { padding:10px 12px; gap:6px 8px; }
+    body.sr-layout-mobile .sr-label { display:none; }
+    body.sr-layout-mobile .sr-select { font-size:11px; padding:6px 8px; flex:1 1 auto; min-width:0; }
+    body.sr-layout-mobile .sr-word { font-size:min(var(--sr-font-size, 72px), 15vw) !important; }
+    body.sr-layout-mobile .sr-controls-bar { padding:12px 10px; }
+    body.sr-layout-mobile .sr-controls-row { gap:12px; }
+    body.sr-layout-mobile .sr-wpm-group { width:100%; justify-content:space-between; }
+    body.sr-layout-mobile .sr-opt { padding:5px 8px; font-size:10px; }
+    body.sr-layout-mobile .sr-translation { font-size:13px; max-width:100%; }
+    body.sr-layout-mobile .sr-settings-row { gap:16px; }
+    body.sr-layout-mobile .sr-setting input[type="range"] { width:120px; }
+
+    body.sr-layout-desktop .sr-topbar { padding:14px 28px; }
+    body.sr-layout-desktop .sr-word { font-size:var(--sr-font-size, 72px) !important; }
+    body.sr-layout-desktop .sr-controls-bar { padding:18px 28px; }
+    body.sr-layout-desktop .sr-controls-row { gap:28px; }
+
     /* ── Bottom control bar ── */
     .sr-controls-bar {
       display:flex; flex-direction:column; gap:10px;
@@ -204,6 +230,7 @@
     <span class="sr-label">Voz</span>
     <select class="sr-select" id="voiceSelect"></select>
     <div class="sr-spacer"></div>
+    <button class="sr-layout-btn" id="layoutToggleBtn" onclick="toggleLayoutMode()" title="Alternar layout Mobile/Desktop">🖥️</button>
     <button class="sr-focus-btn" onclick="enterFocusMode()" title="Tela cheia (somente palavra)">⛶</button>
     <button class="btn btn-secondary" onclick="openPasteModal()">Colar texto</button>
   </div>
@@ -407,6 +434,31 @@
     el.textContent = '';
   }
 
+  // ── Layout toggle: force Mobile or Desktop styling regardless of viewport ──
+  const LAYOUT_STORAGE_KEY = 'sr-layout-mode';
+
+  function applyLayoutMode(mode) {
+    document.body.classList.remove('sr-layout-mobile', 'sr-layout-desktop');
+    document.body.classList.add(mode === 'mobile' ? 'sr-layout-mobile' : 'sr-layout-desktop');
+    const btn = document.getElementById('layoutToggleBtn');
+    if (btn) {
+      btn.textContent = mode === 'mobile' ? '📱' : '🖥️';
+      btn.title = mode === 'mobile' ? 'Layout: Mobile (clique para Desktop)' : 'Layout: Desktop (clique para Mobile)';
+    }
+    localStorage.setItem(LAYOUT_STORAGE_KEY, mode);
+  }
+
+  function toggleLayoutMode() {
+    const current = document.body.classList.contains('sr-layout-mobile') ? 'mobile' : 'desktop';
+    applyLayoutMode(current === 'mobile' ? 'desktop' : 'mobile');
+  }
+
+  function initLayoutMode() {
+    const saved = localStorage.getItem(LAYOUT_STORAGE_KEY);
+    const fallback = window.matchMedia('(max-width: 640px)').matches ? 'mobile' : 'desktop';
+    applyLayoutMode(saved || fallback);
+  }
+
   // ── Focus mode: fullscreen, word only, everything else hidden ──
   let focusHintTimer = null;
 
@@ -581,6 +633,7 @@
     closePasteModal();
   }
 
+  initLayoutMode();
   init();
 </script>
 </body>
