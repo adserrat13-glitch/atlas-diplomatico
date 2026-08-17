@@ -9,6 +9,7 @@
   <script src="icons.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.108.2/dist/umd/supabase.js"></script>
   <script src="supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <script>
     function detectGamesPage() {
@@ -470,6 +471,7 @@
         <div class="mc-lbl">Questões em Simulados</div>
         <div class="mc-val green" id="mcSimQuestions">—</div>
         <div class="mc-sub" id="mcSimAcc">acerto — · erro —</div>
+        <div class="mc-sub" id="mcSimProgress">respondidas — · faltam —</div>
       </div>
       <div class="metric-chip mc-blue">
         <div class="mc-lbl">Sessões Hoje</div>
@@ -849,6 +851,7 @@
       const simAccPct = simQuestions > 0 ? Math.round(simCorrect/simQuestions*100) : 0;
       setEl('mcSimQuestions', simQuestions.toLocaleString('pt-BR'));
       setEl('mcSimAcc', simQuestions > 0 ? `acerto ${simAccPct}% · erro ${100-simAccPct}%` : 'sem simulados ainda');
+      loadSimTotalQuestions(simQuestions);
       const elS = document.getElementById('mcSessions'); if(elS) elS.className='mc-val blue';
       const elK = document.getElementById('mcStreak');   if(elK) elK.className='mc-val yellow';
       setEl('weekHours', weekH.toFixed(1)+'h'); setEl('weekSub','de 25h meta');
@@ -856,6 +859,34 @@
       setEl('todayHours', todayH<0.017?'0min':todayH<0.1?Math.round(todayH*60)+'min':todayH.toFixed(1)+'h');
       setEl('todaySub','de 2h meta diária');
       const tf=document.getElementById('todayFill'); if(tf) tf.style.width=Math.min(100,todayH/2*100)+'%';
+    }
+
+    async function loadSimTotalQuestions(answeredCount) {
+      const allFiles = [...TPS_FILES, ...TPS_EXTRA];
+      let total = 0;
+      await Promise.all(allFiles.map(async f => {
+        try {
+          const res = await fetch(f.path.split('/').map(encodeURIComponent).join('/'));
+          if (!res.ok) return;
+          const buf = await res.arrayBuffer();
+          let text;
+          try { text = new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+          catch { text = new TextDecoder('windows-1252').decode(buf); }
+          text = text.replace(/^﻿/, '');
+          const rows = Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data;
+          rows.forEach(row => {
+            const q = (row[0]||'').trim(), a = (row[1]||'').trim();
+            if (!q || !a) return;
+            if (/^###[A-Z]+$/.test(q)) return;
+            const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
+            if (ans) total++;
+          });
+        } catch(e) { /* arquivo indisponível — ignora */ }
+      }));
+      const remaining = Math.max(0, total - answeredCount);
+      setEl('mcSimProgress', total > 0
+        ? `respondidas ${answeredCount.toLocaleString('pt-BR')} · faltam ${remaining.toLocaleString('pt-BR')}`
+        : 'respondidas — · faltam —');
     }
     function renderNextTask() {
       const today=new Date().toISOString().split('T')[0];
