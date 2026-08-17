@@ -112,9 +112,17 @@
     body.sr-layout-mobile .sr-select { font-size:11px; padding:6px 8px; flex:1 1 auto; min-width:0; }
     body.sr-layout-mobile .sr-word { font-size:min(var(--sr-font-size, 72px), 15vw) !important; }
     body.sr-layout-mobile .sr-controls-bar { padding:12px 10px; }
-    body.sr-layout-mobile .sr-controls-row { gap:12px; }
-    body.sr-layout-mobile .sr-wpm-group { width:100%; justify-content:space-between; }
-    body.sr-layout-mobile .sr-opt { padding:5px 8px; font-size:10px; }
+    /* Transport buttons (↺ ◀◀ ▶ ▶▶) get their own row, WPM chips wrap freely
+       on their own row below — cramming both into one center-justified row
+       (the old behavior) squeezed the 6 WPM chips into overflow/wrap chaos. */
+    body.sr-layout-mobile .sr-controls-row { gap:10px 14px; }
+    body.sr-layout-mobile .sr-icon-btn { width:38px; height:38px; font-size:16px; }
+    body.sr-layout-mobile .sr-icon-btn.play { width:48px; height:48px; }
+    body.sr-layout-mobile .sr-wpm-group {
+      width:100%; justify-content:center; flex-wrap:wrap; gap:6px 8px;
+      order:10; /* push below the transport buttons within the wrapping row */
+    }
+    body.sr-layout-mobile .sr-opt { padding:6px 12px; font-size:11px; }
     body.sr-layout-mobile .sr-translation { font-size:13px; max-width:100%; }
     body.sr-layout-mobile .sr-settings-row { gap:16px; }
     body.sr-layout-mobile .sr-setting input[type="range"] { width:120px; }
