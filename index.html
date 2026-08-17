@@ -467,9 +467,9 @@
     <!-- METRICS -->
     <div class="metrics-row">
       <div class="metric-chip mc-green">
-        <div class="mc-lbl">Flashcards Total</div>
-        <div class="mc-val green">3.012</div>
-        <div class="mc-sub">em 8 matérias</div>
+        <div class="mc-lbl">Questões em Simulados</div>
+        <div class="mc-val green" id="mcSimQuestions">—</div>
+        <div class="mc-sub" id="mcSimAcc">acerto — · erro —</div>
       </div>
       <div class="metric-chip mc-blue">
         <div class="mc-lbl">Sessões Hoje</div>
@@ -843,6 +843,12 @@
       const todayH = computeTodayHours(_sessions);
       setEl('mcStreak', streak);
       setEl('mcSessions', _todaySessionsCount);
+      const simSessions = _sessions.filter(s => s.type !== 'flashcard');
+      const simQuestions = simSessions.reduce((a,s) => a+(s.total||0), 0);
+      const simCorrect   = simSessions.reduce((a,s) => a+(s.correct||0), 0);
+      const simAccPct = simQuestions > 0 ? Math.round(simCorrect/simQuestions*100) : 0;
+      setEl('mcSimQuestions', simQuestions.toLocaleString('pt-BR'));
+      setEl('mcSimAcc', simQuestions > 0 ? `acerto ${simAccPct}% · erro ${100-simAccPct}%` : 'sem simulados ainda');
       const elS = document.getElementById('mcSessions'); if(elS) elS.className='mc-val blue';
       const elK = document.getElementById('mcStreak');   if(elK) elK.className='mc-val yellow';
       setEl('weekHours', weekH.toFixed(1)+'h'); setEl('weekSub','de 25h meta');
