@@ -38,6 +38,7 @@ const TTSEngine = (function () {
   let voiceURI = null;
   let langKey = 'english';
   let paused = false;
+  let chunkSize = 1; // words flashed together per onWordBoundary call (1-3)
   let onSentenceChange = null;
   let onWordBoundary = null;
   let onStateChange = null;
@@ -182,7 +183,7 @@ const TTSEngine = (function () {
       while (idx + 1 < words.length && cumChars[idx + 1] <= targetChars) idx++;
       if (idx > lastShown) {
         lastShown = idx;
-        if (onWordBoundary) onWordBoundary(words[idx]);
+        if (onWordBoundary) onWordBoundary(chunkAt(idx));
         pausedWordIdx = idx;
       }
       if (lastShown < words.length - 1) {
@@ -190,6 +191,14 @@ const TTSEngine = (function () {
       }
     }
     tick();
+  }
+
+  // Groups words [idx, idx+chunkSize-1] into a single space-joined string for
+  // display, without touching the underlying single-word sync index — audio
+  // sync stays keyed to the leading word of the chunk exactly as before.
+  function chunkAt(idx) {
+    if (chunkSize <= 1) return words[idx];
+    return words.slice(idx, idx + chunkSize).join(' ');
   }
 
   function wordIndexForCharIndex(charIndex) {
@@ -244,7 +253,7 @@ const TTSEngine = (function () {
       if (idx === lastReportedIdx) return;
       lastReportedIdx = idx;
       pausedWordIdx = idx;
-      if (onWordBoundary) onWordBoundary(words[idx]);
+      if (onWordBoundary) onWordBoundary(chunkAt(idx));
     };
 
     u.onend = function () {
@@ -350,6 +359,7 @@ const TTSEngine = (function () {
     play();
   }
 
+  function setChunkSize(n) { chunkSize = Math.max(1, Math.min(3, n | 0)); }
   function setRate(n) { rate = Math.max(0.5, Math.min(2, n)); }
   function setPitch(n) { pitch = Math.max(0, Math.min(2, n)); }
   function setVolume(n) { volume = Math.max(0, Math.min(1, n)); }
@@ -380,7 +390,7 @@ const TTSEngine = (function () {
 
   return {
     load, play, pauseToggle, stop, next, prev, restart,
-    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, getRate,
+    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, setChunkSize, getRate,
     getVoicesForLang, getSentenceIndex, getSentenceCount, getProgress, isSpeaking,
     set onSentenceChange(fn) { onSentenceChange = fn; },
     set onWordBoundary(fn) { onWordBoundary = fn; },
