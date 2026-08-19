@@ -17,11 +17,17 @@ function getClients() {
 }
 
 async function groqCreate(params) {
+  return groqCall(client => client.chat.completions.create(params));
+}
+
+// Runs fn(client) against each configured key in order, failing over to the
+// next key only on rate-limit/server errors (same policy as groqCreate).
+async function groqCall(fn) {
   const clientList = getClients();
   let lastErr;
   for (const client of clientList) {
     try {
-      return await client.chat.completions.create(params);
+      return await fn(client);
     } catch (err) {
       lastErr = err;
       const retryable = err?.status === 429 || err?.status >= 500;
@@ -31,4 +37,4 @@ async function groqCreate(params) {
   throw lastErr;
 }
 
-module.exports = { groqCreate };
+module.exports = { groqCreate, groqCall };

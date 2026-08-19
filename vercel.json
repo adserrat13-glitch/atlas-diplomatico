@@ -2,6 +2,9 @@
   "functions": {
     "api/lp.js": {
       "maxDuration": 60
+    },
+    "api/speed-read-tts.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

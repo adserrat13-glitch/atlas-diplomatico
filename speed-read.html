@@ -343,7 +343,7 @@
 <aside id="sidebar"></aside>
 <script src="_sidebar.js"></script>
 
-<script src="tts-engine.js"></script>
+<script src="groq-tts-engine.js"></script>
 <script>
   const LANGUAGES = [
     { key: 'english',       label: 'Inglês' },
@@ -362,6 +362,21 @@
 
   function splitIntoSentences(text) {
     return (text.match(/[^.!?…]+[.!?…]*/g) || [text]).map(s => s.trim()).filter(Boolean);
+  }
+
+  let groqVoices = [];
+  let groqDefaultVoice = null;
+
+  async function loadVoiceList() {
+    try {
+      const res = await fetch('api/speed-read-tts.js');
+      const data = await res.json();
+      groqVoices = data.voices || [];
+      groqDefaultVoice = data.defaultVoice || (groqVoices[0] && groqVoices[0].id) || null;
+      if (groqDefaultVoice) TTSEngine.setVoiceURI(groqDefaultVoice);
+    } catch (e) {
+      console.error('Falha ao carregar vozes Groq:', e);
+    }
   }
 
   async function init() {
@@ -386,12 +401,10 @@
     };
     TTSEngine.onStateChange = (state) => {
       document.getElementById('srPlayBtn').textContent = state === 'playing' ? '❚❚' : '▶';
+      if (state === 'error') document.getElementById('srMeta').textContent = 'Erro ao gerar áudio. Tente novamente.';
     };
 
-    if (typeof speechSynthesis !== 'undefined') {
-      speechSynthesis.onvoiceschanged = () => populateVoices();
-    }
-
+    await loadVoiceList();
     onLanguageChange();
   }
 
@@ -515,13 +528,13 @@
   }
 
   function populateVoices() {
-    const voices = TTSEngine.getVoicesForLang ? TTSEngine.getVoicesForLang() : [];
     const voiceSelect = document.getElementById('voiceSelect');
-    if (!voices.length) {
-      voiceSelect.innerHTML = '<option value="">(voz padrão do sistema)</option>';
+    if (!groqVoices.length) {
+      voiceSelect.innerHTML = '<option value="">(carregando vozes...)</option>';
       return;
     }
-    voiceSelect.innerHTML = voices.map(v => `<option value="${v.voiceURI}">${v.name}</option>`).join('');
+    voiceSelect.innerHTML = groqVoices.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
+    voiceSelect.value = groqDefaultVoice || groqVoices[0].id;
   }
 
   function onVoiceChange() {
