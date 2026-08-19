@@ -4,16 +4,25 @@
 
    Sync strategy: each sentence is spoken as ONE utterance (no chunking, so
    no queueing gaps between utterances). Word position is driven by the
-   browser's own SpeechSynthesisUtterance 'boundary' event, which fires in
-   real time as each word is spoken and carries the true charIndex into the
-   utterance text — this is genuinely synced to the audio, unlike a timer.
-   If a voice/engine never fires boundary events (common for network-backed
-   voices, e.g. Chrome's "Google" voices used for Spanish/English), we detect
-   that within ~400ms and fall back to a drift-corrected per-word clock
-   (recomputed each tick from real elapsed time, not chained timeouts) so
-   the estimate doesn't trail further behind the audio as the sentence goes
-   on. Calibrated per language+voice so switching languages/voices mid-
-   session can't corrupt an unrelated voice's pace estimate. */
+   browser's own SpeechSynthesisUtterance 'boundary' event, which carries
+   the true charIndex into the utterance text. However, Chrome/Edge fire
+   'boundary' with a systematic lag behind the actual audio (a long-known
+   Web Speech API quirk, ~100-250ms, present across languages/voices) — so
+   using it directly makes the on-screen word visibly trail the voice. We
+   correct for this: each boundary event is used only to calibrate a
+   per-voice "ms between words" estimate and a learned lead offset (how
+   early we must show the word to land on the real audio), and the actual
+   on-screen update is scheduled via a short predictive timer rather than
+   fired synchronously from the event. The timer is re-armed from every
+   real boundary, so estimation error never accumulates across a sentence.
+   If a voice/engine never fires boundary events at all (common for
+   network-backed voices, e.g. Chrome's "Google" voices used for Spanish/
+   English), we detect that within ~400ms and fall back to a drift-
+   corrected per-word clock (recomputed each tick from real elapsed time,
+   not chained timeouts) so the estimate doesn't trail further behind the
+   audio as the sentence goes on. Both the pace and the lead-offset
+   estimates are calibrated per language+voice so switching languages/
+   voices mid-session can't corrupt an unrelated voice's estimates. */
 
 const TTSEngine = (function () {
   const LANG_VOICE_MAP = {
@@ -47,8 +56,17 @@ const TTSEngine = (function () {
   const msPerCharByVoice = {};
   const DEFAULT_MS_PER_CHAR = 110;
 
+  // Per (langKey|voiceURI) lead offset: how many ms Chrome/Edge's 'boundary'
+  // event lags the real audio for that voice. There's no signal in the
+  // boundary events themselves to measure this lag directly, so it's a
+  // fixed, empirically-chosen default — kept per-voice-keyed so a future
+  // per-voice override wouldn't require restructuring this.
+  const leadOffsetByVoice = {};
+  const DEFAULT_LEAD_OFFSET_MS = 150;
+
   let subWordTimer = null;
   let boundaryFallbackTimer = null;
+  let wordDisplayTimer = null; // predictive timer that actually calls onWordBoundary
   let usingBoundaryEvents = false;
   let currentUtterance = null;
   let pausedWordIdx = 0; // word index to resume from after a native pause
@@ -79,6 +97,11 @@ const TTSEngine = (function () {
 
   function setMsPerChar(v) {
     msPerCharByVoice[voiceKey()] = v;
+  }
+
+  function getLeadOffset() {
+    const v = leadOffsetByVoice[voiceKey()];
+    return v === undefined ? DEFAULT_LEAD_OFFSET_MS : v;
   }
 
   function voicesForLang() {
@@ -228,6 +251,7 @@ const TTSEngine = (function () {
     usingBoundaryEvents = false;
     let startedAt = 0;
     let lastReportedIdx = -1;
+    let lastBoundaryAt = 0; // performance.now() of the previous real boundary event
 
     clearTimeout(boundaryFallbackTimer);
     boundaryFallbackTimer = setTimeout(() => {
@@ -246,19 +270,53 @@ const TTSEngine = (function () {
 
     u.onboundary = function (ev) {
       if (ev.name && ev.name !== 'word') return; // some engines also fire 'sentence'
+      const now = performance.now();
       usingBoundaryEvents = true;
       clearTimeout(boundaryFallbackTimer);
       clearTimeout(subWordTimer);
       const idx = wordIndexForCharIndex(ev.charIndex || 0);
       if (idx === lastReportedIdx) return;
-      lastReportedIdx = idx;
+
+      // This event itself already lags the real audio (Chrome/Edge quirk),
+      // so showing word N only when N's own event arrives is what produces
+      // the audible lag. Instead: show word N right away — it's the best
+      // information available for "now" — but use the real gap since the
+      // *previous* boundary to predict, and proactively schedule, when word
+      // N+1 should appear (interval minus the learned lead offset) rather
+      // than waiting for N+1's own late event. If that real event does
+      // still land first (short/irregular words), it wins and re-syncs.
+      const interval = lastBoundaryAt ? now - lastBoundaryAt : 0;
+      lastBoundaryAt = now;
       pausedWordIdx = idx;
+      lastReportedIdx = idx;
       if (onWordBoundary) onWordBoundary(chunkAt(idx));
+
+      clearTimeout(wordDisplayTimer);
+      if (interval > 0) {
+        const nextIdx = idx + 1;
+        if (nextIdx < words.length) {
+          // Boundary-to-boundary interval measures word pacing, not the
+          // event's own lag (there is no signal to observe that lag from
+          // boundary events alone — they carry no audio-relative
+          // timestamp). getLeadOffset() is a fixed, voice-keyed guess based
+          // on the known Chrome/Edge boundary-lag range; the interval only
+          // tells us *when* the next word is likely to start.
+          const predictedDelay = Math.max(0, interval - getLeadOffset());
+          wordDisplayTimer = setTimeout(() => {
+            if (nextIdx === lastReportedIdx + 1) {
+              lastReportedIdx = nextIdx;
+              pausedWordIdx = nextIdx;
+              if (onWordBoundary) onWordBoundary(chunkAt(nextIdx));
+            }
+          }, predictedDelay);
+        }
+      }
     };
 
     u.onend = function () {
       clearTimeout(boundaryFallbackTimer);
       clearTimeout(subWordTimer);
+      clearTimeout(wordDisplayTimer);
       currentUtterance = null;
 
       // Calibrate this voice's pace from real elapsed time, for fallback use.
@@ -332,6 +390,7 @@ const TTSEngine = (function () {
       paused = true;
       clearTimeout(subWordTimer);
       clearTimeout(boundaryFallbackTimer);
+      clearTimeout(wordDisplayTimer);
       speechSynthesis.pause();
       if (onStateChange) onStateChange('paused');
     }
@@ -341,6 +400,7 @@ const TTSEngine = (function () {
     paused = false;
     clearTimeout(subWordTimer);
     clearTimeout(boundaryFallbackTimer);
+    clearTimeout(wordDisplayTimer);
     currentUtterance = null;
     speechSynthesis.cancel();
     if (onStateChange) onStateChange('stopped');
@@ -378,6 +438,7 @@ const TTSEngine = (function () {
     if (speechSynthesis.speaking && !paused) {
       clearTimeout(subWordTimer);
       clearTimeout(boundaryFallbackTimer);
+      clearTimeout(wordDisplayTimer);
       speechSynthesis.cancel();
       speakSentence(pausedWordIdx);
     }
