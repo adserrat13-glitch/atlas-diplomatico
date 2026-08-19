@@ -84,15 +84,16 @@ const TTSEngine = (function () {
     const code = langCode();
     const all = speechSynthesis.getVoices();
     const matches = all.filter(v => v.lang === code || v.lang.startsWith(code.split('-')[0]));
-    // Microsoft voices are local (not network-backed) and fire onboundary
-    // reliably; Google's network voices (used e.g. for Spanish/English on
-    // Chrome) often don't, forcing the laggier estimated-timer fallback.
-    // Sort Microsoft first so pickVoice()'s default choice avoids that.
-    return matches.slice().sort((a, b) => {
-      const aMs = /microsoft/i.test(a.name) ? 0 : 1;
-      const bMs = /microsoft/i.test(b.name) ? 0 : 1;
-      return aMs - bMs;
-    });
+    // Local voices (Microsoft on Windows, etc.) fire onboundary reliably;
+    // network-backed voices (Google's, used e.g. for Spanish/English on
+    // Chrome) often don't, forcing the laggier estimated-timer fallback,
+    // which is what causes the word display to drift/jump out of sync with
+    // the audio. voice.localService is the Web Speech API's own signal for
+    // this, so filter network voices out entirely whenever a local one is
+    // available instead of just sorting them first — otherwise a user could
+    // still pick a network voice from the dropdown and hit the desync.
+    const local = matches.filter(v => v.localService);
+    return local.length ? local : matches;
   }
 
   function pickVoice() {
