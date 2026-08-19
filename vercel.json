@@ -3,7 +3,7 @@
     "api/lp.js": {
       "maxDuration": 60
     },
-    "api/speed-read-tts.js": {
+    "api/tutor.js": {
       "maxDuration": 30
     }
   },

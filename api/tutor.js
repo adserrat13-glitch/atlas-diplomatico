@@ -1,4 +1,55 @@
-const { groqCreate } = require('./_lib/groq-client');
+const { groqCreate, groqCall } = require('./_lib/groq-client');
+
+/* ─── speed-read TTS (Groq PlayAI + Whisper word timestamps) ─────────────── */
+// Folded into this router (rather than its own api/*.js file) to stay under
+// Vercel Hobby's 12-serverless-functions-per-deployment cap.
+
+const SR_VOICES = [
+  { id: 'Fritz-PlayAI',    label: 'Fritz (masculino)' },
+  { id: 'Arista-PlayAI',   label: 'Arista (feminino)' },
+  { id: 'Atlas-PlayAI',    label: 'Atlas (masculino)' },
+  { id: 'Indigo-PlayAI',   label: 'Indigo (neutro)' },
+  { id: 'Mikail-PlayAI',   label: 'Mikail (masculino)' },
+  { id: 'Thunder-PlayAI',  label: 'Thunder (masculino grave)' }
+];
+const SR_DEFAULT_VOICE = 'Fritz-PlayAI';
+const SR_TTS_MODEL = 'playai-tts';
+const SR_WHISPER_MODEL = 'whisper-large-v3';
+
+async function handleSpeedReadVoices(req, res) {
+  return res.status(200).json({ voices: SR_VOICES, defaultVoice: SR_DEFAULT_VOICE });
+}
+
+async function handleSpeedReadTTS(req, res) {
+  const { text, voice } = req.body || {};
+  if (!text || !text.trim()) {
+    return res.status(400).json({ error: 'text é obrigatório' });
+  }
+  const voiceId = SR_VOICES.some(v => v.id === voice) ? voice : SR_DEFAULT_VOICE;
+
+  const speechResponse = await groqCall(client => client.audio.speech.create({
+    model: SR_TTS_MODEL,
+    voice: voiceId,
+    input: text,
+    response_format: 'wav'
+  }));
+  const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
+
+  const transcription = await groqCall(client => client.audio.transcriptions.create({
+    file: new File([audioBuffer], 'speech.wav', { type: 'audio/wav' }),
+    model: SR_WHISPER_MODEL,
+    response_format: 'verbose_json',
+    timestamp_granularities: ['word']
+  }));
+
+  const words = (transcription.words || []).map(w => ({ word: w.word, start: w.start, end: w.end }));
+
+  return res.status(200).json({
+    audio: audioBuffer.toString('base64'),
+    mime: 'audio/wav',
+    words
+  });
+}
 
 /* ─── generate (ex tutor-generate.js) ───────────────────────────────────── */
 
@@ -288,10 +339,24 @@ async function handleCorrect(req, res) {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
+
+  const isSpeedRead = req.query && req.query.tool === 'speed-read-tts';
+  if (isSpeedRead) {
+    try {
+      if (req.method === 'GET') return await handleSpeedReadVoices(req, res);
+      if (req.method === 'POST') return await handleSpeedReadTTS(req, res);
+      return res.status(405).json({ error: 'Método não permitido' });
+    } catch (err) {
+      console.error('speed-read-tts error:', err);
+      const status = err?.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+      return res.status(status).json({ error: err?.message || 'Falha ao gerar áudio' });
+    }
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido' });
 
   const body = req.body || {};

@@ -379,7 +379,7 @@
 
   async function loadVoiceList() {
     try {
-      const res = await fetch('api/speed-read-tts.js');
+      const res = await fetch('api/tutor.js?tool=speed-read-tts');
       const data = await res.json();
       groqVoices = data.voices || [];
       groqDefaultVoice = data.defaultVoice || (groqVoices[0] && groqVoices[0].id) || null;

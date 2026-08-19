@@ -5,7 +5,7 @@
    interface mirrors tts-engine.js so the page controller code is unchanged. */
 
 const GroqTTSEngine = (function () {
-  const API_URL = 'api/speed-read-tts.js';
+  const API_URL = 'api/tutor.js?tool=speed-read-tts';
 
   let sentences = [];
   let sentenceIdx = 0;
