@@ -1,19 +1,20 @@
 const { groqCreate, groqCall } = require('./_lib/groq-client');
 
-/* ─── speed-read TTS (Groq PlayAI + Whisper word timestamps) ─────────────── */
+/* ─── speed-read TTS (Groq Orpheus TTS + Whisper word timestamps) ─────────── */
 // Folded into this router (rather than its own api/*.js file) to stay under
 // Vercel Hobby's 12-serverless-functions-per-deployment cap.
+// playai-tts was decommissioned by Groq (Dec 2025) in favor of Orpheus.
 
 const SR_VOICES = [
-  { id: 'Fritz-PlayAI',    label: 'Fritz (masculino)' },
-  { id: 'Arista-PlayAI',   label: 'Arista (feminino)' },
-  { id: 'Atlas-PlayAI',    label: 'Atlas (masculino)' },
-  { id: 'Indigo-PlayAI',   label: 'Indigo (neutro)' },
-  { id: 'Mikail-PlayAI',   label: 'Mikail (masculino)' },
-  { id: 'Thunder-PlayAI',  label: 'Thunder (masculino grave)' }
+  { id: 'autumn', label: 'Autumn (feminino)' },
+  { id: 'diana',  label: 'Diana (feminino)' },
+  { id: 'hannah', label: 'Hannah (feminino)' },
+  { id: 'austin', label: 'Austin (masculino)' },
+  { id: 'daniel', label: 'Daniel (masculino)' },
+  { id: 'troy',   label: 'Troy (masculino)' }
 ];
-const SR_DEFAULT_VOICE = 'Fritz-PlayAI';
-const SR_TTS_MODEL = 'playai-tts';
+const SR_DEFAULT_VOICE = 'troy';
+const SR_TTS_MODEL = 'canopylabs/orpheus-v1-english';
 const SR_WHISPER_MODEL = 'whisper-large-v3';
 
 async function handleSpeedReadVoices(req, res) {
