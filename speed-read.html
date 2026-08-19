@@ -304,13 +304,23 @@
         <label class="sr-toggle-switch">
           <input type="checkbox" id="firstLetterToggle" onchange="onFirstLetterToggle(this)" />
           <span class="sr-toggle-track"></span>
-          <span class="sr-toggle-switch-label">Colorir 1ª letra</span>
+          <span class="sr-toggle-switch-label">Colorir letra-guia (ORP)</span>
         </label>
         <label class="sr-toggle-switch">
           <input type="checkbox" id="bionicToggle" onchange="onBionicToggle(this)" />
           <span class="sr-toggle-track"></span>
           <span class="sr-toggle-switch-label">Bionic Reading</span>
         </label>
+      </div>
+      <div class="sr-settings-row">
+        <div class="sr-setting">
+          <label class="sr-label">Palavras por flash</label>
+          <div class="sr-wpm-group" id="chunkGroup">
+            <button class="sr-opt active" data-chunk="1" onclick="srSetChunkSize(this)">1</button>
+            <button class="sr-opt" data-chunk="2" onclick="srSetChunkSize(this)">2</button>
+            <button class="sr-opt" data-chunk="3" onclick="srSetChunkSize(this)">3</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -554,6 +564,11 @@
     btn.classList.add('active');
     TTSEngine.setTargetWPM(parseInt(btn.dataset.wpm, 10));
   }
+  function srSetChunkSize(btn) {
+    document.querySelectorAll('#chunkGroup .sr-opt[data-chunk]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    TTSEngine.setChunkSize(parseInt(btn.dataset.chunk, 10));
+  }
 
   // ── Extra settings: pitch, volume, appearance ──
   function toggleSettings() {
@@ -591,30 +606,42 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
-  function renderWord(word) {
-    const el = document.getElementById('srWord');
-    if (word === '—' || !word) { el.textContent = word; return; }
+  // Optimal Recognition Point: the letter the eye should fixate on so the
+  // rest of the word resolves in peripheral vision, per the classic RSVP/
+  // Spritz rule — roughly 30-35% into the word, growing slowly with length,
+  // always index 0 for 1-letter words.
+  function orpIndex(word) {
+    const len = word.length;
+    if (len <= 1) return 0;
+    if (len <= 5) return 1;
+    if (len <= 9) return 2;
+    if (len <= 13) return 3;
+    return 4;
+  }
 
+  function renderWordHtml(word) {
+    if (!word) return '';
+    const orp = appearance.colorFirstLetter ? orpIndex(word) : -1;
     // Bionic Reading: bold the first ~40% of the word's letters (min 1).
     const bionicSplit = appearance.bionic ? Math.max(1, Math.ceil(word.length * 0.4)) : 0;
-    const firstLetterSplit = appearance.colorFirstLetter ? 1 : 0;
-    const splitPoints = [...new Set([bionicSplit, firstLetterSplit].filter(n => n > 0))].sort((a, b) => a - b);
-
-    if (!splitPoints.length) { el.textContent = word; return; }
 
     let html = '';
-    let pos = 0;
-    splitPoints.forEach(p => {
-      const chunk = word.slice(pos, p);
-      if (!chunk) return;
+    for (let i = 0; i < word.length; i++) {
+      const ch = escapeHtml(word[i]);
       const classes = [];
-      if (appearance.colorFirstLetter && pos < firstLetterSplit) classes.push('first-letter-color');
-      if (appearance.bionic && pos < bionicSplit) classes.push('bionic-strong');
-      html += classes.length ? `<span class="${classes.join(' ')}">${escapeHtml(chunk)}</span>` : escapeHtml(chunk);
-      pos = p;
-    });
-    html += escapeHtml(word.slice(pos));
-    el.innerHTML = html;
+      if (i === orp) classes.push('first-letter-color');
+      if (i < bionicSplit) classes.push('bionic-strong');
+      html += classes.length ? `<span class="${classes.join(' ')}">${ch}</span>` : ch;
+    }
+    return html;
+  }
+
+  function renderWord(text) {
+    const el = document.getElementById('srWord');
+    if (text === '—' || !text) { el.textContent = text; return; }
+    // text may be a multi-word chunk (1-3 words) — render each word's own
+    // ORP/Bionic emphasis independently, space-joined.
+    el.innerHTML = text.split(' ').map(renderWordHtml).join(' ');
   }
 
   // ── Paste-text: read now, save nothing ──
