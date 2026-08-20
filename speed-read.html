@@ -123,6 +123,8 @@
       order:10; /* push below the transport buttons within the wrapping row */
     }
     body.sr-layout-mobile .sr-opt { padding:6px 12px; font-size:11px; }
+    body.sr-layout-mobile .sr-slider-row { gap:12px; }
+    body.sr-layout-mobile .sr-slider-block { min-width:0; flex:1 1 100%; }
     body.sr-layout-mobile .sr-translation { font-size:13px; max-width:100%; }
     body.sr-layout-mobile .sr-settings-row { gap:16px; }
     body.sr-layout-mobile .sr-setting input[type="range"] { width:120px; }
@@ -182,6 +184,23 @@
     .sr-toggle-switch-label { font-size:12px; color:var(--text); }
 
     .sr-wpm-group { display:flex; align-items:center; gap:5px; flex-wrap:wrap; justify-content:center; }
+
+    /* ── Speed/chunk slider row (SwiftRead-style) ── */
+    .sr-slider-row { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; align-items:flex-end; }
+    .sr-slider-block { display:flex; flex-direction:column; gap:6px; min-width:220px; flex:1 1 260px; max-width:360px; }
+    .sr-slider-block-narrow { min-width:140px; flex:0 1 160px; }
+    .sr-slider-head { display:flex; justify-content:space-between; align-items:center; }
+    .sr-slider-val { font-size:13px; color:var(--text); font-weight:700; font-variant-numeric:tabular-nums; }
+    .sr-slider-line { display:flex; align-items:center; gap:8px; }
+    .sr-slider-line input[type="range"] { flex:1; accent-color:var(--accent); }
+    .sr-slider-block-narrow .sr-slider-line { justify-content:center; }
+    .sr-slider-block-narrow .sr-slider-val { min-width:16px; text-align:center; }
+    .sr-stepper-btn {
+      background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text);
+      border-radius:8px; width:34px; height:30px; font-size:13px; font-weight:700; cursor:pointer;
+      font-family:inherit; flex-shrink:0; transition:.15s;
+    }
+    .sr-stepper-btn:hover { background:rgba(255,255,255,0.12); border-color:rgba(255,255,255,.3); }
 
     /* Bionic Reading emphasis within the displayed word */
     .bionic-strong { font-weight:900; }
@@ -262,14 +281,28 @@
       <button class="sr-icon-btn" onclick="srPrev()" title="Frase anterior">◀◀</button>
       <button class="sr-icon-btn play" id="srPlayBtn" onclick="srPlayToggle()" title="Play/Pause">▶</button>
       <button class="sr-icon-btn" onclick="srNext()" title="Próxima frase">▶▶</button>
-      <div class="sr-wpm-group" id="wpmGroup">
-        <button class="sr-opt" data-wpm="100" onclick="srSetWPM(this)">100</button>
-        <button class="sr-opt active" data-wpm="200" onclick="srSetWPM(this)">200</button>
-        <button class="sr-opt" data-wpm="300" onclick="srSetWPM(this)">300</button>
-        <button class="sr-opt" data-wpm="400" onclick="srSetWPM(this)">400</button>
-        <button class="sr-opt" data-wpm="500" onclick="srSetWPM(this)">500</button>
-        <button class="sr-opt" data-wpm="600" onclick="srSetWPM(this)">600</button>
-        <span class="sr-label" style="margin-left:2px">WPM</span>
+    </div>
+    <div class="sr-slider-row">
+      <div class="sr-slider-block">
+        <div class="sr-slider-head">
+          <span class="sr-label">Velocidade</span>
+          <span class="sr-slider-val" id="wpmVal">200 WPM</span>
+        </div>
+        <div class="sr-slider-line">
+          <button class="sr-stepper-btn" onclick="srAdjustWPM(-10)">−10</button>
+          <input type="range" id="wpmRange" min="100" max="800" step="10" value="200" oninput="srSetWPMFromSlider(this)" />
+          <button class="sr-stepper-btn" onclick="srAdjustWPM(10)">+10</button>
+        </div>
+      </div>
+      <div class="sr-slider-block sr-slider-block-narrow">
+        <div class="sr-slider-head">
+          <span class="sr-label">Palavras por flash</span>
+        </div>
+        <div class="sr-slider-line">
+          <button class="sr-stepper-btn" onclick="srAdjustChunk(-1)">−</button>
+          <span class="sr-slider-val" id="chunkVal">1</span>
+          <button class="sr-stepper-btn" onclick="srAdjustChunk(1)">+</button>
+        </div>
       </div>
     </div>
     <button class="sr-toggle-settings" onclick="toggleSettings()" id="settingsToggleBtn">⚙ Mais configurações</button>
@@ -314,14 +347,6 @@
         </label>
       </div>
       <div class="sr-settings-row">
-        <div class="sr-setting">
-          <label class="sr-label">Palavras por flash</label>
-          <div class="sr-wpm-group" id="chunkGroup">
-            <button class="sr-opt active" data-chunk="1" onclick="srSetChunkSize(this)">1</button>
-            <button class="sr-opt" data-chunk="2" onclick="srSetChunkSize(this)">2</button>
-            <button class="sr-opt" data-chunk="3" onclick="srSetChunkSize(this)">3</button>
-          </div>
-        </div>
         <div class="sr-setting">
           <label class="sr-label">Pausa entre frases</label>
           <div class="sr-wpm-group" id="pauseGroup">
@@ -437,6 +462,9 @@
       }
     };
     TTSEngine.onUsageChange = (used, limit) => updateUsageLabel(used, limit);
+
+    srApplyWPM(currentWPM);
+    srApplyChunk(currentChunk);
 
     await loadVoiceList();
     onLanguageChange();
@@ -583,16 +611,25 @@
   function srRestart() { TTSEngine.restart(); }
   function srNext() { TTSEngine.next(); }
   function srPrev() { TTSEngine.prev(); }
-  function srSetWPM(btn) {
-    document.querySelectorAll('#wpmGroup .sr-opt[data-wpm]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    TTSEngine.setTargetWPM(parseInt(btn.dataset.wpm, 10));
+  const WPM_MIN = 100, WPM_MAX = 800;
+  let currentWPM = 200;
+  function srApplyWPM(wpm) {
+    currentWPM = Math.max(WPM_MIN, Math.min(WPM_MAX, wpm));
+    document.getElementById('wpmRange').value = currentWPM;
+    document.getElementById('wpmVal').textContent = `${currentWPM} WPM`;
+    TTSEngine.setTargetWPM(currentWPM);
   }
-  function srSetChunkSize(btn) {
-    document.querySelectorAll('#chunkGroup .sr-opt[data-chunk]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    TTSEngine.setChunkSize(parseInt(btn.dataset.chunk, 10));
+  function srAdjustWPM(delta) { srApplyWPM(currentWPM + delta); }
+  function srSetWPMFromSlider(el) { srApplyWPM(parseInt(el.value, 10)); }
+
+  const CHUNK_MIN = 1, CHUNK_MAX = 3;
+  let currentChunk = 1;
+  function srApplyChunk(n) {
+    currentChunk = Math.max(CHUNK_MIN, Math.min(CHUNK_MAX, n));
+    document.getElementById('chunkVal').textContent = currentChunk;
+    TTSEngine.setChunkSize(currentChunk);
   }
+  function srAdjustChunk(delta) { srApplyChunk(currentChunk + delta); }
   function srSetSentencePause(btn) {
     document.querySelectorAll('#pauseGroup .sr-opt[data-pause]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
