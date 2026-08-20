@@ -21,7 +21,9 @@ async function groqCreate(params) {
 }
 
 // Runs fn(client) against each configured key in order, failing over to the
-// next key only on rate-limit/server errors (same policy as groqCreate).
+// next key on rate-limit/server errors, or on a key's org not having
+// accepted a gated model's terms yet (each Groq account accepts terms
+// independently — e.g. Orpheus TTS across several rotated keys/accounts).
 async function groqCall(fn) {
   const clientList = getClients();
   let lastErr;
@@ -30,7 +32,10 @@ async function groqCall(fn) {
       return await fn(client);
     } catch (err) {
       lastErr = err;
-      const retryable = err?.status === 429 || err?.status >= 500;
+      const termsRequired = err?.error?.code === 'model_terms_required'
+        || err?.code === 'model_terms_required'
+        || /model_terms_required/.test(err?.message || '');
+      const retryable = err?.status === 429 || err?.status >= 500 || termsRequired;
       if (!retryable) throw err;
     }
   }
