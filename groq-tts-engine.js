@@ -32,8 +32,13 @@ const TTSEngine = (function () {
   let rafId = null;
   let lastReportedIdx = -1;
   let lastReportedChunkStart = -1;
+  // Bumped by reset()/startSentence() so a stale in-flight fetch or play()
+  // from a superseded call (voice change, rapid next/prev, WPM change while
+  // loading) can recognize it's obsolete and skip touching audio/state.
+  let playToken = 0;
 
   function reset() {
+    playToken++;
     cancelAnimationFrame(rafId);
     audio.pause();
     audio.src = '';
@@ -104,6 +109,7 @@ const TTSEngine = (function () {
   }
 
   async function startSentence() {
+    const myToken = ++playToken;
     const text = sentences[sentenceIdx];
     if (!text) { if (onStateChange) onStateChange('ended'); return; }
     if (onSentenceChange) onSentenceChange(text, sentenceIdx, sentences.length);
@@ -112,12 +118,13 @@ const TTSEngine = (function () {
     try {
       entry = await fetchSentence(sentenceIdx);
     } catch (err) {
+      if (myToken !== playToken) return; // superseded while fetching
       if (onWordBoundary) onWordBoundary('—');
       if (onStateChange) onStateChange('error', err.message);
       console.error('GroqTTSEngine:', err);
       return;
     }
-    if (sentenceIdx >= sentences.length || paused === null) return; // superseded
+    if (myToken !== playToken) return; // superseded (voice/text/next/prev changed while fetching)
 
     currentWords = entry.words;
     lastReportedIdx = -1;
@@ -130,6 +137,7 @@ const TTSEngine = (function () {
     if (sentenceIdx + 1 < sentences.length) fetchSentence(sentenceIdx + 1).catch(() => {});
 
     audio.onended = () => {
+      if (myToken !== playToken) return;
       cancelAnimationFrame(rafId);
       if (paused) return;
       sentenceIdx++;
@@ -139,9 +147,11 @@ const TTSEngine = (function () {
 
     try {
       await audio.play();
+      if (myToken !== playToken) return; // superseded while play() was pending
       if (onStateChange) onStateChange('playing');
       rafId = requestAnimationFrame(tick);
     } catch (err) {
+      if (myToken !== playToken || err.name === 'AbortError') return; // expected: superseded by a newer load/play
       console.error('GroqTTSEngine playback error:', err);
       if (onStateChange) onStateChange('error');
     }
