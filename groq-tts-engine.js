@@ -1,10 +1,11 @@
 /* Atlas Diplomático — Groq TTS engine
-   Replaces the browser speechSynthesis engine with Groq PlayAI TTS audio
+   Replaces the browser speechSynthesis engine with Groq Orpheus TTS audio
    plus Whisper word-level timestamps, so word-boundary sync is driven by
-   the audio's own transcription instead of an estimated timer. Public
-   interface mirrors tts-engine.js so the page controller code is unchanged. */
+   the audio's own transcription instead of an estimated timer. Exposes the
+   global TTSEngine (same name/interface as the old browser-based
+   tts-engine.js) so the page controller code is unchanged. */
 
-const GroqTTSEngine = (function () {
+const TTSEngine = (function () {
   const API_URL = 'api/tutor.js?tool=speed-read-tts';
 
   let sentences = [];
@@ -12,6 +13,7 @@ const GroqTTSEngine = (function () {
   let rate = 1.0;
   let volume = 1.0;
   let voiceId = null;
+  let chunkSize = 1;
   let paused = false;
   let onSentenceChange = null;
   let onWordBoundary = null;
@@ -28,6 +30,7 @@ const GroqTTSEngine = (function () {
   let currentWords = [];
   let rafId = null;
   let lastReportedIdx = -1;
+  let lastReportedChunkStart = -1;
 
   function reset() {
     cancelAnimationFrame(rafId);
@@ -35,6 +38,7 @@ const GroqTTSEngine = (function () {
     audio.src = '';
     currentWords = [];
     lastReportedIdx = -1;
+    lastReportedChunkStart = -1;
   }
 
   function load(textObj, language) {
@@ -82,8 +86,17 @@ const GroqTTSEngine = (function () {
     let idx = lastReportedIdx;
     while (idx + 1 < currentWords.length && currentWords[idx + 1].start <= t) idx++;
     if (idx > lastReportedIdx) {
+      // Report in chunkSize-word groups: align the chunk's start to a
+      // chunkSize boundary so flashes are stable regardless of which word
+      // in the chunk the audio just crossed.
+      const chunkStart = Math.floor(idx / chunkSize) * chunkSize;
+      if (chunkStart > lastReportedChunkStart) {
+        lastReportedChunkStart = chunkStart;
+        const chunkEnd = Math.min(chunkStart + chunkSize, currentWords.length);
+        const text = currentWords.slice(chunkStart, chunkEnd).map(w => w.word).join(' ');
+        if (onWordBoundary) onWordBoundary(text);
+      }
       lastReportedIdx = idx;
-      if (onWordBoundary) onWordBoundary(currentWords[idx].word);
     }
     rafId = requestAnimationFrame(tick);
   }
@@ -106,6 +119,7 @@ const GroqTTSEngine = (function () {
 
     currentWords = entry.words;
     lastReportedIdx = -1;
+    lastReportedChunkStart = -1;
     audio.src = entry.url;
     audio.playbackRate = rate;
     audio.volume = volume;
@@ -185,6 +199,10 @@ const GroqTTSEngine = (function () {
     setRate(wpm / NATURAL_WPM);
   }
   function getRate() { return rate; }
+  function setChunkSize(n) {
+    chunkSize = Math.max(1, Math.min(3, n));
+    lastReportedChunkStart = -1; // re-align chunk boundaries on next tick
+  }
   function setVoiceURI(id) {
     voiceId = id;
     cache.clear(); // cached audio was generated with the old voice
@@ -200,7 +218,7 @@ const GroqTTSEngine = (function () {
 
   return {
     load, play, pauseToggle, stop, next, prev, restart,
-    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, getRate,
+    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, setChunkSize, getRate,
     getVoicesForLang, getSentenceIndex, getSentenceCount, getProgress, isSpeaking,
     set onSentenceChange(fn) { onSentenceChange = fn; },
     set onWordBoundary(fn) { onWordBoundary = fn; },
