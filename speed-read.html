@@ -237,6 +237,7 @@
     <select class="sr-select" id="textSelect"></select>
     <span class="sr-label">Voz</span>
     <select class="sr-select" id="voiceSelect"></select>
+    <span class="sr-label" id="srUsageLabel" style="display:none" title="Uso diário do TTS Groq (aproximado — reinicia a cada deploy/cold start)"></span>
     <div class="sr-spacer"></div>
     <button class="sr-layout-btn" id="layoutToggleBtn" onclick="toggleLayoutMode()" title="Alternar layout Mobile/Desktop">🖥️</button>
     <button class="sr-focus-btn" onclick="enterFocusMode()" title="Tela cheia (somente palavra)">⛶</button>
@@ -384,9 +385,18 @@
       groqVoices = data.voices || [];
       groqDefaultVoice = data.defaultVoice || (groqVoices[0] && groqVoices[0].id) || null;
       if (groqDefaultVoice) TTSEngine.setVoiceURI(groqDefaultVoice);
+      if (data.usage) updateUsageLabel(data.usage.used, data.usage.limit);
     } catch (e) {
       console.error('Falha ao carregar vozes Groq:', e);
     }
+  }
+
+  function updateUsageLabel(used, limit) {
+    const el = document.getElementById('srUsageLabel');
+    if (!el || typeof limit !== 'number') return;
+    el.style.display = 'inline';
+    el.textContent = `TTS: ${used}/${limit} hoje`;
+    el.style.color = used >= limit ? 'var(--red)' : (used / limit > 0.8 ? '#f0b429' : 'var(--muted)');
   }
 
   async function init() {
@@ -409,10 +419,16 @@
     TTSEngine.onWordBoundary = (word) => {
       renderWord(word || '—');
     };
-    TTSEngine.onStateChange = (state) => {
+    TTSEngine.onStateChange = (state, errMsg) => {
       document.getElementById('srPlayBtn').textContent = state === 'playing' ? '❚❚' : '▶';
-      if (state === 'error') document.getElementById('srMeta').textContent = 'Erro ao gerar áudio. Tente novamente.';
+      if (state === 'error') {
+        const isRateLimit = /429|rate.?limit/i.test(errMsg || '');
+        document.getElementById('srMeta').textContent = isRateLimit
+          ? 'Limite diário de TTS do Groq atingido — tente novamente amanhã.'
+          : 'Erro ao gerar áudio. Tente novamente.';
+      }
     };
+    TTSEngine.onUsageChange = (used, limit) => updateUsageLabel(used, limit);
 
     await loadVoiceList();
     onLanguageChange();

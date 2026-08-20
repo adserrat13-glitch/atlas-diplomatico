@@ -17,8 +17,34 @@ const SR_DEFAULT_VOICE = 'troy';
 const SR_TTS_MODEL = 'canopylabs/orpheus-v1-english';
 const SR_WHISPER_MODEL = 'whisper-large-v3';
 
+// Groq free tier caps Orpheus TTS at 100 requests/day per key (Whisper's own
+// cap, 2K/day, is well above this so TTS is always the bottleneck). Counted
+// in memory per warm serverless instance — resets on cold start, so this is
+// an approximation, not an exact organization-wide count.
+const SR_TTS_DAILY_LIMIT_PER_KEY = 100;
+let srTtsUsage = { date: null, count: 0 };
+
+function srTtsDailyLimit() {
+  const keyCount = ['GROQ_API_KEY', 'GROQ_API_KEY_2', 'GROQ_API_KEY_3']
+    .filter(name => process.env[name]).length || 1;
+  return SR_TTS_DAILY_LIMIT_PER_KEY * keyCount;
+}
+
+function srTtsRecordUsage() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (srTtsUsage.date !== today) srTtsUsage = { date: today, count: 0 };
+  srTtsUsage.count++;
+  return { used: srTtsUsage.count, limit: srTtsDailyLimit() };
+}
+
 async function handleSpeedReadVoices(req, res) {
-  return res.status(200).json({ voices: SR_VOICES, defaultVoice: SR_DEFAULT_VOICE });
+  const today = new Date().toISOString().slice(0, 10);
+  const used = srTtsUsage.date === today ? srTtsUsage.count : 0;
+  return res.status(200).json({
+    voices: SR_VOICES,
+    defaultVoice: SR_DEFAULT_VOICE,
+    usage: { used, limit: srTtsDailyLimit() }
+  });
 }
 
 async function handleSpeedReadTTS(req, res) {
@@ -34,6 +60,7 @@ async function handleSpeedReadTTS(req, res) {
     input: text,
     response_format: 'wav'
   }));
+  const usage = srTtsRecordUsage();
   const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
 
   const transcription = await groqCall(client => client.audio.transcriptions.create({
@@ -48,6 +75,7 @@ async function handleSpeedReadTTS(req, res) {
   return res.status(200).json({
     audio: audioBuffer.toString('base64'),
     mime: 'audio/wav',
+    usage,
     words
   });
 }

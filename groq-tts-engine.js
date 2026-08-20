@@ -18,6 +18,7 @@ const TTSEngine = (function () {
   let onSentenceChange = null;
   let onWordBoundary = null;
   let onStateChange = null;
+  let onUsageChange = null;
 
   const audio = new Audio();
   audio.preload = 'auto';
@@ -63,6 +64,7 @@ const TTSEngine = (function () {
     })
       .then(r => r.json().then(data => {
         if (!r.ok) throw new Error(data.error || 'Falha ao gerar áudio');
+        if (data.usage && onUsageChange) onUsageChange(data.usage.used, data.usage.limit);
         const blob = b64ToBlob(data.audio, data.mime || 'audio/wav');
         const entry = { url: URL.createObjectURL(blob), words: data.words || [] };
         cache.set(idx, entry);
@@ -111,7 +113,7 @@ const TTSEngine = (function () {
       entry = await fetchSentence(sentenceIdx);
     } catch (err) {
       if (onWordBoundary) onWordBoundary('—');
-      if (onStateChange) onStateChange('error');
+      if (onStateChange) onStateChange('error', err.message);
       console.error('GroqTTSEngine:', err);
       return;
     }
@@ -222,6 +224,7 @@ const TTSEngine = (function () {
     getVoicesForLang, getSentenceIndex, getSentenceCount, getProgress, isSpeaking,
     set onSentenceChange(fn) { onSentenceChange = fn; },
     set onWordBoundary(fn) { onWordBoundary = fn; },
-    set onStateChange(fn) { onStateChange = fn; }
+    set onStateChange(fn) { onStateChange = fn; },
+    set onUsageChange(fn) { onUsageChange = fn; }
   };
 })();
