@@ -562,6 +562,7 @@
       const nc = document.getElementById('navCountdown');
       if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
       loadSimBrowser();
+      refreshDeckScoresFromRemote();
     })();
 
     // ─── Manifest-based folder scanning (GitHub Pages compatible) ──────
@@ -593,14 +594,29 @@
     }
 
     // ─── Cor do balão do deck por desempenho (vermelho → amarelo → verde) ──
-    const DECK_SCORES_KEY = 'deck_scores';
-    function getDeckScores() {
-      try { return JSON.parse(localStorage.getItem(DECK_SCORES_KEY)) || {}; } catch { return {}; }
+    // Fonte de verdade: Supabase (sincroniza entre dispositivos). O cache local
+    // serve só para pintar os balões instantaneamente antes do fetch resolver.
+    const DECK_SCORES_KEY = 'deck_scores_cache';
+    let _deckScoresCache = null;
+    function getDeckScoresCache() {
+      if (_deckScoresCache) return _deckScoresCache;
+      try { _deckScoresCache = JSON.parse(localStorage.getItem(DECK_SCORES_KEY)) || {}; }
+      catch { _deckScoresCache = {}; }
+      return _deckScoresCache;
     }
-    function saveDeckScore(name, pct) {
-      const scores = getDeckScores();
+    async function saveDeckScore(name, pct) {
+      const scores = getDeckScoresCache();
       scores[name] = pct;
       localStorage.setItem(DECK_SCORES_KEY, JSON.stringify(scores));
+      try { await DB.saveDeckScore(name, pct); } catch (e) { console.warn('saveDeckScore remoto falhou:', e); }
+    }
+    async function refreshDeckScoresFromRemote() {
+      try {
+        const remote = await DB.getDeckScores();
+        _deckScoresCache = remote;
+        localStorage.setItem(DECK_SCORES_KEY, JSON.stringify(remote));
+        loadSimBrowser();
+      } catch (e) { console.warn('refreshDeckScoresFromRemote falhou:', e); }
     }
     function deckScoreColor(pct) {
       // 0% = vermelho, 50% = amarelo, 100% = verde
@@ -616,7 +632,7 @@
       return `rgb(${r},${g},${b})`;
     }
     function deckScoreStyle(deckKey) {
-      const scores = getDeckScores();
+      const scores = getDeckScoresCache();
       const pct = scores[deckKey];
       if (pct === undefined) return '';
       const color = deckScoreColor(pct);
@@ -1091,7 +1107,7 @@
         if (a.isCorrect) subjectsBreakdown[sc].correct++;
       });
 
-      saveDeckScore(deckName, pct);
+      saveDeckScore(deckName, pct).then(() => loadSimBrowser());
 
       DB.addSession({
         type: isRetry ? 'simulado-revisao' : 'simulado', deck: deckName,

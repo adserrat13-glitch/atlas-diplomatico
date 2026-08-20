@@ -177,6 +177,30 @@ const DB = {
     return data;
   },
 
+  // ── DECK SCORES (última % de acerto por deck, p/ colorir o balão) ───
+
+  async getDeckScores() {
+    const user = await this.getUser();
+    if (!user) return {};
+    const { data } = await _sb.from('deck_scores')
+      .select('deck_name, pct').eq('user_id', user.id);
+    const map = {};
+    (data || []).forEach(r => { map[r.deck_name] = r.pct; });
+    return map;
+  },
+
+  async saveDeckScore(deck_name, pct) {
+    const user = await this.getUser();
+    if (!user) return;
+    const { error } = await _sb.from('deck_scores').upsert({
+      user_id: user.id,
+      deck_name,
+      pct,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id,deck_name' });
+    if (error) console.warn('saveDeckScore error:', error.message);
+  },
+
   // ── SIMULADO CHECKPOINTS ─────────────────────────────────────────────
 
   async saveCheckpoint({ deck_name, current_index, total_questions, mode, timer_seconds }) {
