@@ -387,8 +387,16 @@
 <aside id="sidebar"></aside>
 <script src="_sidebar.js"></script>
 
+<script src="tts-engine.js"></script>
 <script src="groq-tts-engine.js"></script>
 <script>
+  // Groq's Orpheus TTS only speaks English/Arabic — non-Latin-alphabet
+  // languages (Russian, Greek) fall back to the browser's speechSynthesis
+  // engine, which the Groq engine's error path can't recover from since
+  // Orpheus outright rejects that text rather than mispronouncing it.
+  const BROWSER_TTS_LANGUAGES = new Set(['russian', 'greek']);
+  let TTSEngine = GroqTTSEngine;
+
   const LANGUAGES = [
     { key: 'english',       label: 'Inglês' },
     { key: 'russian',       label: 'Russo' },
@@ -445,23 +453,25 @@
     document.getElementById('textSelect').addEventListener('change', onTextChange);
     document.getElementById('voiceSelect').addEventListener('change', onVoiceChange);
 
-    TTSEngine.onSentenceChange = (sentence, idx, total) => {
-      document.getElementById('srMeta').textContent = `Frase ${idx + 1} / ${total}`;
-      updateTranslationDisplay(idx);
-    };
-    TTSEngine.onWordBoundary = (word) => {
-      renderWord(word || '—');
-    };
-    TTSEngine.onStateChange = (state, errMsg) => {
-      document.getElementById('srPlayBtn').textContent = state === 'playing' ? '❚❚' : '▶';
-      if (state === 'error') {
-        const isRateLimit = /429|rate.?limit/i.test(errMsg || '');
-        document.getElementById('srMeta').textContent = isRateLimit
-          ? 'Limite diário de TTS do Groq atingido — tente novamente amanhã.'
-          : 'Erro ao gerar áudio. Tente novamente.';
-      }
-    };
-    TTSEngine.onUsageChange = (used, limit) => updateUsageLabel(used, limit);
+    [GroqTTSEngine, BrowserTTSEngine].forEach(engine => {
+      engine.onSentenceChange = (sentence, idx, total) => {
+        document.getElementById('srMeta').textContent = `Frase ${idx + 1} / ${total}`;
+        updateTranslationDisplay(idx);
+      };
+      engine.onWordBoundary = (word) => {
+        renderWord(word || '—');
+      };
+      engine.onStateChange = (state, errMsg) => {
+        document.getElementById('srPlayBtn').textContent = state === 'playing' ? '❚❚' : '▶';
+        if (state === 'error') {
+          const isRateLimit = /429|rate.?limit/i.test(errMsg || '');
+          document.getElementById('srMeta').textContent = isRateLimit
+            ? 'Limite diário de TTS do Groq atingido — tente novamente amanhã.'
+            : 'Erro ao gerar áudio. Tente novamente.';
+        }
+      };
+    });
+    GroqTTSEngine.onUsageChange = (used, limit) => updateUsageLabel(used, limit);
 
     srApplyWPM(currentWPM);
     srApplyChunk(currentChunk);
@@ -496,11 +506,20 @@
     if (id) loadText(lang, id);
   }
 
+  function selectEngineForLang(lang) {
+    const wanted = BROWSER_TTS_LANGUAGES.has(lang) ? BrowserTTSEngine : GroqTTSEngine;
+    if (wanted !== TTSEngine) {
+      TTSEngine.stop();
+      TTSEngine = wanted;
+    }
+  }
+
   async function loadText(lang, id) {
     const res = await fetch(`content/${lang}/${id}.json`);
     currentText = await res.json();
     document.getElementById('textSelect').value = id;
 
+    selectEngineForLang(lang);
     TTSEngine.load(currentText, lang);
     populateVoices();
 
@@ -591,6 +610,15 @@
 
   function populateVoices() {
     const voiceSelect = document.getElementById('voiceSelect');
+    if (TTSEngine === BrowserTTSEngine) {
+      const voices = TTSEngine.getVoicesForLang ? TTSEngine.getVoicesForLang() : [];
+      if (!voices.length) {
+        voiceSelect.innerHTML = '<option value="">(voz padrão do sistema)</option>';
+        return;
+      }
+      voiceSelect.innerHTML = voices.map(v => `<option value="${v.voiceURI}">${v.name}</option>`).join('');
+      return;
+    }
     if (!groqVoices.length) {
       voiceSelect.innerHTML = '<option value="">(carregando vozes...)</option>';
       return;
@@ -737,6 +765,7 @@
     document.getElementById('readerArea').style.display = 'flex';
     document.getElementById('controlsBar').style.display = 'flex';
 
+    selectEngineForLang(lang);
     TTSEngine.load(currentText, lang);
     populateVoices();
     document.getElementById('srWord').textContent = '—';

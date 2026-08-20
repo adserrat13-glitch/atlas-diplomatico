@@ -24,7 +24,7 @@
    estimates are calibrated per language+voice so switching languages/
    voices mid-session can't corrupt an unrelated voice's estimates. */
 
-const TTSEngine = (function () {
+const BrowserTTSEngine = (function () {
   const LANG_VOICE_MAP = {
     'english':        'en-US',
     'russian':        'ru-RU',
@@ -48,6 +48,7 @@ const TTSEngine = (function () {
   let langKey = 'english';
   let paused = false;
   let chunkSize = 1; // words flashed together per onWordBoundary call (1-3)
+  let sentencePauseMs = 500; // gap between sentences: short=150, medium=500, long=1000
   let onSentenceChange = null;
   let onWordBoundary = null;
   let onStateChange = null;
@@ -330,8 +331,11 @@ const TTSEngine = (function () {
 
       if (paused) return; // resumed later via pauseToggle
       sentenceIdx++;
-      if (sentenceIdx < sentences.length) startSentence();
-      else if (onStateChange) onStateChange('ended');
+      if (sentenceIdx >= sentences.length) { if (onStateChange) onStateChange('ended'); return; }
+      setTimeout(() => {
+        if (paused) return; // paused during the gap
+        startSentence();
+      }, sentencePauseMs);
     };
 
     speechSynthesis.speak(u);
@@ -420,6 +424,7 @@ const TTSEngine = (function () {
   }
 
   function setChunkSize(n) { chunkSize = Math.max(1, Math.min(3, n | 0)); }
+  function setSentencePause(ms) { sentencePauseMs = Math.max(0, ms); }
   function setRate(n) { rate = Math.max(0.5, Math.min(2, n)); }
   function setPitch(n) { pitch = Math.max(0, Math.min(2, n)); }
   function setVolume(n) { volume = Math.max(0, Math.min(1, n)); }
@@ -451,7 +456,7 @@ const TTSEngine = (function () {
 
   return {
     load, play, pauseToggle, stop, next, prev, restart,
-    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, setChunkSize, getRate,
+    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, setChunkSize, setSentencePause, getRate,
     getVoicesForLang, getSentenceIndex, getSentenceCount, getProgress, isSpeaking,
     set onSentenceChange(fn) { onSentenceChange = fn; },
     set onWordBoundary(fn) { onWordBoundary = fn; },

@@ -5,7 +5,7 @@
    global TTSEngine (same name/interface as the old browser-based
    tts-engine.js) so the page controller code is unchanged. */
 
-const TTSEngine = (function () {
+const GroqTTSEngine = (function () {
   const API_URL = 'api/tutor.js?tool=speed-read-tts';
 
   let sentences = [];
