@@ -322,6 +322,14 @@
             <button class="sr-opt" data-chunk="3" onclick="srSetChunkSize(this)">3</button>
           </div>
         </div>
+        <div class="sr-setting">
+          <label class="sr-label">Pausa entre frases</label>
+          <div class="sr-wpm-group" id="pauseGroup">
+            <button class="sr-opt" data-pause="150" onclick="srSetSentencePause(this)">Curta</button>
+            <button class="sr-opt active" data-pause="500" onclick="srSetSentencePause(this)">Média</button>
+            <button class="sr-opt" data-pause="1000" onclick="srSetSentencePause(this)">Longa</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -584,6 +592,11 @@
     document.querySelectorAll('#chunkGroup .sr-opt[data-chunk]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     TTSEngine.setChunkSize(parseInt(btn.dataset.chunk, 10));
+  }
+  function srSetSentencePause(btn) {
+    document.querySelectorAll('#pauseGroup .sr-opt[data-pause]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    TTSEngine.setSentencePause(parseInt(btn.dataset.pause, 10));
   }
 
   // ── Extra settings: pitch, volume, appearance ──

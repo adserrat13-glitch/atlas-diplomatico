@@ -14,6 +14,7 @@ const TTSEngine = (function () {
   let volume = 1.0;
   let voiceId = null;
   let chunkSize = 1;
+  let sentencePauseMs = 500; // gap between sentences: short=150, medium=500, long=1000
   let paused = false;
   let onSentenceChange = null;
   let onWordBoundary = null;
@@ -141,8 +142,11 @@ const TTSEngine = (function () {
       cancelAnimationFrame(rafId);
       if (paused) return;
       sentenceIdx++;
-      if (sentenceIdx < sentences.length) startSentence();
-      else if (onStateChange) onStateChange('ended');
+      if (sentenceIdx >= sentences.length) { if (onStateChange) onStateChange('ended'); return; }
+      setTimeout(() => {
+        if (myToken !== playToken || paused) return; // superseded or paused during the gap
+        startSentence();
+      }, sentencePauseMs);
     };
 
     try {
@@ -166,9 +170,17 @@ const TTSEngine = (function () {
   function pauseToggle() {
     if (paused) {
       paused = false;
-      audio.play();
-      rafId = requestAnimationFrame(tick);
-      if (onStateChange) onStateChange('playing');
+      if (!audio.src) { startSentence(); return; } // src was cleared (reset) while paused — reload it
+      const myToken = playToken;
+      audio.play().then(() => {
+        if (myToken !== playToken) return;
+        rafId = requestAnimationFrame(tick);
+        if (onStateChange) onStateChange('playing');
+      }).catch(err => {
+        if (myToken !== playToken || err.name === 'AbortError') return;
+        console.error('GroqTTSEngine resume error:', err);
+        if (onStateChange) onStateChange('error');
+      });
     } else if (!audio.paused) {
       paused = true;
       cancelAnimationFrame(rafId);
@@ -215,6 +227,7 @@ const TTSEngine = (function () {
     chunkSize = Math.max(1, Math.min(3, n));
     lastReportedChunkStart = -1; // re-align chunk boundaries on next tick
   }
+  function setSentencePause(ms) { sentencePauseMs = Math.max(0, ms); }
   function setVoiceURI(id) {
     voiceId = id;
     cache.clear(); // cached audio was generated with the old voice
@@ -230,7 +243,7 @@ const TTSEngine = (function () {
 
   return {
     load, play, pauseToggle, stop, next, prev, restart,
-    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, setChunkSize, getRate,
+    setRate, setPitch, setVolume, setVoiceURI, setTargetWPM, setChunkSize, setSentencePause, getRate,
     getVoicesForLang, getSentenceIndex, getSentenceCount, getProgress, isSpeaking,
     set onSentenceChange(fn) { onSentenceChange = fn; },
     set onWordBoundary(fn) { onWordBoundary = fn; },
