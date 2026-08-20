@@ -592,6 +592,37 @@
       return (m.flashcards[key] || []);
     }
 
+    // ─── Cor do balão do deck por desempenho (vermelho → amarelo → verde) ──
+    const DECK_SCORES_KEY = 'deck_scores';
+    function getDeckScores() {
+      try { return JSON.parse(localStorage.getItem(DECK_SCORES_KEY)) || {}; } catch { return {}; }
+    }
+    function saveDeckScore(name, pct) {
+      const scores = getDeckScores();
+      scores[name] = pct;
+      localStorage.setItem(DECK_SCORES_KEY, JSON.stringify(scores));
+    }
+    function deckScoreColor(pct) {
+      // 0% = vermelho, 50% = amarelo, 100% = verde
+      const stops = pct <= 50
+        ? { from: [239, 68, 68],  to: [234, 179, 8],  t: pct / 50 }
+        : { from: [234, 179, 8],  to: [110, 231, 183], t: (pct - 50) / 50 };
+      const mix = (a, b, t) => Math.round(a + (b - a) * t);
+      const [r, g, b] = [
+        mix(stops.from[0], stops.to[0], stops.t),
+        mix(stops.from[1], stops.to[1], stops.t),
+        mix(stops.from[2], stops.to[2], stops.t)
+      ];
+      return `rgb(${r},${g},${b})`;
+    }
+    function deckScoreStyle(deckKey) {
+      const scores = getDeckScores();
+      const pct = scores[deckKey];
+      if (pct === undefined) return '';
+      const color = deckScoreColor(pct);
+      return ` style="border-color:${color};box-shadow:inset 0 0 0 1px ${color}" title="Última tentativa: ${pct}%"`;
+    }
+
     async function loadSimBrowser() {
       const files = await scanSimuladosFolder();
       const questoes = await scanQuestoesFolder();
@@ -603,7 +634,8 @@
         html += files.map(f => {
           const label = f.replace(/\.csv$/i, '').replace(/^\d+\s*/, '');
           const safe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          return `<div class="sb-file" onclick="loadSimFromPath('${safe}')">
+          const deckKey = f.replace(/\.csv$/i, '').trim();
+          return `<div class="sb-file"${deckScoreStyle(deckKey)} onclick="loadSimFromPath('${safe}')">
             <span>${label}</span><span class="arr">→</span>
           </div>`;
         }).join('');
@@ -614,7 +646,8 @@
         html += questoes[folder].map(f => {
           const label = f.replace(/\.csv$/i, '');
           const fileSafe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          return `<div class="sb-file" onclick="loadSimFromPath('${fileSafe}', '${folderSafe}')">
+          const deckKey = `${folder} - ${f.replace(/\.csv$/i, '').trim()}`;
+          return `<div class="sb-file"${deckScoreStyle(deckKey)} onclick="loadSimFromPath('${fileSafe}', '${folderSafe}')">
             <span>${label}</span><span class="arr">→</span>
           </div>`;
         }).join('');
@@ -1057,6 +1090,8 @@
         subjectsBreakdown[sc].total++;
         if (a.isCorrect) subjectsBreakdown[sc].correct++;
       });
+
+      saveDeckScore(deckName, pct);
 
       DB.addSession({
         type: isRetry ? 'simulado-revisao' : 'simulado', deck: deckName,
