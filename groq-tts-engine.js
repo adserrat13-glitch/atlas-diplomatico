@@ -59,43 +59,62 @@ const GroqTTSEngine = (function () {
     cache.clear();
     pending.clear();
     sentences = (textObj.text || '').match(/[^.!?…]+[.!?…]*/g) || [textObj.text || ''];
-    sentences = sentences.map(s => s.trim()).filter(Boolean);
+    // Drop fragments with no letter/digit (stray punctuation/quotes left
+    // over from the split, e.g. a lone "..." between sentences) — Groq's
+    // API rejects those with a 400, which used to surface silently as a
+    // per-sentence on-demand fetch failure but now aborts the whole preload.
+    sentences = sentences.map(s => s.trim()).filter(s => s && /[\p{L}\p{N}]/u.test(s));
     sentenceIdx = 0;
     preloadAll();
   }
 
-  // Fetches every sentence's audio up front so playback never has to wait
-  // on the API mid-read — the pause "after a period" users noticed was the
-  // next sentence's fetch happening on demand. Runs with limited concurrency
-  // so it doesn't fire 40 simultaneous requests at once.
-  const PRELOAD_CONCURRENCY = 4;
+  // Preloading every sentence at full concurrency blew through Groq's
+  // per-minute token rate limit on long texts (149 sentences fired near-
+  // simultaneously). Instead: load a small head window fast (so playback
+  // can start almost immediately) at low concurrency, then keep fetching
+  // the rest in small spaced-out batches in the background while the user
+  // is reading, well under the rate limit.
+  const PRELOAD_HEAD = 20;
+  const PRELOAD_HEAD_CONCURRENCY = 2;
+  const PRELOAD_BATCH_SIZE = 5;
+  const PRELOAD_BATCH_DELAY_MS = 4000;
 
-  async function preloadAll() {
-    const myToken = loadToken;
-    const total = sentences.length;
-    if (!total) return;
-    let done = 0;
-    if (onLoadProgress) onLoadProgress(0, total);
-
-    let next = 0;
+  async function preloadRange(myToken, start, end, concurrency) {
+    let next = start;
     async function worker() {
       while (true) {
         if (myToken !== loadToken) return; // superseded by a newer load()
         const idx = next++;
-        if (idx >= total) return;
+        if (idx >= end) return;
         try {
           await fetchSentence(idx);
         } catch (err) {
           console.error('GroqTTSEngine preload error:', err);
         }
-        if (myToken !== loadToken) return;
-        done++;
-        if (onLoadProgress) onLoadProgress(done, total);
       }
     }
+    await Promise.all(Array.from({ length: Math.min(concurrency, end - start) }, worker));
+  }
 
-    const workers = Array.from({ length: Math.min(PRELOAD_CONCURRENCY, total) }, worker);
-    await Promise.all(workers);
+  async function preloadAll() {
+    const myToken = loadToken;
+    const total = sentences.length;
+    if (!total) return;
+
+    const headEnd = Math.min(PRELOAD_HEAD, total);
+    if (onLoadProgress) onLoadProgress(0, headEnd);
+    await preloadRange(myToken, 0, headEnd, PRELOAD_HEAD_CONCURRENCY);
+    if (myToken !== loadToken) return;
+    if (onLoadProgress) onLoadProgress(headEnd, headEnd);
+
+    // Background: fetch the remainder in small batches with a pause between
+    // each, so total request rate stays well under Groq's per-minute cap.
+    for (let start = headEnd; start < total; start += PRELOAD_BATCH_SIZE) {
+      if (myToken !== loadToken) return;
+      await new Promise(r => setTimeout(r, PRELOAD_BATCH_DELAY_MS));
+      if (myToken !== loadToken) return;
+      await preloadRange(myToken, start, Math.min(start + PRELOAD_BATCH_SIZE, total), 2);
+    }
   }
 
   async function fetchSentence(idx) {
