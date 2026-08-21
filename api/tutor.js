@@ -13,7 +13,7 @@ const SR_VOICES = [
   { id: 'daniel', label: 'Daniel (masculino)' },
   { id: 'troy',   label: 'Troy (masculino)' }
 ];
-const SR_DEFAULT_VOICE = 'troy';
+const SR_DEFAULT_VOICE = 'hannah';
 const SR_TTS_MODEL = 'canopylabs/orpheus-v1-english';
 const SR_WHISPER_MODEL = 'whisper-large-v3';
 
