@@ -460,6 +460,7 @@ const BrowserTTSEngine = (function () {
     getVoicesForLang, getSentenceIndex, getSentenceCount, getProgress, isSpeaking,
     set onSentenceChange(fn) { onSentenceChange = fn; },
     set onWordBoundary(fn) { onWordBoundary = fn; },
-    set onStateChange(fn) { onStateChange = fn; }
+    set onStateChange(fn) { onStateChange = fn; },
+    set onLoadProgress(fn) { /* no-op: browser TTS has no network preload step */ }
   };
 })();

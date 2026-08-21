@@ -20,6 +20,11 @@ const GroqTTSEngine = (function () {
   let onWordBoundary = null;
   let onStateChange = null;
   let onUsageChange = null;
+  let onLoadProgress = null;
+
+  // Bumped by load() so a preload run from a superseded text (user switched
+  // text/language while preloading) can recognize it's stale and stop.
+  let loadToken = 0;
 
   const audio = new Audio();
   audio.preload = 'auto';
@@ -49,12 +54,48 @@ const GroqTTSEngine = (function () {
   }
 
   function load(textObj, language) {
+    loadToken++;
     reset();
     cache.clear();
     pending.clear();
     sentences = (textObj.text || '').match(/[^.!?…]+[.!?…]*/g) || [textObj.text || ''];
     sentences = sentences.map(s => s.trim()).filter(Boolean);
     sentenceIdx = 0;
+    preloadAll();
+  }
+
+  // Fetches every sentence's audio up front so playback never has to wait
+  // on the API mid-read — the pause "after a period" users noticed was the
+  // next sentence's fetch happening on demand. Runs with limited concurrency
+  // so it doesn't fire 40 simultaneous requests at once.
+  const PRELOAD_CONCURRENCY = 4;
+
+  async function preloadAll() {
+    const myToken = loadToken;
+    const total = sentences.length;
+    if (!total) return;
+    let done = 0;
+    if (onLoadProgress) onLoadProgress(0, total);
+
+    let next = 0;
+    async function worker() {
+      while (true) {
+        if (myToken !== loadToken) return; // superseded by a newer load()
+        const idx = next++;
+        if (idx >= total) return;
+        try {
+          await fetchSentence(idx);
+        } catch (err) {
+          console.error('GroqTTSEngine preload error:', err);
+        }
+        if (myToken !== loadToken) return;
+        done++;
+        if (onLoadProgress) onLoadProgress(done, total);
+      }
+    }
+
+    const workers = Array.from({ length: Math.min(PRELOAD_CONCURRENCY, total) }, worker);
+    await Promise.all(workers);
   }
 
   async function fetchSentence(idx) {
@@ -133,9 +174,6 @@ const GroqTTSEngine = (function () {
     audio.src = entry.url;
     audio.playbackRate = rate;
     audio.volume = volume;
-
-    // Prefetch next sentence in the background once this one starts.
-    if (sentenceIdx + 1 < sentences.length) fetchSentence(sentenceIdx + 1).catch(() => {});
 
     audio.onended = () => {
       if (myToken !== playToken) return;
@@ -230,8 +268,10 @@ const GroqTTSEngine = (function () {
   function setSentencePause(ms) { sentencePauseMs = Math.max(0, ms); }
   function setVoiceURI(id) {
     voiceId = id;
+    loadToken++; // invalidate any in-flight preload run for the old voice
     cache.clear(); // cached audio was generated with the old voice
     pending.clear();
+    if (sentences.length) preloadAll();
     if (!paused && sentences.length) { reset(); startSentence(); }
   }
   function getVoicesForLang() { return []; } // populated separately via GET on the API
@@ -248,6 +288,7 @@ const GroqTTSEngine = (function () {
     set onSentenceChange(fn) { onSentenceChange = fn; },
     set onWordBoundary(fn) { onWordBoundary = fn; },
     set onStateChange(fn) { onStateChange = fn; },
-    set onUsageChange(fn) { onUsageChange = fn; }
+    set onUsageChange(fn) { onUsageChange = fn; },
+    set onLoadProgress(fn) { onLoadProgress = fn; }
   };
 })();

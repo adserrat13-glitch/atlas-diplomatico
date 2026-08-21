@@ -461,6 +461,20 @@
       engine.onWordBoundary = (word) => {
         renderWord(word || '—');
       };
+      engine.onLoadProgress = (done, total) => {
+        const playBtn = document.getElementById('srPlayBtn');
+        if (done < total) {
+          document.getElementById('srMeta').textContent = `Carregando áudio... ${done}/${total} frases`;
+          playBtn.disabled = true;
+          playBtn.style.opacity = '0.5';
+        } else {
+          playBtn.disabled = false;
+          playBtn.style.opacity = '';
+          if (!TTSEngine.isSpeaking()) {
+            document.getElementById('srMeta').textContent = `Frase 1 / ${total}`;
+          }
+        }
+      };
       engine.onStateChange = (state, errMsg) => {
         document.getElementById('srPlayBtn').textContent = state === 'playing' ? '❚❚' : '▶';
         if (state === 'error') {
@@ -524,7 +538,9 @@
     populateVoices();
 
     document.getElementById('srWord').textContent = '—';
-    document.getElementById('srMeta').textContent = `Frase 1 / ${TTSEngine.getSentenceCount()}`;
+    if (TTSEngine !== GroqTTSEngine) {
+      document.getElementById('srMeta').textContent = `Frase 1 / ${TTSEngine.getSentenceCount()}`;
+    }
 
     const opt = document.getElementById('textSelect').querySelector(`option[value="${id}"]`);
     if (opt) opt.textContent = currentText.title || id;
@@ -769,7 +785,9 @@
     TTSEngine.load(currentText, lang);
     populateVoices();
     document.getElementById('srWord').textContent = '—';
-    document.getElementById('srMeta').textContent = `Frase 1 / ${TTSEngine.getSentenceCount()}`;
+    if (TTSEngine !== GroqTTSEngine) {
+      document.getElementById('srMeta').textContent = `Frase 1 / ${TTSEngine.getSentenceCount()}`;
+    }
     hideTranslation();
     updateTranslationDisplay(0);
 
