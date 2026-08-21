@@ -27,15 +27,19 @@ async function groqCreate(params) {
 async function groqCall(fn) {
   const clientList = getClients();
   let lastErr;
-  for (const client of clientList) {
+  for (let i = 0; i < clientList.length; i++) {
+    const client = clientList[i];
     try {
-      return await fn(client);
+      const result = await fn(client);
+      if (i > 0) console.log(`[groq-client] succeeded on key index ${i} after failover`);
+      return result;
     } catch (err) {
       lastErr = err;
       const termsRequired = err?.error?.code === 'model_terms_required'
         || err?.code === 'model_terms_required'
         || /model_terms_required/.test(err?.message || '');
       const retryable = err?.status === 429 || err?.status >= 500 || termsRequired;
+      console.log(`[groq-client] key index ${i} failed: status=${err?.status} org=${err?.error?.error?.organization_id || err?.headers?.['x-groq-organization'] || 'unknown'} retryable=${retryable} message=${(err?.message || '').slice(0, 200)}`);
       if (!retryable) throw err;
     }
   }
