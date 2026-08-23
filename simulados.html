@@ -1118,6 +1118,10 @@
           .map(a => ({q: a.q, answer: a.correct, userAns: a.userAns, subjectCode: a.subjectCode}))
       });
 
+      if (!isRetry && window._lastDone >= allQuestions.length && typeof window.registerDeckCompletion === 'function') {
+        window.registerDeckCompletion(deckName, pct);
+      }
+
       document.getElementById('summaryScore').textContent = pct + '%';
       document.getElementById('summaryScore').style.color = pct >= 70 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
       document.getElementById('summaryTitle').textContent = pct >= 70 ? 'Excelente desempenho!' : pct >= 50 ? 'Bom trabalho!' : 'Precisa praticar mais';
@@ -1388,6 +1392,23 @@
     .meta-fill { height:100%; background:#d4af37; border-radius:99px; transition:width .3s; }
     .meta-item.done .meta-fill { background:#34d399; }
 
+    .metas-divider {
+      display:flex; align-items:center; gap:10px; padding:2px 24px 4px; margin-top:4px;
+      font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#5b6272;
+    }
+    .metas-divider::after { content:''; flex:1; height:1px; background:#23262f; }
+    .deck-bonus-list { padding:0 24px 6px; display:flex; flex-direction:column; gap:8px; }
+    .deck-bonus-item {
+      background:#181b22; border:1px solid #23262f; border-radius:12px;
+      padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .deck-bonus-item.done { border-color:rgba(52,211,153,0.35); background:rgba(52,211,153,0.05); }
+    .deck-bonus-item .dname { font-size:12.5px; font-weight:700; color:#e5e7eb; }
+    .deck-bonus-item .dsub { font-size:11px; color:#8a92a3; }
+    .deck-bonus-item .dpct { font-size:12px; font-weight:800; color:#d4af37; font-variant-numeric:tabular-nums; }
+    .deck-bonus-item.done .dpct { color:#34d399; }
+    .deck-bonus-empty { font-size:11.5px; color:#5b6272; padding:2px 0 4px; }
+
     .metas-foot { padding:18px 24px 22px; }
     .metas-cta {
       width:100%; padding:13px; border-radius:12px; border:none;
@@ -1463,6 +1484,9 @@
 
       <div class="metas-list" id="metasList"></div>
 
+      <div class="metas-divider">Bônus: deck completo hoje</div>
+      <div class="deck-bonus-list" id="deckBonusList"></div>
+
       <div class="metas-foot">
         <button class="metas-cta" id="metasCta" disabled>Complete as 5 metas para desbloquear o patch</button>
       </div>
@@ -1496,6 +1520,7 @@
     const PATCH_FILES = ['10.png','20.png','30.png','40.png','50.png','60.png','70.png','80.png','90.png','100.png'];
     const STREAK_KEY = 'metas_streak_v1';
     const HISTORY_KEY = 'metas_history_v1'; // { 'YYYY-MM-DD': true }
+    const DECK_BONUS_KEY = 'metas_deck_bonus_v1'; // { 'YYYY-MM-DD': [{deck, pct, file, ts}] }
 
     function todayStr() {
       return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
@@ -1535,6 +1560,41 @@
       const level = Math.min(Math.max(streak, 1), 10);
       return { file: PATCH_FILES[level - 1], level: level * 10 };
     }
+
+    // Deck completo: patch por faixa de nota (independente do streak diário)
+    // <40%=10 · 40-49=20 · 50-59=30 · 60-69=40 · 70-79=50/60 · 80-89=70/80 · 90-100=90/100
+    function patchForScore(pct) {
+      const bands = [40, 40, 50, 60, 70, 75, 80, 85, 90, 95];
+      let level = 10;
+      for (let i = 9; i >= 0; i--) {
+        if (pct >= bands[i]) { level = (i + 1) * 10; break; }
+      }
+      if (pct < 40) level = 10;
+      const idx = Math.min(Math.max(Math.round(level / 10), 1), 10);
+      return { file: PATCH_FILES[idx - 1], level: idx * 10 };
+    }
+
+    function loadDeckBonus() {
+      try { return JSON.parse(localStorage.getItem(DECK_BONUS_KEY)) || {}; } catch { return {}; }
+    }
+    function saveDeckBonus(b) { localStorage.setItem(DECK_BONUS_KEY, JSON.stringify(b)); }
+
+    // Chamado pelo showSummary() de simulados.html quando um deck é zerado pela 1ª vez na sessão
+    window.registerDeckCompletion = function (deckName, pct) {
+      const all = loadDeckBonus();
+      const today = todayStr();
+      if (!all[today]) all[today] = [];
+      if (all[today].some(d => d.deck === deckName)) return; // já registrado hoje, evita duplicar
+      const { file, level } = patchForScore(pct);
+      all[today].push({ deck: deckName, pct, file, level, ts: Date.now() });
+      saveDeckBonus(all);
+      document.getElementById('patchRevealImg').src = `GAMES/PATCH DE ERROS/${file}`;
+      document.getElementById('patchRevealTitle').textContent = `Deck completo — patch ${level}!`;
+      document.getElementById('patchRevealSub').textContent =
+        `"${deckName}" zerado com ${pct}% de acerto.`;
+      document.getElementById('patchReveal').classList.add('open');
+      if (typeof renderMetas === 'function') renderMetas();
+    };
 
     async function sumTodayBySubject() {
       const sums = {};
@@ -1616,6 +1676,15 @@
         cta.disabled = true;
         cta.textContent = `Complete as ${goals.length} metas para desbloquear o patch (${doneCount}/${goals.length})`;
       }
+
+      const deckBonusToday = (loadDeckBonus()[todayStr()] || []);
+      const bonusEl = document.getElementById('deckBonusList');
+      bonusEl.innerHTML = deckBonusToday.length
+        ? deckBonusToday.map(d => `<div class="deck-bonus-item done">
+            <div><div class="dname">${d.deck}</div><div class="dsub">deck zerado · patch ${d.level}</div></div>
+            <span class="dpct">${d.pct}%</span>
+          </div>`).join('')
+        : `<div class="deck-bonus-empty">Zere um deck inteiro hoje para ganhar um patch extra, com nível conforme sua nota.</div>`;
 
       _lastRender = { day, goals, sums };
     }
