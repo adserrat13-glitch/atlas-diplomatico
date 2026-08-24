@@ -345,7 +345,16 @@
           <label><span>Voz</span></label>
           <select id="ttsVoice"></select>
         </div>
+        <div class="tts-row">
+          <label><span>Repetir erro após (min)</span></label>
+          <input type="number" id="loopMinutes" min="1" max="180" step="1"
+            style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);text-align:center">
+        </div>
       </details>
+      <div id="futureReviewBox" style="display:none;margin-bottom:16px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center;width:100%;max-width:540px">
+        <div style="font-size:13px;color:#9ca3af;margin-bottom:10px" id="futureReviewMsg"></div>
+        <div id="futureReviewSubjects" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+      </div>
       <div class="btns">
         <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
@@ -426,6 +435,7 @@
   <div class="wrong-pill" id="wrongPill">
     <span class="wp-icon">❌</span>
     <span class="wp-label" id="wpLabel">Resposta errada</span>
+    <button class="wp-expand" id="wpSpeak" onclick="speakExplanation()" title="Ouvir explicação">🔊</button>
     <button class="wp-expand" onclick="expandWrongDrawer()">📚 Ver flashcards</button>
     <button class="wp-close" onclick="dismissPill()" title="Dispensar">✕</button>
   </div>
@@ -443,6 +453,12 @@
     let isLongDeck = false;
     let currentProgressKey = null;
     let _cpDebounce = null;
+    let retryPending = []; // { q: <question obj>, dueAt, wrongCount }
+    let retryPollInterval = null;
+    let pendingExplanation = null;
+    let currentRetryItem = null; // set when the question on screen came from retryPending
+
+    const REVIEW_FUTURE_KEY = 'simulados_review_future';
 
     // ─── Subject classification ──────────────────────────────────────
     const SUBJECT_RULES = [
@@ -809,7 +825,51 @@
         DB.clearCheckpoint(deckName).catch(() => {});
         resumeEl.style.display = 'none';
       };
+      renderFutureReviewBox();
       showView('viewOptions');
+    }
+
+    // ─── Caixa de revisão futura (questões erradas 2x+, por matéria) ─
+    function renderFutureReviewBox() {
+      const box = document.getElementById('futureReviewBox');
+      const msgEl = document.getElementById('futureReviewMsg');
+      const subjEl = document.getElementById('futureReviewSubjects');
+      const store = loadFutureReview();
+      const subjects = Object.keys(store).filter(k => store[k]?.length);
+      if (!subjects.length) { box.style.display = 'none'; return; }
+      const total = subjects.reduce((sum, k) => sum + store[k].length, 0);
+      msgEl.textContent = `📚 Revisão futura: ${total} questão(ões) para revisar`;
+      subjEl.innerHTML = subjects.map(k => {
+        const label = store[k][0]?.subjectLabel || k;
+        return `<button class="btn btn-secondary" style="font-size:12px;padding:8px 12px"
+          onclick="startFutureReview('${k}')">${escHtml(label)} (${store[k].length})</button>`;
+      }).join('');
+      box.style.display = 'block';
+    }
+
+    function startFutureReview(subjectCode) {
+      const store = loadFutureReview();
+      const items = store[subjectCode] || [];
+      if (!items.length) return;
+      queue = items.map(it => ({ ...it }));
+      currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      retryPending = []; currentRetryItem = null;
+      window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
+      window._futureReviewSubject = subjectCode;
+      timerSecs = 0; updateTimer();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+      renderQuestion();
+      showView('viewStudy');
+      document.getElementById('simDeck').textContent = deckName + ' (Revisão futura)';
+    }
+
+    function removeFromFutureReview(subjectCode, questionText) {
+      const store = loadFutureReview();
+      if (!store[subjectCode]) return;
+      store[subjectCode] = store[subjectCode].filter(it => it.q !== questionText);
+      if (!store[subjectCode].length) delete store[subjectCode];
+      saveFutureReview(store);
     }
 
     function startSeq(n) {
@@ -829,8 +889,10 @@
       queue = allQuestions.slice(lastDone, end);
       if (!queue.length) { showOptions(); return; }
       currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'seq';
       window._sessionStartIdx = lastDone;
+      window._futureReviewSubject = null;
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -847,7 +909,9 @@
         subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || []
       }));
       currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong';
+      window._futureReviewSubject = null;
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -865,7 +929,7 @@
     }
 
     // ─── TTS config (velocidade, tom, voz, idioma de leitura) ───────
-    const TTS_DEFAULTS = { rate: 1, pitch: 1, voiceName: '', lang: 'pt-BR' };
+    const TTS_DEFAULTS = { rate: 1, pitch: 1, voiceName: '', lang: 'pt-BR', loopMinutes: 5 };
     function loadTtsConfig() {
       try { return { ...TTS_DEFAULTS, ...JSON.parse(localStorage.getItem('tts_config') || '{}') }; }
       catch { return { ...TTS_DEFAULTS }; }
@@ -879,9 +943,11 @@
       const pitchEl = document.getElementById('ttsPitch');
       const voiceEl = document.getElementById('ttsVoice');
       const langEl = document.getElementById('ttsLang');
+      const loopMinEl = document.getElementById('loopMinutes');
       rateEl.value = cfg.rate;
       pitchEl.value = cfg.pitch;
       langEl.value = cfg.lang;
+      loopMinEl.value = cfg.loopMinutes;
       document.getElementById('ttsRateVal').textContent = cfg.rate + 'x';
       document.getElementById('ttsPitchVal').textContent = cfg.pitch + 'x';
 
@@ -915,6 +981,12 @@
         saveTtsConfig(c);
         populateVoices();
       });
+      loopMinEl.addEventListener('change', () => {
+        const c = loadTtsConfig();
+        c.loopMinutes = Math.max(1, parseInt(loopMinEl.value, 10) || TTS_DEFAULTS.loopMinutes);
+        loopMinEl.value = c.loopMinutes;
+        saveTtsConfig(c);
+      });
     }
     initTtsPanel();
 
@@ -939,7 +1011,27 @@
     }
 
     function renderQuestion() {
-      if (currentIdx >= queue.length) { clearInterval(timerInterval); if ('speechSynthesis' in window) speechSynthesis.cancel(); showSummary(); return; }
+      if (currentIdx >= queue.length) {
+        clearInterval(retryPollInterval); retryPollInterval = null;
+        const dueIdx = retryPending.findIndex(r => r.dueAt <= Date.now());
+        if (dueIdx !== -1) {
+          currentRetryItem = retryPending.splice(dueIdx, 1)[0];
+          renderRetryQuestion(currentRetryItem.q);
+          return;
+        }
+        if (retryPending.length) {
+          renderWaitingForRetry();
+          retryPollInterval = setInterval(() => {
+            if (retryPending.some(r => r.dueAt <= Date.now())) {
+              clearInterval(retryPollInterval); retryPollInterval = null;
+              renderQuestion();
+            }
+          }, 3000);
+          return;
+        }
+        clearInterval(timerInterval); if ('speechSynthesis' in window) speechSynthesis.cancel(); showSummary(); return;
+      }
+      currentRetryItem = null;
       const q = queue[currentIdx];
       document.getElementById('questionText').textContent = q.q;
       document.getElementById('qNum').textContent = currentIdx + 1;
@@ -951,11 +1043,37 @@
       speakQuestion(q.q);
     }
 
+    function renderRetryQuestion(q) {
+      document.getElementById('questionText').textContent = q.q;
+      document.getElementById('qNum').textContent = '↻';
+      document.getElementById('sectionLabel').textContent = (q.section || '') + ' · repetição';
+      document.getElementById('sectionLabel').style.display = 'block';
+      document.getElementById('simCounter').textContent = ` repetição`;
+      document.getElementById('questionTags').innerHTML = renderTags(q);
+      speakQuestion(q.q);
+    }
+
+    function renderWaitingForRetry() {
+      const nextDue = Math.min(...retryPending.map(r => r.dueAt));
+      const mins = Math.max(1, Math.ceil((nextDue - Date.now()) / 60000));
+      document.getElementById('questionText').textContent =
+        `Aguardando repetição de ${retryPending.length} questão(ões) errada(s) — próxima em ~${mins} min. Continue estudando ou volte em instantes.`;
+      document.getElementById('qNum').textContent = '⏳';
+      document.getElementById('sectionLabel').style.display = 'none';
+      document.getElementById('simCounter').textContent = '';
+      document.getElementById('questionTags').innerHTML = '';
+    }
+
     // ─── Answer: avança automaticamente, pill aparece se errar ─────
     function answer(userAns) {
       if (drawerOpen) return;
+      if (currentRetryItem) { answerRetry(userAns); return; }
+      if (currentIdx >= queue.length) return; // aguardando repetição — nada a responder
       const q = queue[currentIdx];
       const correct = userAns === q.correct;
+      if (correct && window._futureReviewSubject) {
+        removeFromFutureReview(window._futureReviewSubject, q.q);
+      }
       answers.push({
         q: q.q, correct: q.correct, userAns, isCorrect: correct,
         section: q.section, subjectCode: q.subjectCode,
@@ -963,15 +1081,69 @@
       });
       currentIdx++;
       saveProgress();
-      renderQuestion();
       dismissPill();
-      if (!correct) showWrongPill(q);
+      if (!correct) { scheduleRetry(q); showWrongPill(q); }
+      renderQuestion();
+    }
+
+    // ─── Retry loop (repetição dentro da sessão) ────────────────────
+    function scheduleRetry(q) {
+      const cfg = loadTtsConfig();
+      const minutes = cfg.loopMinutes || TTS_DEFAULTS.loopMinutes;
+      let item = retryPending.find(r => r.q.q === q.q);
+      if (item) {
+        item.wrongCount++;
+        item.dueAt = Date.now() + minutes * 60000;
+      } else {
+        item = { q, dueAt: Date.now() + minutes * 60000, wrongCount: 1 };
+        retryPending.push(item);
+      }
+      if (item.wrongCount >= 2) addToFutureReview(q);
+    }
+
+    function answerRetry(userAns) {
+      const q = currentRetryItem.q;
+      const correct = userAns === q.correct;
+      dismissPill();
+      if (!correct) {
+        scheduleRetry(q);
+        showWrongPill(q);
+      } else if (window._futureReviewSubject) {
+        removeFromFutureReview(window._futureReviewSubject, q.q);
+      }
+      currentRetryItem = null;
+      renderQuestion();
+    }
+
+    // ─── Deck de revisão futura (por matéria) ───────────────────────
+    function loadFutureReview() {
+      try { return JSON.parse(localStorage.getItem(REVIEW_FUTURE_KEY)) || {}; }
+      catch { return {}; }
+    }
+    function saveFutureReview(data) {
+      try { localStorage.setItem(REVIEW_FUTURE_KEY, JSON.stringify(data)); } catch {}
+    }
+    function addToFutureReview(q) {
+      const store = loadFutureReview();
+      const key = q.subjectCode || 'GERAL';
+      if (!store[key]) store[key] = [];
+      if (!store[key].some(item => item.q === q.q)) {
+        store[key].push({
+          q: q.q, correct: q.correct, section: q.section,
+          subjectCode: q.subjectCode, subjectLabel: q.subjectLabel,
+          tags: q.tags || [], addedAt: Date.now()
+        });
+      }
+      saveFutureReview(store);
     }
 
     // ─── Wrong pill (push notification recolhida) ────────────────────
     function showWrongPill(q) {
       currentWrongQ = q;
       pendingFlashcard = null;
+      pendingExplanation = null;
+      const speakBtn = document.getElementById('wpSpeak');
+      if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
       document.getElementById('wpLabel').textContent = `✓ ${q.correct}`;
       document.getElementById('wrongPill').style.display = 'flex';
       generateFlashcardIA(q).then(fc => {
@@ -981,10 +1153,41 @@
           sessionAIFlashcards.push({ q: fc.front, a: fc.back });
         }
       });
+      generateExplanationIA(q).then(exp => { pendingExplanation = exp; });
     }
 
     function dismissPill() {
       document.getElementById('wrongPill').style.display = 'none';
+      if ('speechSynthesis' in window) speechSynthesis.cancel();
+    }
+
+    async function generateExplanationIA(q) {
+      try {
+        const r = await fetch('/api/explain-answer', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            question: q.q,
+            correct_answer: q.correct,
+            subject_label: q.subjectLabel || '',
+            section: q.section || ''
+          })
+        });
+        if (!r.ok) return null;
+        const data = await r.json();
+        return data.explanation || null;
+      } catch { return null; }
+    }
+
+    async function speakExplanation() {
+      if (!currentWrongQ) return;
+      const speakBtn = document.getElementById('wpSpeak');
+      if (pendingExplanation) { speakQuestion(pendingExplanation); return; }
+      if (speakBtn) { speakBtn.textContent = '⏳'; speakBtn.disabled = true; }
+      const exp = await generateExplanationIA(currentWrongQ);
+      pendingExplanation = exp;
+      if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
+      if (exp) speakQuestion(exp);
     }
 
     function expandWrongDrawer() {
@@ -1261,12 +1464,16 @@
           // Progresso já foi salvo em saveProgress() após cada resposta — apenas volta
           window._lastDone = (window._sessionStartIdx || 0) + currentIdx;
           if ('speechSynthesis' in window) speechSynthesis.cancel();
+          clearInterval(retryPollInterval); retryPollInterval = null;
+          retryPending = []; currentRetryItem = null;
           showView('viewLoader');
         } else {
           timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
         }
       } else {
         if ('speechSynthesis' in window) speechSynthesis.cancel();
+        clearInterval(retryPollInterval); retryPollInterval = null;
+        retryPending = []; currentRetryItem = null;
         showView('viewLoader');
       }
     }
