@@ -49,6 +49,7 @@
     ]
   },
   "tps": [
+    "DIRIETO ADM .csv",
     "TPS  2025.1.csv",
     "TPS 00.csv",
     "TPS 2013.csv",
@@ -66,15 +67,45 @@
     "TPS 2026.csv",
     "tps 2015.csv"
   ],
-  "tps_conexoes": [
-    "CONTITUCIONAL .csv",
-    "DIP.csv",
-    "ECONOMIA .csv",
-    "GEOGRAFIA .csv",
-    "HISTORIA DO BRASIL .csv",
-    "HISTORIA MUNDIAL .csv",
-    "POLITICA INTERNACIONAL .csv"
-  ],
+  "discursivas": {
+    "DIREITO": [
+      "DIP COLEÇÃO .csv",
+      "DIREITO MANUAL FLASH .csv",
+      "LINDB.csv",
+      "PORTELA  CONCCEITOS.csv"
+    ],
+    "ECONOMIA": [
+      "ECONOMIA PERGUNTAS E RESPOSTAS .csv"
+    ],
+    "EDITAL": [
+      "CONSTITUCIONAL.csv",
+      "DIP.csv",
+      "ECONOMIA.csv",
+      "FEB.csv",
+      "POLITICA INTERNACIONAL.csv"
+    ],
+    "GEOGRAFIA": [
+      "geo manual .csv"
+    ],
+    "HISTORIA DO BRASIL": [
+      "FEB GAMBIAGI .csv",
+      "HB IMPERIO.csv",
+      "HB REPÚBLICA .csv",
+      "HISTORIA DO BRASIL BORIS FAUSTO.csv",
+      "HPEB DORATIOTO.csv"
+    ],
+    "HISTORIA MUNDIAL": [
+      "POLITICA INTERNACIONAL COLEÇÃO.csv",
+      "SARAIVA HM .csv",
+      "martin gilbert.csv"
+    ],
+    "POLITICAINTERNACIONAL": [
+      "LESSA 1 .csv",
+      "LESSA AAAAAA PI.csv",
+      "POLITICA INTERNACCIONAL FLASH .csv"
+    ]
+  },
+  "tps_conexoes": [],
   "tps_questoes": {
     "DIREITOCONSTITUCIONAL": [
       "1001 CONST.csv",
@@ -125,14 +156,23 @@
       "INGLES GRAN.csv",
       "VOCABULARIO.csv"
     ],
-    "PORTUGUES": [
-      "COMO ESCREVER.csv",
-      "INTERPRETAÇÃO DE TEXTOS.csv",
-      "PORTUGUES DIPLOMATA .csv",
-      "poort diplo 2 anki.csv",
-      "portgues 1 pestana.csv"
-    ],
     "POLITICA INTERNACIONAL": [
+      "01 - Teoria das Relacoes Internacionais.csv",
+      "02 - HPEB (Historia da Politica Externa Brasileira).csv",
+      "03 - ONU.csv",
+      "04 - Seguranca Internacional.csv",
+      "05 - Meio Ambiente Internacional.csv",
+      "06 - Direitos Humanos.csv",
+      "07 - Coalizoes (BRICS, G20, Sul-Sul).csv",
+      "08 - Sistema Financeiro Internacional.csv",
+      "09 - Sistema Comercial Internacional (OMC-GATT).csv",
+      "10-11 - Blocos Economicos e Integracao Sul-Americana.csv",
+      "12 - EUA Politica Externa.csv",
+      "13 - Argentina.csv",
+      "14 - Americas (America Latina e Caribe).csv",
+      "15 - Africa Politica Internacional.csv",
+      "16 - Asia Politica Internacional.csv",
+      "17 - Europa Politica Internacional.csv",
       "ATUALIDADES 2024.csv",
       "ATUALIDADES 2025.csv",
       "LESSA 1.csv",
@@ -141,46 +181,16 @@
       "POLITICA INTERNACIONAL TPS.csv",
       "POLITICAINTERNACIONAL.csv",
       "RELAÇÕES INTERNACIONAIS.csv",
+      "RELAÇÕES INTERNACIONAIS.local.csv",
       "REPERTORIO FUNAG.csv",
       "TEORIA DAS RELAÇÕES INTERNACIONAIS .csv"
-    ]
-  },
-  "discursivas": {
-    "DIREITO": [
-      "DIP COLEÇÃO .csv",
-      "DIREITO MANUAL FLASH .csv",
-      "LINDB.csv",
-      "PORTELA  CONCCEITOS.csv"
     ],
-    "ECONOMIA": [
-      "ECONOMIA PERGUNTAS E RESPOSTAS .csv"
-    ],
-    "GEOGRAFIA": [
-      "geo manual .csv"
-    ],
-    "HISTORIA DO BRASIL": [
-      "FEB GAMBIAGI .csv",
-      "HB IMPERIO.csv",
-      "HB REPÚBLICA .csv",
-      "HISTORIA DO BRASIL BORIS FAUSTO.csv",
-      "HPEB DORATIOTO.csv"
-    ],
-    "HISTORIA MUNDIAL": [
-      "POLITICA INTERNACIONAL COLEÇÃO.csv",
-      "SARAIVA HM .csv",
-      "martin gilbert.csv"
-    ],
-    "POLITICAINTERNACIONAL": [
-      "LESSA 1 .csv",
-      "LESSA AAAAAA PI.csv",
-      "POLITICA INTERNACCIONAL FLASH .csv"
-    ],
-    "EDITAL": [
-      "CONSTITUCIONAL.csv",
-      "DIP.csv",
-      "ECONOMIA.csv",
-      "FEB.csv",
-      "POLITICA INTERNACIONAL.csv"
+    "PORTUGUES": [
+      "COMO ESCREVER.csv",
+      "INTERPRETAÇÃO DE TEXTOS.csv",
+      "PORTUGUES DIPLOMATA .csv",
+      "poort diplo 2 anki.csv",
+      "portgues 1 pestana.csv"
     ]
   }
 }

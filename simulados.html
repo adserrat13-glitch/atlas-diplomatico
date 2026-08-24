@@ -1321,6 +1321,10 @@
           .map(a => ({q: a.q, answer: a.correct, userAns: a.userAns, subjectCode: a.subjectCode}))
       });
 
+      if (!isRetry && window._lastDone >= allQuestions.length && typeof window.registerDeckCompletion === 'function') {
+        window.registerDeckCompletion(deckName, pct);
+      }
+
       document.getElementById('summaryScore').textContent = pct + '%';
       document.getElementById('summaryScore').style.color = pct >= 70 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
       document.getElementById('summaryTitle').textContent = pct >= 70 ? 'Excelente desempenho!' : pct >= 50 ? 'Bom trabalho!' : 'Precisa praticar mais';
@@ -1498,5 +1502,553 @@
   </script>
   <aside id="sidebar"></aside>
   <script src="_sidebar.js"></script>
+
+  <!-- ═══════════ METAS DO DIA — OVERLAY ═══════════ -->
+  <style>
+    #metasFab {
+      position:fixed; right:20px; bottom:20px; z-index:500;
+      width:56px; height:56px; border-radius:50%;
+      background:linear-gradient(145deg,#d4af37,#b8902c);
+      color:#1a1400; border:none; cursor:pointer;
+      font-size:24px; display:flex; align-items:center; justify-content:center;
+      box-shadow:0 4px 18px rgba(212,175,55,0.45), 0 0 0 1px rgba(255,255,255,0.1) inset;
+      transition:transform .15s;
+    }
+    #metasFab:hover { transform:scale(1.07); }
+    #metasFab .fab-ring {
+      position:absolute; inset:-4px; border-radius:50%;
+      border:2px solid rgba(212,175,55,0.35);
+    }
+    #metasFab .fab-badge {
+      position:absolute; top:-4px; right:-4px; min-width:18px; height:18px;
+      background:#34d399; color:#06251a; font-size:10px; font-weight:800;
+      border-radius:50%; display:flex; align-items:center; justify-content:center;
+      padding:0 3px; border:2px solid #0f1115;
+    }
+
+    #metasOverlay {
+      position:fixed; inset:0; z-index:600; display:none;
+      background:rgba(5,6,8,0.78); backdrop-filter:blur(3px);
+      align-items:flex-start; justify-content:center;
+      overflow-y:auto; padding:40px 16px 60px;
+    }
+    #metasOverlay.open { display:flex; }
+    .metas-panel {
+      width:100%; max-width:620px; background:#12151b;
+      border:1px solid #2a2f3a; border-radius:18px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5);
+      overflow:hidden;
+    }
+    .metas-head {
+      padding:22px 24px 16px; border-bottom:1px solid #23262f;
+      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    }
+    .metas-head h2 { font-size:18px; font-weight:800; color:#f3f0e8; margin-bottom:2px; }
+    .metas-head .sub { font-size:12px; color:#8a92a3; }
+    .metas-close {
+      background:none; border:none; color:#8a92a3; font-size:20px;
+      cursor:pointer; line-height:1; padding:4px;
+    }
+    .metas-close:hover { color:#fff; }
+
+    .metas-streak {
+      display:flex; align-items:center; gap:10px; padding:14px 24px;
+      background:rgba(212,175,55,0.06); border-bottom:1px solid #23262f;
+    }
+    .metas-streak .flame { font-size:20px; }
+    .metas-streak .val { font-size:15px; font-weight:800; color:#d4af37; }
+    .metas-streak .lbl { font-size:11.5px; color:#8a92a3; }
+    .metas-streak .cycle-tag {
+      margin-left:auto; font-size:11px; color:#8a92a3;
+      background:#1c2028; padding:4px 10px; border-radius:20px;
+      border:1px solid #2a2f3a;
+    }
+
+    .metas-list { padding:14px 24px 6px; display:flex; flex-direction:column; gap:10px; }
+    .metas-overall {
+      display:flex; align-items:center; gap:12px; padding:0 24px 16px;
+    }
+    .metas-overall .ring {
+      width:44px; height:44px; border-radius:50%; flex-shrink:0;
+      background:conic-gradient(#34d399 calc(var(--pct,0) * 1%), #23262f 0);
+      display:flex; align-items:center; justify-content:center;
+    }
+    .metas-overall .ring-inner {
+      width:34px; height:34px; border-radius:50%; background:#12151b;
+      display:flex; align-items:center; justify-content:center;
+      font-size:10px; font-weight:800; color:#e5e7eb;
+    }
+    .metas-overall .txt { font-size:12.5px; color:#8a92a3; }
+    .metas-overall .txt strong { color:#e5e7eb; font-weight:700; }
+
+    .meta-item {
+      background:#181b22; border:1px solid #23262f; border-radius:12px;
+      padding:12px 14px; display:flex; flex-direction:column; gap:7px;
+    }
+    .meta-item.done { border-color:rgba(52,211,153,0.35); background:rgba(52,211,153,0.05); }
+    .meta-item .row1 { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .meta-item .name { font-size:13px; font-weight:700; color:#e5e7eb; display:flex; align-items:center; gap:6px; }
+    .meta-item.fixed .name::after {
+      content:'fixa'; font-size:9px; font-weight:700; color:#60a5fa;
+      background:rgba(96,165,250,0.12); padding:1px 6px; border-radius:20px;
+    }
+    .meta-item .check { font-size:14px; color:#34d399; opacity:0; transition:opacity .2s; }
+    .meta-item.done .check { opacity:1; }
+    .meta-item .count { font-size:11.5px; color:#8a92a3; font-variant-numeric:tabular-nums; }
+    .meta-track { height:6px; background:#23262f; border-radius:99px; overflow:hidden; }
+    .meta-fill { height:100%; background:#d4af37; border-radius:99px; transition:width .3s; }
+    .meta-item.done .meta-fill { background:#34d399; }
+
+    .metas-divider {
+      display:flex; align-items:center; gap:10px; padding:2px 24px 4px; margin-top:4px;
+      font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#5b6272;
+    }
+    .metas-divider::after { content:''; flex:1; height:1px; background:#23262f; }
+    .deck-bonus-list { padding:0 24px 6px; display:flex; flex-direction:column; gap:8px; }
+    .deck-bonus-item {
+      background:#181b22; border:1px solid #23262f; border-radius:12px;
+      padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .deck-bonus-item.done { border-color:rgba(52,211,153,0.35); background:rgba(52,211,153,0.05); }
+    .deck-bonus-item .dname { font-size:12.5px; font-weight:700; color:#e5e7eb; }
+    .deck-bonus-item .dsub { font-size:11px; color:#8a92a3; }
+    .deck-bonus-item .dpct { font-size:12px; font-weight:800; color:#d4af37; font-variant-numeric:tabular-nums; }
+    .deck-bonus-item.done .dpct { color:#34d399; }
+    .deck-bonus-empty { font-size:11.5px; color:#5b6272; padding:2px 0 4px; }
+
+    .trophies-toggle {
+      margin:0 24px; padding:9px 14px; border-radius:10px; border:1px solid #23262f;
+      background:#181b22; color:#d4af37; font-size:12px; font-weight:700; cursor:pointer;
+      display:flex; align-items:center; justify-content:space-between; width:calc(100% - 48px);
+    }
+    .trophies-toggle:hover { background:#1d212b; }
+    .trophies-toggle .arrow { transition:transform .2s; }
+    .trophies-toggle.open .arrow { transform:rotate(180deg); }
+    .trophies-list {
+      display:none; padding:10px 24px 6px; flex-direction:column; gap:8px;
+      max-height:260px; overflow-y:auto;
+    }
+    .trophies-list.open { display:flex; }
+    .trophy-item {
+      background:#181b22; border:1px solid #23262f; border-radius:12px;
+      padding:8px 12px; display:flex; align-items:center; gap:12px;
+    }
+    .trophy-item img { width:36px; height:36px; object-fit:contain; flex-shrink:0; }
+    .trophy-item .tinfo { flex:1; min-width:0; }
+    .trophy-item .ttitle { font-size:12.5px; font-weight:700; color:#e5e7eb; }
+    .trophy-item .tsub { font-size:11px; color:#8a92a3; }
+    .trophy-item .tlevel { font-size:12px; font-weight:800; color:#d4af37; font-variant-numeric:tabular-nums; }
+    .trophies-empty { font-size:11.5px; color:#5b6272; padding:2px 0 4px; }
+
+    .metas-foot { padding:18px 24px 22px; }
+    .metas-cta {
+      width:100%; padding:13px; border-radius:12px; border:none;
+      font-size:13.5px; font-weight:800; cursor:pointer; text-align:center;
+      background:#23262f; color:#8a92a3;
+    }
+    .metas-cta.ready {
+      background:linear-gradient(120deg,#34d399,#22b783); color:#052014;
+      box-shadow:0 6px 18px rgba(52,211,153,0.3);
+    }
+    .metas-cta:disabled { cursor:default; }
+
+    /* Patch reveal modal */
+    #patchReveal {
+      position:fixed; inset:0; z-index:700; display:none;
+      align-items:center; justify-content:center;
+      background:rgba(2,3,5,0.88);
+    }
+    #patchReveal.open { display:flex; }
+    .patch-card {
+      text-align:center; padding:36px 30px; max-width:340px;
+    }
+    .patch-card img {
+      width:190px; height:190px; object-fit:contain;
+      filter:drop-shadow(0 10px 30px rgba(212,175,55,0.35));
+      animation:patchPop .55s cubic-bezier(.2,1.4,.4,1);
+    }
+    @keyframes patchPop {
+      0% { transform:scale(.3) rotate(-8deg); opacity:0; }
+      60% { transform:scale(1.08) rotate(2deg); opacity:1; }
+      100% { transform:scale(1) rotate(0); }
+    }
+    .patch-card h3 { color:#f3f0e8; font-size:19px; font-weight:800; margin:18px 0 4px; }
+    .patch-card p { color:#8a92a3; font-size:13px; margin-bottom:22px; }
+    .patch-card button {
+      padding:11px 28px; border-radius:10px; border:none;
+      background:#d4af37; color:#1a1400; font-weight:800; font-size:13px; cursor:pointer;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .patch-card img { animation:none; }
+    }
+  </style>
+
+  <button id="metasFab" onclick="openMetasOverlay()" title="Metas do dia">
+    <span class="fab-ring"></span>
+    🎯
+    <span class="fab-badge" id="metasFabBadge" style="display:none">0</span>
+  </button>
+
+  <div id="metasOverlay" onclick="if(event.target===this) closeMetasOverlay()">
+    <div class="metas-panel">
+      <div class="metas-head">
+        <div>
+          <h2>Metas de hoje</h2>
+          <div class="sub" id="metasDateLabel">—</div>
+        </div>
+        <button class="metas-close" onclick="closeMetasOverlay()">✕</button>
+      </div>
+
+      <div class="metas-streak">
+        <span class="flame">🔥</span>
+        <span class="val" id="metasStreakVal">0 dias</span>
+        <span class="lbl">seguidos batendo a meta</span>
+        <span class="cycle-tag" id="metasCycleTag">Dia — do ciclo</span>
+      </div>
+
+      <div class="metas-overall">
+        <div class="ring" id="metasRing" style="--pct:0">
+          <div class="ring-inner" id="metasRingPct">0%</div>
+        </div>
+        <div class="txt"><strong id="metasDoneTotal">0</strong> / <span id="metasGoalTotal">0</span> questões hoje</div>
+      </div>
+
+      <div class="metas-list" id="metasList"></div>
+
+      <div class="metas-divider">Bônus: deck completo hoje</div>
+      <div class="deck-bonus-list" id="deckBonusList"></div>
+
+      <button class="trophies-toggle" id="trophiesToggle" onclick="toggleTrophies()">
+        <span>🏆 Meus troféus</span>
+        <span class="arrow">▾</span>
+      </button>
+      <div class="trophies-list" id="trophiesList"></div>
+
+      <div class="metas-foot">
+        <button class="metas-cta" id="metasCta" disabled>Complete as 5 metas para desbloquear o patch</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="patchReveal">
+    <div class="patch-card">
+      <img id="patchRevealImg" src="" alt="Patch conquistado" />
+      <h3 id="patchRevealTitle">Patch desbloqueado!</h3>
+      <p id="patchRevealSub"></p>
+      <button onclick="closePatchReveal()">Continuar</button>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    // Ciclo de 6 dias — Dia 1 = 23/08/2026 (ver artifact "Ciclo de Estudos 2000/dia")
+    const CYCLE_START = new Date('2026-08-23T00:00:00');
+    const CYCLE = [
+      null, // índice 0 não usado
+      { variaveis: [ ['DIP','Dir. Internacional',550], ['HB','Hist. Brasil',500], ['DIR','Direito',350] ] },
+      { variaveis: [ ['PI','Pol. Internacional',550], ['ECO','Economia',500], ['GEO','Geografia',350] ] },
+      { variaveis: [ ['DIP','Dir. Internacional',550], ['HB','Hist. Brasil',500], ['HM','Hist. Mundial',350] ] },
+      { variaveis: [ ['DIR','Direito',550], ['PI','Pol. Internacional',500], ['ECO','Economia',350] ] },
+      { variaveis: [ ['DIP','Dir. Internacional',550], ['GEO','Geografia',500], ['HM','Hist. Mundial',350] ] },
+      { variaveis: [ ['HB','Hist. Brasil',550], ['DIR','Direito',500], ['PI','Pol. Internacional',350] ] },
+    ];
+    const FIXED = [ ['LP','L. Portuguesa',300], ['ING','Inglesa',300] ];
+
+    const PATCH_FILES = ['10.png','20.png','30.png','40.png','50.png','60.png','70.png','80.png','90.png','100.png'];
+    const STREAK_KEY = 'metas_streak_v1';
+    const HISTORY_KEY = 'metas_history_v1'; // { 'YYYY-MM-DD': true }
+    const DECK_BONUS_KEY = 'metas_deck_bonus_v1'; // { 'YYYY-MM-DD': [{deck, pct, file, ts}] }
+
+    function todayStr() {
+      return new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+    }
+    function cycleDayFor(dateObj) {
+      const diffDays = Math.floor((dateObj - CYCLE_START) / 86400000);
+      const idx = ((diffDays % 6) + 6) % 6;
+      return idx + 1; // 1..6
+    }
+    function getGoalsForToday() {
+      const day = cycleDayFor(new Date());
+      const vars = CYCLE[day].variaveis;
+      return { day, goals: [...FIXED.map(f => ({code:f[0], name:f[1], target:f[2], fixed:true})),
+                             ...vars.map(v => ({code:v[0], name:v[1], target:v[2], fixed:false}))] };
+    }
+
+    // Cache local (leitura instantânea) sincronizado com Supabase (fonte de verdade, cross-device)
+    let _historyCache = null;
+    function loadHistory() {
+      if (_historyCache) return _historyCache;
+      try { _historyCache = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {}; }
+      catch { _historyCache = {}; }
+      return _historyCache;
+    }
+    function saveHistory(h) {
+      _historyCache = h;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    }
+    async function refreshHistoryFromRemote() {
+      try {
+        const remote = await DB.getMetaStreak();
+        _historyCache = remote;
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(remote));
+      } catch (e) { console.warn('refreshHistoryFromRemote falhou:', e); }
+    }
+
+    function computeStreak(history) {
+      let streak = 0;
+      let d = new Date();
+      // se hoje ainda não foi completado, começa a contar de ontem pra trás
+      if (!history[todayStr()]) d.setDate(d.getDate() - 1);
+      while (true) {
+        const key = d.toLocaleDateString('en-CA');
+        if (history[key]) { streak++; d.setDate(d.getDate() - 1); }
+        else break;
+      }
+      return streak;
+    }
+
+    function patchForStreak(streak) {
+      // streak 1 -> 10.png ... streak 10+ -> 100.png
+      const level = Math.min(Math.max(streak, 1), 10);
+      return { file: PATCH_FILES[level - 1], level: level * 10 };
+    }
+
+    // Deck completo: patch por faixa de nota (independente do streak diário)
+    // <40%=10 · 40-49=20 · 50-59=30 · 60-69=40 · 70-79=50/60 · 80-89=70/80 · 90-100=90/100
+    function patchForScore(pct) {
+      const bands = [40, 40, 50, 60, 70, 75, 80, 85, 90, 95];
+      let level = 10;
+      for (let i = 9; i >= 0; i--) {
+        if (pct >= bands[i]) { level = (i + 1) * 10; break; }
+      }
+      if (pct < 40) level = 10;
+      const idx = Math.min(Math.max(Math.round(level / 10), 1), 10);
+      return { file: PATCH_FILES[idx - 1], level: idx * 10 };
+    }
+
+    let _deckBonusCache = null;
+    function loadDeckBonus() {
+      if (_deckBonusCache) return _deckBonusCache;
+      try { _deckBonusCache = JSON.parse(localStorage.getItem(DECK_BONUS_KEY)) || {}; }
+      catch { _deckBonusCache = {}; }
+      return _deckBonusCache;
+    }
+    function saveDeckBonus(b) {
+      _deckBonusCache = b;
+      localStorage.setItem(DECK_BONUS_KEY, JSON.stringify(b));
+    }
+    async function refreshDeckBonusFromRemote() {
+      try {
+        const remote = await DB.getDeckTrophies();
+        _deckBonusCache = remote;
+        localStorage.setItem(DECK_BONUS_KEY, JSON.stringify(remote));
+      } catch (e) { console.warn('refreshDeckBonusFromRemote falhou:', e); }
+    }
+
+    // Chamado pelo showSummary() de simulados.html quando um deck é zerado pela 1ª vez na sessão
+    window.registerDeckCompletion = async function (deckName, pct) {
+      const all = loadDeckBonus();
+      const today = todayStr();
+      if (!all[today]) all[today] = [];
+      if (all[today].some(d => d.deck === deckName)) return; // já registrado hoje, evita duplicar
+      const { file, level } = patchForScore(pct);
+      all[today].push({ deck: deckName, pct, file, level, ts: Date.now() });
+      saveDeckBonus(all);
+      DB.saveDeckTrophy(today, deckName, pct, level, file).catch(e => console.warn('saveDeckTrophy falhou:', e));
+
+      // Deck completo também conta como meta do dia batida (credita o streak)
+      const history = loadHistory();
+      const alreadyClaimedToday = !!history[today];
+      if (!alreadyClaimedToday) {
+        history[today] = { level, file, via: 'deck' };
+        saveHistory(history);
+        DB.saveMetaStreak(today, level, file, 'deck').catch(e => console.warn('saveMetaStreak falhou:', e));
+      }
+
+      document.getElementById('patchRevealImg').src = `GAMES/PATCH DE ERROS/${file}`;
+      document.getElementById('patchRevealTitle').textContent = `Deck completo — patch ${level}!`;
+      document.getElementById('patchRevealSub').textContent = alreadyClaimedToday
+        ? `"${deckName}" zerado com ${pct}% de acerto.`
+        : `"${deckName}" zerado com ${pct}% de acerto. 🔥 Meta do dia batida!`;
+      document.getElementById('patchReveal').classList.add('open');
+      if (typeof renderMetas === 'function') renderMetas();
+    };
+
+    async function sumTodayBySubject() {
+      const sums = {};
+      let dayTotal = 0;
+      try {
+        const user = await DB.getUser();
+        if (!user) return { sums, dayTotal };
+        const sessions = await DB.getSessions(user.id);
+        const today = todayStr();
+        sessions.filter(s => s.date === today).forEach(s => {
+          dayTotal += (s.total || 0); // todas as questões do dia, qualquer origem (deck, revisão de erros, etc.)
+          const bd = s.subjects_breakdown;
+          if (bd && typeof bd === 'object') {
+            Object.entries(bd).forEach(([code, v]) => {
+              const n = (v && typeof v === 'object') ? (v.total || 0) : (v || 0);
+              sums[code] = (sums[code] || 0) + n;
+            });
+          } else if (s.subject) {
+            sums[s.subject] = (sums[s.subject] || 0) + (s.total || 0);
+          }
+        });
+      } catch (e) { console.warn('metas: falha ao ler sessões', e); }
+      return { sums, dayTotal };
+    }
+
+    let _lastRender = null;
+
+    async function renderMetas() {
+      const { day, goals } = getGoalsForToday();
+      const { sums, dayTotal } = await sumTodayBySubject();
+      const history = loadHistory();
+      const streak = computeStreak(history);
+
+      document.getElementById('metasDateLabel').textContent =
+        new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+      document.getElementById('metasCycleTag').textContent = `Dia ${day} do ciclo (1–6)`;
+      document.getElementById('metasStreakVal').textContent = `${streak} dia${streak===1?'':'s'}`;
+
+      let doneCount = 0, sumGoal = 0, sumDone = 0;
+      const listEl = document.getElementById('metasList');
+      listEl.innerHTML = goals.map(g => {
+        const got = Math.min(sums[g.code] || 0, g.target);
+        const pct = Math.round((got / g.target) * 100);
+        const isDone = got >= g.target;
+        if (isDone) doneCount++;
+        sumGoal += g.target; sumDone += got;
+        return `<div class="meta-item ${g.fixed?'fixed':''} ${isDone?'done':''}">
+          <div class="row1">
+            <span class="name">${g.name}</span>
+            <span class="check">✓</span>
+          </div>
+          <div class="meta-track"><div class="meta-fill" style="width:${pct}%"></div></div>
+          <span class="count">${got.toLocaleString('pt-BR')} / ${g.target.toLocaleString('pt-BR')} questões</span>
+        </div>`;
+      }).join('');
+
+      const overallPct = sumGoal ? Math.round((Math.max(sumDone, Math.min(dayTotal, sumGoal)) / sumGoal) * 100) : 0;
+      document.getElementById('metasRing').style.setProperty('--pct', Math.min(overallPct,100));
+      document.getElementById('metasRingPct').textContent = overallPct + '%';
+      document.getElementById('metasDoneTotal').textContent = Math.max(sumDone, dayTotal).toLocaleString('pt-BR');
+      document.getElementById('metasGoalTotal').textContent = sumGoal.toLocaleString('pt-BR');
+
+      const allDone = doneCount === goals.length || dayTotal >= 2000;
+      const cta = document.getElementById('metasCta');
+      const fabBadge = document.getElementById('metasFabBadge');
+      fabBadge.style.display = doneCount > 0 ? 'flex' : 'none';
+      fabBadge.textContent = doneCount + '/' + goals.length;
+
+      const alreadyClaimedToday = !!history[todayStr()];
+      if (allDone && !alreadyClaimedToday) {
+        cta.className = 'metas-cta ready';
+        cta.disabled = false;
+        cta.textContent = '🏆 Resgatar patch do dia';
+        cta.onclick = claimPatch;
+      } else if (alreadyClaimedToday) {
+        cta.className = 'metas-cta';
+        cta.disabled = true;
+        cta.textContent = '✓ Patch de hoje já resgatado';
+      } else {
+        cta.className = 'metas-cta';
+        cta.disabled = true;
+        cta.textContent = `Complete as ${goals.length} metas para desbloquear o patch (${doneCount}/${goals.length})`;
+      }
+
+      const deckBonusToday = (loadDeckBonus()[todayStr()] || []);
+      const bonusEl = document.getElementById('deckBonusList');
+      bonusEl.innerHTML = deckBonusToday.length
+        ? deckBonusToday.map(d => `<div class="deck-bonus-item done">
+            <div><div class="dname">${d.deck}</div><div class="dsub">deck zerado · patch ${d.level}</div></div>
+            <span class="dpct">${d.pct}%</span>
+          </div>`).join('')
+        : `<div class="deck-bonus-empty">Zere um deck inteiro hoje para ganhar um patch extra, com nível conforme sua nota.</div>`;
+
+      _lastRender = { day, goals, sums };
+      renderTrophies();
+    }
+
+    function renderTrophies() {
+      const history = loadHistory();
+      const deckBonus = loadDeckBonus();
+
+      const items = [];
+      Object.entries(history).forEach(([date, entry]) => {
+        if (!entry) return;
+        if (typeof entry === 'object') {
+          items.push({
+            date, file: entry.file, level: entry.level,
+            title: 'Meta diária', sub: date, ts: new Date(date + 'T12:00:00').getTime()
+          });
+        }
+        // entradas antigas (formato `true`, sem nível salvo) são ignoradas na galeria
+      });
+      Object.entries(deckBonus).forEach(([date, decks]) => {
+        (decks || []).forEach(d => {
+          items.push({
+            date, file: d.file, level: d.level,
+            title: d.deck, sub: `${d.pct}% de acerto · ${date}`, ts: d.ts || new Date(date + 'T12:00:00').getTime()
+          });
+        });
+      });
+      items.sort((a, b) => b.ts - a.ts);
+
+      const listEl = document.getElementById('trophiesList');
+      listEl.innerHTML = items.length
+        ? items.map(t => `<div class="trophy-item">
+            <img src="GAMES/PATCH DE ERROS/${t.file}" alt="Patch ${t.level}" />
+            <div class="tinfo"><div class="ttitle">${t.title}</div><div class="tsub">${t.sub}</div></div>
+            <span class="tlevel">${t.level}</span>
+          </div>`).join('')
+        : `<div class="trophies-empty">Nenhum troféu ainda. Bata uma meta ou zere um deck para começar sua coleção.</div>`;
+
+      document.getElementById('trophiesToggle').querySelector('span').textContent = `🏆 Meus troféus (${items.length})`;
+    }
+
+    window.toggleTrophies = function () {
+      document.getElementById('trophiesToggle').classList.toggle('open');
+      document.getElementById('trophiesList').classList.toggle('open');
+    };
+
+    function claimPatch() {
+      const history = loadHistory();
+      const key = todayStr();
+      const streak = computeStreak(history) + (history[key] ? 0 : 1);
+      const { file, level } = patchForStreak(streak);
+      history[key] = { level, file, via: 'streak' };
+      saveHistory(history);
+      DB.saveMetaStreak(key, level, file, 'streak').catch(e => console.warn('saveMetaStreak falhou:', e));
+
+      document.getElementById('patchRevealImg').src = `GAMES/PATCH DE ERROS/${file}`;
+      document.getElementById('patchRevealTitle').textContent = `Patch ${level} desbloqueado!`;
+      document.getElementById('patchRevealSub').textContent =
+        `${streak} dia${streak===1?'':'s'} seguido${streak===1?'':'s'} batendo a meta diária.`;
+      document.getElementById('patchReveal').classList.add('open');
+      renderMetas();
+    }
+
+    window.closePatchReveal = function () {
+      document.getElementById('patchReveal').classList.remove('open');
+    };
+    window.openMetasOverlay = async function () {
+      document.getElementById('metasOverlay').classList.add('open');
+      await Promise.all([refreshHistoryFromRemote(), refreshDeckBonusFromRemote()]);
+      renderMetas();
+    };
+    window.closeMetasOverlay = function () {
+      document.getElementById('metasOverlay').classList.remove('open');
+    };
+
+    // Atualiza o badge do FAB assim que a página carrega (sem abrir o overlay)
+    (async () => {
+      try { await DB.requireAuth(); } catch { return; }
+      await Promise.all([refreshHistoryFromRemote(), refreshDeckBonusFromRemote()]);
+      renderMetas();
+    })();
+  })();
+  </script>
+  <!-- ═══════════ FIM METAS DO DIA ═══════════ -->
 </body>
 </html>

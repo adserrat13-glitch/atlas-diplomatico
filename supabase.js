@@ -201,6 +201,58 @@ const DB = {
     if (error) console.warn('saveDeckScore error:', error.message);
   },
 
+  // ── META STREAK & TROFÉUS (metas do dia / patches conquistados) ─────
+
+  async getMetaStreak() {
+    const user = await this.getUser();
+    if (!user) return {};
+    const { data } = await _sb.from('meta_streak')
+      .select('date, level, patch_file, via').eq('user_id', user.id);
+    const map = {};
+    (data || []).forEach(r => { map[r.date] = { level: r.level, file: r.patch_file, via: r.via }; });
+    return map;
+  },
+
+  async saveMetaStreak(date, level, patch_file, via) {
+    const user = await this.getUser();
+    if (!user) return;
+    const { error } = await _sb.from('meta_streak').upsert({
+      user_id: user.id,
+      date,
+      level,
+      patch_file,
+      via
+    }, { onConflict: 'user_id,date', ignoreDuplicates: true });
+    if (error) console.warn('saveMetaStreak error:', error.message);
+  },
+
+  async getDeckTrophies() {
+    const user = await this.getUser();
+    if (!user) return {};
+    const { data } = await _sb.from('deck_trophies')
+      .select('date, deck_name, pct, level, patch_file, created_at').eq('user_id', user.id);
+    const map = {};
+    (data || []).forEach(r => {
+      if (!map[r.date]) map[r.date] = [];
+      map[r.date].push({ deck: r.deck_name, pct: r.pct, level: r.level, file: r.patch_file, ts: new Date(r.created_at).getTime() });
+    });
+    return map;
+  },
+
+  async saveDeckTrophy(date, deck_name, pct, level, patch_file) {
+    const user = await this.getUser();
+    if (!user) return;
+    const { error } = await _sb.from('deck_trophies').upsert({
+      user_id: user.id,
+      date,
+      deck_name,
+      pct,
+      level,
+      patch_file
+    }, { onConflict: 'user_id,date,deck_name', ignoreDuplicates: true });
+    if (error) console.warn('saveDeckTrophy error:', error.message);
+  },
+
   // ── SIMULADO CHECKPOINTS ─────────────────────────────────────────────
 
   async saveCheckpoint({ deck_name, current_index, total_questions, mode, timer_seconds }) {
