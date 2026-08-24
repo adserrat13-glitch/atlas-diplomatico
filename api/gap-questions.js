@@ -96,7 +96,7 @@ async function handleGenerate(req, res, apiKey) {
     try {
       const groq = new Groq({ apiKey });
       const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'openai/gpt-oss-120b',
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: PROMPT_SUMMARY },
@@ -145,7 +145,7 @@ async function handleGenerate(req, res, apiKey) {
   try {
     const groq = new Groq({ apiKey });
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: isReview ? PROMPT_REVIEW : PROMPT_GAP },
@@ -245,7 +245,7 @@ async function handleEvaluate(req, res, apiKey) {
   try {
     const groq = new Groq({ apiKey });
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_EVAL },
