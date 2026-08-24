@@ -98,6 +98,7 @@ async function handleGenerate(req, res, apiKey) {
       const completion = await groq.chat.completions.create({
         model: 'openai/gpt-oss-120b',
         response_format: { type: 'json_object' },
+        reasoning_effort: 'low',
         messages: [
           { role: 'system', content: PROMPT_SUMMARY },
           { role: 'user', content: `Tópico do edital CACD: ${topico.trim()}` },
@@ -147,6 +148,7 @@ async function handleGenerate(req, res, apiKey) {
     const completion = await groq.chat.completions.create({
       model: 'openai/gpt-oss-120b',
       response_format: { type: 'json_object' },
+      reasoning_effort: 'low',
       messages: [
         { role: 'system', content: isReview ? PROMPT_REVIEW : PROMPT_GAP },
         { role: 'user', content: userMsg },
@@ -247,6 +249,7 @@ async function handleEvaluate(req, res, apiKey) {
     const completion = await groq.chat.completions.create({
       model: 'openai/gpt-oss-120b',
       response_format: { type: 'json_object' },
+      reasoning_effort: 'low',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_EVAL },
         { role: 'user', content: userContent },

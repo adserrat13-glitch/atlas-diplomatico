@@ -287,6 +287,7 @@ module.exports = async function handler(req, res) {
         const completion = await groq.chat.completions.create({
           model: 'openai/gpt-oss-120b',
           response_format: { type: 'json_object' },
+          reasoning_effort: 'low',
           messages: [
             { role: 'system', content: SYSTEM_PROMPT_ISOLATED },
             { role: 'user', content: userPrompt },
@@ -313,6 +314,7 @@ module.exports = async function handler(req, res) {
       const completion = await groq.chat.completions.create({
         model: 'openai/gpt-oss-120b',
         response_format: { type: 'json_object' },
+        reasoning_effort: 'low',
         messages: [
           { role: 'system', content: SYSTEM_PROMPT_TEXT_BASED },
           { role: 'user', content: userPrompt },

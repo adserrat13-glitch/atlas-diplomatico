@@ -106,6 +106,7 @@ async function topicsUpload(req, res, apiKey, user_id) {
     const completion = await groq.chat.completions.create({
       model: 'openai/gpt-oss-120b',
       response_format: { type: 'json_object' },
+      reasoning_effort: 'low',
       messages: [
         { role: 'system', content: PARSE_PROMPT },
         { role: 'user',   content: String(content).slice(0, 15000) },

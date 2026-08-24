@@ -245,6 +245,7 @@ async function handleGenerate(req, res) {
     const completion = await groqCreate({
       model: 'openai/gpt-oss-120b',
       response_format: { type: 'json_object' },
+      reasoning_effort: 'low',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
@@ -335,6 +336,7 @@ async function handleCorrect(req, res) {
     const completion = await groqCreate({
       model: 'openai/gpt-oss-120b',
       response_format: { type: 'json_object' },
+      reasoning_effort: 'low',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT_CORRECT },
         { role: 'user', content: userContent },

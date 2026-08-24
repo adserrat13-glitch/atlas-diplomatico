@@ -68,6 +68,7 @@ async function generateQuestion({ topicName, subtopic, area, difficulty, isTrap,
   const completion = await groq.chat.completions.create({
     model: 'openai/gpt-oss-120b',
     response_format: { type: 'json_object' },
+    reasoning_effort: 'low',
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userPrompt },
