@@ -1409,6 +1409,30 @@
     .deck-bonus-item.done .dpct { color:#34d399; }
     .deck-bonus-empty { font-size:11.5px; color:#5b6272; padding:2px 0 4px; }
 
+    .trophies-toggle {
+      margin:0 24px; padding:9px 14px; border-radius:10px; border:1px solid #23262f;
+      background:#181b22; color:#d4af37; font-size:12px; font-weight:700; cursor:pointer;
+      display:flex; align-items:center; justify-content:space-between; width:calc(100% - 48px);
+    }
+    .trophies-toggle:hover { background:#1d212b; }
+    .trophies-toggle .arrow { transition:transform .2s; }
+    .trophies-toggle.open .arrow { transform:rotate(180deg); }
+    .trophies-list {
+      display:none; padding:10px 24px 6px; flex-direction:column; gap:8px;
+      max-height:260px; overflow-y:auto;
+    }
+    .trophies-list.open { display:flex; }
+    .trophy-item {
+      background:#181b22; border:1px solid #23262f; border-radius:12px;
+      padding:8px 12px; display:flex; align-items:center; gap:12px;
+    }
+    .trophy-item img { width:36px; height:36px; object-fit:contain; flex-shrink:0; }
+    .trophy-item .tinfo { flex:1; min-width:0; }
+    .trophy-item .ttitle { font-size:12.5px; font-weight:700; color:#e5e7eb; }
+    .trophy-item .tsub { font-size:11px; color:#8a92a3; }
+    .trophy-item .tlevel { font-size:12px; font-weight:800; color:#d4af37; font-variant-numeric:tabular-nums; }
+    .trophies-empty { font-size:11.5px; color:#5b6272; padding:2px 0 4px; }
+
     .metas-foot { padding:18px 24px 22px; }
     .metas-cta {
       width:100%; padding:13px; border-radius:12px; border:none;
@@ -1487,6 +1511,12 @@
       <div class="metas-divider">Bônus: deck completo hoje</div>
       <div class="deck-bonus-list" id="deckBonusList"></div>
 
+      <button class="trophies-toggle" id="trophiesToggle" onclick="toggleTrophies()">
+        <span>🏆 Meus troféus</span>
+        <span class="arrow">▾</span>
+      </button>
+      <div class="trophies-list" id="trophiesList"></div>
+
       <div class="metas-foot">
         <button class="metas-cta" id="metasCta" disabled>Complete as 5 metas para desbloquear o patch</button>
       </div>
@@ -1537,10 +1567,25 @@
                              ...vars.map(v => ({code:v[0], name:v[1], target:v[2], fixed:false}))] };
     }
 
+    // Cache local (leitura instantânea) sincronizado com Supabase (fonte de verdade, cross-device)
+    let _historyCache = null;
     function loadHistory() {
-      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || {}; } catch { return {}; }
+      if (_historyCache) return _historyCache;
+      try { _historyCache = JSON.parse(localStorage.getItem(HISTORY_KEY)) || {}; }
+      catch { _historyCache = {}; }
+      return _historyCache;
     }
-    function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); }
+    function saveHistory(h) {
+      _historyCache = h;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+    }
+    async function refreshHistoryFromRemote() {
+      try {
+        const remote = await DB.getMetaStreak();
+        _historyCache = remote;
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(remote));
+      } catch (e) { console.warn('refreshHistoryFromRemote falhou:', e); }
+    }
 
     function computeStreak(history) {
       let streak = 0;
@@ -1574,13 +1619,27 @@
       return { file: PATCH_FILES[idx - 1], level: idx * 10 };
     }
 
+    let _deckBonusCache = null;
     function loadDeckBonus() {
-      try { return JSON.parse(localStorage.getItem(DECK_BONUS_KEY)) || {}; } catch { return {}; }
+      if (_deckBonusCache) return _deckBonusCache;
+      try { _deckBonusCache = JSON.parse(localStorage.getItem(DECK_BONUS_KEY)) || {}; }
+      catch { _deckBonusCache = {}; }
+      return _deckBonusCache;
     }
-    function saveDeckBonus(b) { localStorage.setItem(DECK_BONUS_KEY, JSON.stringify(b)); }
+    function saveDeckBonus(b) {
+      _deckBonusCache = b;
+      localStorage.setItem(DECK_BONUS_KEY, JSON.stringify(b));
+    }
+    async function refreshDeckBonusFromRemote() {
+      try {
+        const remote = await DB.getDeckTrophies();
+        _deckBonusCache = remote;
+        localStorage.setItem(DECK_BONUS_KEY, JSON.stringify(remote));
+      } catch (e) { console.warn('refreshDeckBonusFromRemote falhou:', e); }
+    }
 
     // Chamado pelo showSummary() de simulados.html quando um deck é zerado pela 1ª vez na sessão
-    window.registerDeckCompletion = function (deckName, pct) {
+    window.registerDeckCompletion = async function (deckName, pct) {
       const all = loadDeckBonus();
       const today = todayStr();
       if (!all[today]) all[today] = [];
@@ -1588,22 +1647,36 @@
       const { file, level } = patchForScore(pct);
       all[today].push({ deck: deckName, pct, file, level, ts: Date.now() });
       saveDeckBonus(all);
+      DB.saveDeckTrophy(today, deckName, pct, level, file).catch(e => console.warn('saveDeckTrophy falhou:', e));
+
+      // Deck completo também conta como meta do dia batida (credita o streak)
+      const history = loadHistory();
+      const alreadyClaimedToday = !!history[today];
+      if (!alreadyClaimedToday) {
+        history[today] = { level, file, via: 'deck' };
+        saveHistory(history);
+        DB.saveMetaStreak(today, level, file, 'deck').catch(e => console.warn('saveMetaStreak falhou:', e));
+      }
+
       document.getElementById('patchRevealImg').src = `GAMES/PATCH DE ERROS/${file}`;
       document.getElementById('patchRevealTitle').textContent = `Deck completo — patch ${level}!`;
-      document.getElementById('patchRevealSub').textContent =
-        `"${deckName}" zerado com ${pct}% de acerto.`;
+      document.getElementById('patchRevealSub').textContent = alreadyClaimedToday
+        ? `"${deckName}" zerado com ${pct}% de acerto.`
+        : `"${deckName}" zerado com ${pct}% de acerto. 🔥 Meta do dia batida!`;
       document.getElementById('patchReveal').classList.add('open');
       if (typeof renderMetas === 'function') renderMetas();
     };
 
     async function sumTodayBySubject() {
       const sums = {};
+      let dayTotal = 0;
       try {
         const user = await DB.getUser();
-        if (!user) return sums;
+        if (!user) return { sums, dayTotal };
         const sessions = await DB.getSessions(user.id);
         const today = todayStr();
         sessions.filter(s => s.date === today).forEach(s => {
+          dayTotal += (s.total || 0); // todas as questões do dia, qualquer origem (deck, revisão de erros, etc.)
           const bd = s.subjects_breakdown;
           if (bd && typeof bd === 'object') {
             Object.entries(bd).forEach(([code, v]) => {
@@ -1615,14 +1688,14 @@
           }
         });
       } catch (e) { console.warn('metas: falha ao ler sessões', e); }
-      return sums;
+      return { sums, dayTotal };
     }
 
     let _lastRender = null;
 
     async function renderMetas() {
       const { day, goals } = getGoalsForToday();
-      const sums = await sumTodayBySubject();
+      const { sums, dayTotal } = await sumTodayBySubject();
       const history = loadHistory();
       const streak = computeStreak(history);
 
@@ -1649,13 +1722,13 @@
         </div>`;
       }).join('');
 
-      const overallPct = sumGoal ? Math.round((sumDone / sumGoal) * 100) : 0;
+      const overallPct = sumGoal ? Math.round((Math.max(sumDone, Math.min(dayTotal, sumGoal)) / sumGoal) * 100) : 0;
       document.getElementById('metasRing').style.setProperty('--pct', Math.min(overallPct,100));
       document.getElementById('metasRingPct').textContent = overallPct + '%';
-      document.getElementById('metasDoneTotal').textContent = sumDone.toLocaleString('pt-BR');
+      document.getElementById('metasDoneTotal').textContent = Math.max(sumDone, dayTotal).toLocaleString('pt-BR');
       document.getElementById('metasGoalTotal').textContent = sumGoal.toLocaleString('pt-BR');
 
-      const allDone = doneCount === goals.length;
+      const allDone = doneCount === goals.length || dayTotal >= 2000;
       const cta = document.getElementById('metasCta');
       const fabBadge = document.getElementById('metasFabBadge');
       fabBadge.style.display = doneCount > 0 ? 'flex' : 'none';
@@ -1687,15 +1760,59 @@
         : `<div class="deck-bonus-empty">Zere um deck inteiro hoje para ganhar um patch extra, com nível conforme sua nota.</div>`;
 
       _lastRender = { day, goals, sums };
+      renderTrophies();
     }
+
+    function renderTrophies() {
+      const history = loadHistory();
+      const deckBonus = loadDeckBonus();
+
+      const items = [];
+      Object.entries(history).forEach(([date, entry]) => {
+        if (!entry) return;
+        if (typeof entry === 'object') {
+          items.push({
+            date, file: entry.file, level: entry.level,
+            title: 'Meta diária', sub: date, ts: new Date(date + 'T12:00:00').getTime()
+          });
+        }
+        // entradas antigas (formato `true`, sem nível salvo) são ignoradas na galeria
+      });
+      Object.entries(deckBonus).forEach(([date, decks]) => {
+        (decks || []).forEach(d => {
+          items.push({
+            date, file: d.file, level: d.level,
+            title: d.deck, sub: `${d.pct}% de acerto · ${date}`, ts: d.ts || new Date(date + 'T12:00:00').getTime()
+          });
+        });
+      });
+      items.sort((a, b) => b.ts - a.ts);
+
+      const listEl = document.getElementById('trophiesList');
+      listEl.innerHTML = items.length
+        ? items.map(t => `<div class="trophy-item">
+            <img src="GAMES/PATCH DE ERROS/${t.file}" alt="Patch ${t.level}" />
+            <div class="tinfo"><div class="ttitle">${t.title}</div><div class="tsub">${t.sub}</div></div>
+            <span class="tlevel">${t.level}</span>
+          </div>`).join('')
+        : `<div class="trophies-empty">Nenhum troféu ainda. Bata uma meta ou zere um deck para começar sua coleção.</div>`;
+
+      document.getElementById('trophiesToggle').querySelector('span').textContent = `🏆 Meus troféus (${items.length})`;
+    }
+
+    window.toggleTrophies = function () {
+      document.getElementById('trophiesToggle').classList.toggle('open');
+      document.getElementById('trophiesList').classList.toggle('open');
+    };
 
     function claimPatch() {
       const history = loadHistory();
       const key = todayStr();
-      history[key] = true;
-      saveHistory(history);
-      const streak = computeStreak(history);
+      const streak = computeStreak(history) + (history[key] ? 0 : 1);
       const { file, level } = patchForStreak(streak);
+      history[key] = { level, file, via: 'streak' };
+      saveHistory(history);
+      DB.saveMetaStreak(key, level, file, 'streak').catch(e => console.warn('saveMetaStreak falhou:', e));
 
       document.getElementById('patchRevealImg').src = `GAMES/PATCH DE ERROS/${file}`;
       document.getElementById('patchRevealTitle').textContent = `Patch ${level} desbloqueado!`;
@@ -1708,8 +1825,9 @@
     window.closePatchReveal = function () {
       document.getElementById('patchReveal').classList.remove('open');
     };
-    window.openMetasOverlay = function () {
+    window.openMetasOverlay = async function () {
       document.getElementById('metasOverlay').classList.add('open');
+      await Promise.all([refreshHistoryFromRemote(), refreshDeckBonusFromRemote()]);
       renderMetas();
     };
     window.closeMetasOverlay = function () {
@@ -1719,6 +1837,7 @@
     // Atualiza o badge do FAB assim que a página carrega (sem abrir o overlay)
     (async () => {
       try { await DB.requireAuth(); } catch { return; }
+      await Promise.all([refreshHistoryFromRemote(), refreshDeckBonusFromRemote()]);
       renderMetas();
     })();
   })();
