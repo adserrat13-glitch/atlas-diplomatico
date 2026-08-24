@@ -1149,11 +1149,11 @@
       generateFlashcardIA(q).then(fc => {
         if (!fc?.front) return;
         pendingFlashcard = fc;
+        pendingExplanation = fc.explanation || null;
         if (!sessionAIFlashcards.some(c => c.q === fc.front)) {
           sessionAIFlashcards.push({ q: fc.front, a: fc.back });
         }
       });
-      generateExplanationIA(q).then(exp => { pendingExplanation = exp; });
     }
 
     function dismissPill() {
@@ -1161,33 +1161,16 @@
       if ('speechSynthesis' in window) speechSynthesis.cancel();
     }
 
-    async function generateExplanationIA(q) {
-      try {
-        const r = await fetch('/api/explain-answer', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({
-            question: q.q,
-            correct_answer: q.correct,
-            subject_label: q.subjectLabel || '',
-            section: q.section || ''
-          })
-        });
-        if (!r.ok) return null;
-        const data = await r.json();
-        return data.explanation || null;
-      } catch { return null; }
-    }
-
     async function speakExplanation() {
       if (!currentWrongQ) return;
       const speakBtn = document.getElementById('wpSpeak');
       if (pendingExplanation) { speakQuestion(pendingExplanation); return; }
       if (speakBtn) { speakBtn.textContent = '⏳'; speakBtn.disabled = true; }
-      const exp = await generateExplanationIA(currentWrongQ);
-      pendingExplanation = exp;
+      const fc = await generateFlashcardIA(currentWrongQ);
+      pendingFlashcard = fc;
+      pendingExplanation = fc?.explanation || null;
       if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
-      if (exp) speakQuestion(exp);
+      if (pendingExplanation) speakQuestion(pendingExplanation);
     }
 
     function expandWrongDrawer() {

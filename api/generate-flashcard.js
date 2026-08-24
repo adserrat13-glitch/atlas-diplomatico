@@ -1,11 +1,13 @@
 const Groq = require('groq-sdk');
 
 const SYSTEM_PROMPT = `Você é professor especializado no CACD (Concurso de Admissão à Carreira Diplomática).
-A partir de uma questão de CERTO/ERRADO que o candidato errou, gere um flashcard didático.
+A partir de uma questão de CERTO/ERRADO que o candidato errou, gere um flashcard didático e uma explicação falada.
 front = conceito principal da questão (nome do tema, máx 80 chars).
 back = explicação clara e objetiva do que é correto e por quê (2-3 frases, sem rodeios).
+explanation = explicação em áudio (será lida por TTS) de por que a resposta correta é CERTO ou ERRADO,
+falada, clara, objetiva, 2-4 frases, sem markdown, sem listas, texto corrido.
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
-{"front":"...","back":"..."}`;
+{"front":"...","back":"...","explanation":"..."}`;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -51,6 +53,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       front: String(parsed.front || '').trim().slice(0, 120),
       back: String(parsed.back || '').trim().slice(0, 600),
+      explanation: String(parsed.explanation || '').trim().slice(0, 800),
     });
   } catch (err) {
     return res.status(err?.status || 500).json({ error: err?.message || 'Erro interno' });
