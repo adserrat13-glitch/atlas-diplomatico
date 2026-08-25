@@ -1017,16 +1017,6 @@
         return;
       }
       if (currentIdx >= queue.length) {
-        if (retryPending.length) {
-          renderWaitingForRetry();
-          retryPollInterval = setInterval(() => {
-            if (retryPending.some(r => r.dueAt <= Date.now())) {
-              clearInterval(retryPollInterval); retryPollInterval = null;
-              renderQuestion();
-            }
-          }, 3000);
-          return;
-        }
         clearInterval(timerInterval); if ('speechSynthesis' in window) speechSynthesis.cancel(); showSummary(); return;
       }
       currentRetryItem = null;

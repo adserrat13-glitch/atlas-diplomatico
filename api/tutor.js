@@ -25,7 +25,7 @@ const SR_TTS_DAILY_LIMIT_PER_KEY = 100;
 let srTtsUsage = { date: null, count: 0 };
 
 function srTtsDailyLimit() {
-  const keyCount = ['GROQ_API_KEY', 'GROQ_API_KEY_2', 'GROQ_API_KEY_3']
+  const keyCount = ['GROQ_API_KEY', 'GROQ_API_KEY_2', 'GROQ_API_KEY_3', 'GROQ_API_KEY_4']
     .filter(name => process.env[name]).length || 1;
   return SR_TTS_DAILY_LIMIT_PER_KEY * keyCount;
 }

@@ -1,6 +1,6 @@
 const Groq = require('groq-sdk');
 
-const KEY_ENV_VARS = ['GROQ_API_KEY', 'GROQ_API_KEY_2', 'GROQ_API_KEY_3'];
+const KEY_ENV_VARS = ['GROQ_API_KEY', 'GROQ_API_KEY_2', 'GROQ_API_KEY_3', 'GROQ_API_KEY_4'];
 const clients = {};
 
 function getClients() {

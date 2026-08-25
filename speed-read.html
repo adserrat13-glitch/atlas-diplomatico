@@ -390,11 +390,11 @@
 <script src="tts-engine.js"></script>
 <script src="groq-tts-engine.js"></script>
 <script>
-  // Groq's Orpheus TTS only speaks English/Arabic — non-Latin-alphabet
-  // languages (Russian, Greek) fall back to the browser's speechSynthesis
+  // Groq's Orpheus TTS only speaks English/Arabic — other languages
+  // (Russian, Greek, German) fall back to the browser's speechSynthesis
   // engine, which the Groq engine's error path can't recover from since
   // Orpheus outright rejects that text rather than mispronouncing it.
-  const BROWSER_TTS_LANGUAGES = new Set(['russian', 'greek']);
+  const BROWSER_TTS_LANGUAGES = new Set(['russian', 'greek', 'german']);
   let TTSEngine = GroqTTSEngine;
 
   const LANGUAGES = [
