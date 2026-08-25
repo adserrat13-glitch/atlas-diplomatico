@@ -1010,13 +1010,16 @@
 
     function renderQuestion() {
       clearInterval(retryPollInterval); retryPollInterval = null;
-      const dueIdx = retryPending.findIndex(r => r.dueAt <= Date.now());
+      const queueDone = currentIdx >= queue.length;
+      const dueIdx = queueDone
+        ? (retryPending.length ? 0 : -1)
+        : retryPending.findIndex(r => r.dueAt <= Date.now());
       if (dueIdx !== -1) {
         currentRetryItem = retryPending.splice(dueIdx, 1)[0];
         renderRetryQuestion(currentRetryItem.q);
         return;
       }
-      if (currentIdx >= queue.length) {
+      if (queueDone) {
         clearInterval(timerInterval); if ('speechSynthesis' in window) speechSynthesis.cancel(); showSummary(); return;
       }
       currentRetryItem = null;
