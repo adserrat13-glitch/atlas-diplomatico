@@ -852,7 +852,7 @@
       const items = store[subjectCode] || [];
       if (!items.length) return;
       queue = items.map(it => ({ ...it }));
-      currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
       window._futureReviewSubject = subjectCode;
@@ -888,7 +888,7 @@
       const end = (n === null) ? total : Math.min(lastDone + n, total);
       queue = allQuestions.slice(lastDone, end);
       if (!queue.length) { showOptions(); return; }
-      currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'seq';
       window._sessionStartIdx = lastDone;
@@ -908,7 +908,7 @@
         q: a.q, correct: a.correct, section: a.section,
         subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || []
       }));
-      currentIdx = 0; answers = []; sessionAIFlashcards = [];
+      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong';
       window._futureReviewSubject = null;
@@ -1011,14 +1011,14 @@
     }
 
     function renderQuestion() {
+      clearInterval(retryPollInterval); retryPollInterval = null;
+      const dueIdx = retryPending.findIndex(r => r.dueAt <= Date.now());
+      if (dueIdx !== -1) {
+        currentRetryItem = retryPending.splice(dueIdx, 1)[0];
+        renderRetryQuestion(currentRetryItem.q);
+        return;
+      }
       if (currentIdx >= queue.length) {
-        clearInterval(retryPollInterval); retryPollInterval = null;
-        const dueIdx = retryPending.findIndex(r => r.dueAt <= Date.now());
-        if (dueIdx !== -1) {
-          currentRetryItem = retryPending.splice(dueIdx, 1)[0];
-          renderRetryQuestion(currentRetryItem.q);
-          return;
-        }
         if (retryPending.length) {
           renderWaitingForRetry();
           retryPollInterval = setInterval(() => {
@@ -1275,8 +1275,15 @@
     }
 
     // ─── Summary ─────────────────────────────────────────────────────
-    function showSummary() {
-      // Atualiza _lastDone com o progresso desta sessão (checkpoint já foi salvo em saveProgress)
+    let _sessionRecorded = false;
+
+    // Grava a sessão (parcial ou completa) no DB — usado tanto ao finalizar quanto ao sair no meio.
+    // Retorna as estatísticas calculadas, ou null se não havia nada a gravar.
+    function recordSessionResult() {
+      if (_sessionRecorded) return null;
+      if (!answers.length) return null;
+      _sessionRecorded = true;
+
       const isRetry = window._currentSimMode === 'retry-wrong';
       if (!isRetry) window._lastDone = (window._sessionStartIdx || 0) + answers.length;
       const total = answers.length;
@@ -1307,6 +1314,19 @@
       if (!isRetry && window._lastDone >= allQuestions.length && typeof window.registerDeckCompletion === 'function') {
         window.registerDeckCompletion(deckName, pct);
       }
+
+      if (typeof renderMetas === 'function') renderMetas();
+
+      return { total, correct, wrong, pct, mins };
+    }
+
+    function showSummary() {
+      const stats = recordSessionResult();
+      const total = stats ? stats.total : 0;
+      const correct = stats ? stats.correct : 0;
+      const wrong = stats ? stats.wrong : 0;
+      const pct = stats ? stats.pct : 0;
+      const mins = stats ? stats.mins : 0;
 
       document.getElementById('summaryScore').textContent = pct + '%';
       document.getElementById('summaryScore').style.color = pct >= 70 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
@@ -1447,9 +1467,10 @@
     function confirmExit() {
       clearInterval(timerInterval);
       if (currentIdx > 0) {
-        if (confirm('Sair? O progresso desta sessão será salvo e você poderá continuar depois.')) {
-          // Progresso já foi salvo em saveProgress() após cada resposta — apenas volta
+        if (confirm('Sair? As questões respondidas serão contabilizadas em Metas do dia e Sessões hoje, e você poderá continuar de onde parou.')) {
+          // Progresso (posição) já foi salvo em saveProgress() após cada resposta
           window._lastDone = (window._sessionStartIdx || 0) + currentIdx;
+          recordSessionResult();
           if ('speechSynthesis' in window) speechSynthesis.cancel();
           clearInterval(retryPollInterval); retryPollInterval = null;
           retryPending = []; currentRetryItem = null;
@@ -1878,6 +1899,14 @@
           }
         });
       } catch (e) { console.warn('metas: falha ao ler sessões', e); }
+      // Soma o progresso da sessão de simulado em andamento (ainda não finalizada/gravada)
+      if (typeof answers !== 'undefined' && answers.length && window._currentSimMode !== 'retry-wrong') {
+        dayTotal += answers.length;
+        answers.forEach(a => {
+          const sc = a.subjectCode || 'PI';
+          sums[sc] = (sums[sc] || 0) + 1;
+        });
+      }
       return { sums, dayTotal };
     }
 
