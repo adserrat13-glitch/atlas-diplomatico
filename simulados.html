@@ -107,8 +107,11 @@
       padding:5px 12px; border-radius:8px; font-size:12px; cursor:pointer; font-family:inherit; }
     .sim-exit:hover { color:var(--text); border-color:rgba(255,255,255,0.3); }
 
-    .progress-bar { width:100%; height:5px; background:rgba(255,255,255,0.07); border-radius:20px; overflow:hidden; }
+    .progress-bar { width:100%; height:5px; background:rgba(255,255,255,0.07); border-radius:20px; overflow:visible; position:relative; }
     .progress-fill { height:100%; background:var(--accent); border-radius:20px; transition:width 0.3s ease; }
+    .progress-retry-dot { position:absolute; top:50%; width:8px; height:8px; border-radius:50%;
+      background:var(--red, #f87171); transform:translate(-50%,-50%); box-shadow:0 0 0 2px rgba(0,0,0,0.6);
+      transition:left 0.3s ease; }
 
     .section-label { width:100%; font-size:11px; color:var(--muted); letter-spacing:1.5px; text-transform:uppercase;
       padding:8px 0 4px; border-top:1px solid rgba(255,255,255,0.06); }
@@ -376,7 +379,7 @@
         <span class="sim-counter" id="simCounter"></span>
         <button class="sim-exit" onclick="confirmExit()">✕ Sair</button>
       </div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div><div class="progress-retry-dot" id="progressRetryDot" style="display:none"></div></div>
       <div class="section-label" id="sectionLabel"></div>
       <div class="question-card">
         <div class="question-label">Questão <span id="qNum"></span></div>
@@ -457,8 +460,6 @@
     let retryPollInterval = null;
     let pendingExplanation = null;
     let currentRetryItem = null; // set when the question on screen came from retryPending
-
-    const REVIEW_FUTURE_KEY = 'simulados_review_future';
 
     // ─── Subject classification ──────────────────────────────────────
     const SUBJECT_RULES = [
@@ -830,11 +831,11 @@
     }
 
     // ─── Caixa de revisão futura (questões erradas 2x+, por matéria) ─
-    function renderFutureReviewBox() {
+    async function renderFutureReviewBox() {
       const box = document.getElementById('futureReviewBox');
       const msgEl = document.getElementById('futureReviewMsg');
       const subjEl = document.getElementById('futureReviewSubjects');
-      const store = loadFutureReview();
+      const store = await loadFutureReview();
       const subjects = Object.keys(store).filter(k => store[k]?.length);
       if (!subjects.length) { box.style.display = 'none'; return; }
       const total = subjects.reduce((sum, k) => sum + store[k].length, 0);
@@ -847,8 +848,8 @@
       box.style.display = 'block';
     }
 
-    function startFutureReview(subjectCode) {
-      const store = loadFutureReview();
+    async function startFutureReview(subjectCode) {
+      const store = await loadFutureReview();
       const items = store[subjectCode] || [];
       if (!items.length) return;
       queue = items.map(it => ({ ...it }));
@@ -865,11 +866,7 @@
     }
 
     function removeFromFutureReview(subjectCode, questionText) {
-      const store = loadFutureReview();
-      if (!store[subjectCode]) return;
-      store[subjectCode] = store[subjectCode].filter(it => it.q !== questionText);
-      if (!store[subjectCode].length) delete store[subjectCode];
-      saveFutureReview(store);
+      DB.removeFutureReviewItem(subjectCode, questionText).catch(() => {});
     }
 
     function startSeq(n) {
@@ -926,6 +923,7 @@
       const m = String(Math.floor(timerSecs / 60)).padStart(2, '0');
       const s = String(timerSecs % 60).padStart(2, '0');
       document.getElementById('simTimer').textContent = `${m}:${s}`;
+      if (typeof updateRetryDot === 'function') updateRetryDot();
     }
 
     // ─── TTS config (velocidade, tom, voz, idioma de leitura) ───────
@@ -1040,7 +1038,27 @@
       document.getElementById('simCounter').textContent = ` ${currentIdx + 1}/${queue.length}`;
       document.getElementById('questionTags').innerHTML = renderTags(q);
       document.getElementById('progressFill').style.width = (currentIdx / queue.length * 100) + '%';
+      updateRetryDot();
       speakQuestion(q.q);
+    }
+
+    // ─── Ponto vermelho na barra: marca onde a próxima questão errada deve reaparecer ─
+    function updateRetryDot() {
+      const dot = document.getElementById('progressRetryDot');
+      if (!dot) return;
+      if (!retryPending.length || !answers.length || currentIdx >= queue.length) {
+        dot.style.display = 'none';
+        return;
+      }
+      const secsPerQuestion = timerSecs / answers.length;
+      if (!secsPerQuestion || !isFinite(secsPerQuestion)) { dot.style.display = 'none'; return; }
+      const nextDue = Math.min(...retryPending.map(r => r.dueAt));
+      const secsUntilDue = (nextDue - Date.now()) / 1000;
+      const questionsUntilDue = Math.max(0, secsUntilDue / secsPerQuestion);
+      const targetIdx = Math.min(queue.length, currentIdx + questionsUntilDue);
+      if (targetIdx <= currentIdx) { dot.style.display = 'none'; return; }
+      dot.style.display = 'block';
+      dot.style.left = (targetIdx / queue.length * 100) + '%';
     }
 
     function renderRetryQuestion(q) {
@@ -1115,26 +1133,13 @@
       renderQuestion();
     }
 
-    // ─── Deck de revisão futura (por matéria) ───────────────────────
-    function loadFutureReview() {
-      try { return JSON.parse(localStorage.getItem(REVIEW_FUTURE_KEY)) || {}; }
+    // ─── Deck de revisão futura (por matéria, persistido no Supabase) ─
+    async function loadFutureReview() {
+      try { return await DB.getFutureReview(); }
       catch { return {}; }
     }
-    function saveFutureReview(data) {
-      try { localStorage.setItem(REVIEW_FUTURE_KEY, JSON.stringify(data)); } catch {}
-    }
     function addToFutureReview(q) {
-      const store = loadFutureReview();
-      const key = q.subjectCode || 'GERAL';
-      if (!store[key]) store[key] = [];
-      if (!store[key].some(item => item.q === q.q)) {
-        store[key].push({
-          q: q.q, correct: q.correct, section: q.section,
-          subjectCode: q.subjectCode, subjectLabel: q.subjectLabel,
-          tags: q.tags || [], addedAt: Date.now()
-        });
-      }
-      saveFutureReview(store);
+      DB.addFutureReviewItem(q).catch(() => {});
     }
 
     // ─── Wrong pill (push notification recolhida) ────────────────────

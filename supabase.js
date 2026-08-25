@@ -292,6 +292,54 @@ const DB = {
       .eq('deck_name', deck_name);
   },
 
+  // ── REVISÃO FUTURA (questões erradas 2x+, por matéria) ────────────────
+
+  async getFutureReview() {
+    const user = await this.getUser();
+    if (!user) return {};
+    const { data, error } = await _sb.from('simulado_review_future')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('added_at', { ascending: true });
+    if (error) { console.warn('getFutureReview error:', error.message); return {}; }
+    const store = {};
+    for (const row of data || []) {
+      const key = row.subject_code || 'GERAL';
+      if (!store[key]) store[key] = [];
+      store[key].push({
+        q: row.question_text, correct: row.correct_answer, section: row.section,
+        subjectCode: row.subject_code, subjectLabel: row.subject_label,
+        tags: row.tags || [], addedAt: new Date(row.added_at).getTime()
+      });
+    }
+    return store;
+  },
+
+  async addFutureReviewItem(q) {
+    const user = await this.getUser();
+    if (!user) return;
+    const { error } = await _sb.from('simulado_review_future').upsert({
+      user_id: user.id,
+      subject_code: q.subjectCode || 'GERAL',
+      subject_label: q.subjectLabel || null,
+      question_text: q.q,
+      correct_answer: q.correct,
+      section: q.section || null,
+      tags: q.tags || []
+    }, { onConflict: 'user_id,subject_code,question_text' });
+    if (error) console.warn('addFutureReviewItem error:', error.message);
+  },
+
+  async removeFutureReviewItem(subjectCode, questionText) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('simulado_review_future')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('subject_code', subjectCode)
+      .eq('question_text', questionText);
+  },
+
   // ── EDITAL SESSIONS (Central de Análise por Edital — módulo isolado) ─
   // Tabela própria `edital_sessions`, nunca `sessions`. Usada exclusivamente
   // por analise-edital.html; não afeta nem é afetada pela Central TPS.
