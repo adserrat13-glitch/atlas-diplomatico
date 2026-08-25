@@ -359,6 +359,7 @@
         <div id="futureReviewSubjects" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
       </div>
       <div class="btns">
+        <button class="btn btn-primary" id="btnRedoAllWrong" style="display:none" onclick="startRedoAllWrong()"></button>
         <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
           <input id="customQtdInput" type="number" min="1" placeholder="Quantas questões agora?"
@@ -827,7 +828,39 @@
         resumeEl.style.display = 'none';
       };
       renderFutureReviewBox();
+      renderRedoAllWrongButton();
       showView('viewOptions');
+    }
+
+    // ─── Botão "Refazer todas as erradas" (histórico completo do deck) ─
+    let allWrongItemsCache = null;
+    async function renderRedoAllWrongButton() {
+      const btn = document.getElementById('btnRedoAllWrong');
+      if (!btn) return;
+      allWrongItemsCache = await DB.getAllWrongItems(deckName).catch(() => []);
+      if (!allWrongItemsCache.length) { btn.style.display = 'none'; return; }
+      btn.textContent = `🔁 Refazer todas as erradas (${allWrongItemsCache.length})`;
+      btn.style.display = '';
+    }
+
+    function startRedoAllWrong() {
+      if (!allWrongItemsCache || !allWrongItemsCache.length) return;
+      queue = allWrongItemsCache.map(it => ({
+        q: it.q, correct: it.answer, section: it.section || '',
+        subjectCode: it.subjectCode, subjectLabel: it.subjectLabel || it.subjectCode || '',
+        tags: it.tags || []
+      }));
+      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
+      retryPending = []; currentRetryItem = null;
+      window._currentSimMode = 'retry-wrong';
+      window._futureReviewSubject = null;
+      window._redoAllWrongMode = true;
+      timerSecs = 0; updateTimer();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+      renderQuestion();
+      showView('viewStudy');
+      document.getElementById('simDeck').textContent = deckName + ' (Todas as erradas)';
     }
 
     // ─── Caixa de revisão futura (questões erradas 2x+, por matéria) ─
@@ -857,6 +890,7 @@
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
       window._futureReviewSubject = subjectCode;
+      window._redoAllWrongMode = false;
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -890,6 +924,7 @@
       window._currentSimMode = 'seq';
       window._sessionStartIdx = lastDone;
       window._futureReviewSubject = null;
+      window._redoAllWrongMode = false;
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -909,6 +944,7 @@
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong';
       window._futureReviewSubject = null;
+      window._redoAllWrongMode = false;
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
@@ -1084,6 +1120,10 @@
       const correct = userAns === q.correct;
       if (correct && window._futureReviewSubject) {
         removeFromFutureReview(window._futureReviewSubject, q.q);
+      }
+      if (window._redoAllWrongMode) {
+        if (correct) DB.markWrongItemResolved(deckName, q.q).catch(() => {});
+        else DB.unmarkWrongItemResolved(deckName, q.q).catch(() => {});
       }
       answers.push({
         q: q.q, correct: q.correct, userAns, isCorrect: correct,

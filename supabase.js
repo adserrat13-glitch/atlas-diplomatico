@@ -154,6 +154,51 @@ const DB = {
     return data || [];
   },
 
+  // Agrega wrong_items de todas as sessões desse deck (dedup por texto da questão,
+  // fica com a ocorrência mais recente), excluindo as já marcadas como resolvidas.
+  async getAllWrongItems(deckName) {
+    const user = await this.getUser();
+    if (!user) return [];
+    const [{ data, error }, { data: resolved }] = await Promise.all([
+      _sb.from('sessions')
+        .select('wrong_items, created_at')
+        .eq('user_id', user.id)
+        .eq('deck', deckName)
+        .order('created_at', { ascending: true }),
+      _sb.from('simulado_wrong_resolved')
+        .select('question_text')
+        .eq('user_id', user.id)
+        .eq('deck', deckName)
+    ]);
+    if (error) { console.warn('getAllWrongItems error:', error.message); return []; }
+    const resolvedSet = new Set((resolved || []).map(r => r.question_text));
+    const byQuestion = new Map();
+    for (const row of data || []) {
+      for (const item of row.wrong_items || []) {
+        if (item?.q && !resolvedSet.has(item.q)) byQuestion.set(item.q, item);
+        else if (item?.q) byQuestion.delete(item.q);
+      }
+    }
+    return [...byQuestion.values()];
+  },
+
+  async markWrongItemResolved(deckName, questionText) {
+    const user = await this.getUser();
+    if (!user) return;
+    const { error } = await _sb.from('simulado_wrong_resolved').upsert({
+      user_id: user.id, deck: deckName, question_text: questionText
+    }, { onConflict: 'user_id,deck,question_text' });
+    if (error) console.warn('markWrongItemResolved error:', error.message);
+  },
+
+  async unmarkWrongItemResolved(deckName, questionText) {
+    const user = await this.getUser();
+    if (!user) return;
+    await _sb.from('simulado_wrong_resolved')
+      .delete()
+      .eq('user_id', user.id).eq('deck', deckName).eq('question_text', questionText);
+  },
+
   async addSession(session) {
     const user = await this.getUser();
     if (!user) return null;
