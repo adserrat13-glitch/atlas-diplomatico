@@ -198,37 +198,16 @@
     .fc-skeleton { height:72px; background:linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
       background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:12px; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    .wd-deck-btn { display:inline-flex; align-items:center; gap:6px; margin-top:12px;
-      padding:8px 16px; background:rgba(142,167,255,.1); border:1px solid rgba(142,167,255,.3);
-      border-radius:8px; color:var(--accent); font-size:13px; text-decoration:none;
-      font-weight:600; transition:.15s; }
-    .wd-deck-btn:hover { background:rgba(142,167,255,.2); }
     .wd-continue { margin-top:16px; padding:13px; background:var(--accent);
       color:#0f1117; border:none; border-radius:11px; font-size:14px; font-weight:700;
       cursor:pointer; font-family:inherit; transition:.2s; flex-shrink:0; }
     .wd-continue:hover { opacity:.85; }
     .wd-no-flash { font-size:13px; color:var(--muted); padding:6px 0; }
 
-    /* AI FLASHCARD no drawer */
-    .wd-fc-gen-title{font-size:10px;font-weight:700;letter-spacing:1.5px;
-      color:#888;text-transform:uppercase;margin:14px 0 6px}
-    .fc-gen-card{background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.25);
-      border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px}
-    .fc-gen-front{font-size:12px;font-weight:700;color:#d4af37}
-    .fc-gen-sep{font-size:10px;color:#444;text-align:center}
-    .fc-gen-back{font-size:11px;color:#bbb;line-height:1.5}
     .wdfc-loading{font-size:11px;color:#555;padding:8px 0;font-style:italic}
-    /* AI DECK na summary */
+    /* AI SUMMARY na summary */
     .ai-deck-title{font-size:12px;font-weight:700;letter-spacing:1px;color:#d4af37;
       text-transform:uppercase;margin-bottom:10px}
-    .ai-card-preview{background:rgba(212,175,55,.07);border:1px solid rgba(212,175,55,.2);
-      border-radius:8px;padding:8px 12px;text-align:left;margin:4px 0;max-width:480px;margin-inline:auto}
-    .ai-card-preview-front{font-size:11px;font-weight:700;color:#d4af37}
-    .ai-card-preview-back{font-size:10px;color:#888;margin-top:2px;line-height:1.4}
-    .btn-ai-deck{background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.4);
-      color:#d4af37;border-radius:10px;padding:10px 20px;font-size:12px;font-weight:700;
-      font-family:inherit;cursor:pointer;margin-top:10px}
-    .btn-ai-deck:disabled{opacity:.5;cursor:default}
 
     /* WRONG PILL — push notification recolhida */
     .wrong-pill {
@@ -407,12 +386,9 @@
         <button class="btn btn-secondary" onclick="showView('viewLoader')">Outro arquivo</button>
         <a href="analise.html" class="btn btn-secondary">Ver Análise</a>
       </div>
-      <div id="aiDeckSection" style="display:none;width:100%;text-align:center;margin-top:16px">
-        <div class="ai-deck-title">🤖 Baralho IA — Flashcards dos seus erros</div>
-        <div id="aiDeckPreview"></div>
-        <button class="btn-ai-deck" id="btnSaveAIDeck" onclick="handleSaveAIDeck()">
-          💾 Salvar baralho IA para revisão
-        </button>
+      <div id="aiSummarySection" style="display:none;width:100%;text-align:left;margin-top:16px;max-width:520px;margin-inline:auto">
+        <div class="ai-deck-title" style="text-align:center">🤖 Resumo dos erros</div>
+        <div id="aiSummaryContent"></div>
       </div>
       <div class="review-section" id="reviewSection" style="display:none">
         <div class="review-tabs">
@@ -432,8 +408,6 @@
     </div>
     <div class="wd-correct" id="wdCorrect"></div>
     <div class="wd-subject-row" id="wdSubject"></div>
-    <div class="wd-fc-gen-title">🤖 Flashcard IA</div>
-    <div id="wdGeneratedFC"></div>
     <button class="wd-continue" onclick="closeWrongDrawer()">Fechar ✕</button>
   </div>
   <div class="wrong-pill" id="wrongPill">
@@ -451,8 +425,6 @@
     let timerInterval = null, timerSecs = 0;
     let drawerOpen = false;
     let currentWrongQ = null;
-    let pendingFlashcard = null;
-    let sessionAIFlashcards = [];
     const flashcardCache = {};
     let isLongDeck = false;
     let currentProgressKey = null;
@@ -850,7 +822,7 @@
         subjectCode: it.subjectCode, subjectLabel: it.subjectLabel || it.subjectCode || '',
         tags: it.tags || []
       }));
-      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
+      currentIdx = 0; answers = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong';
       window._futureReviewSubject = null;
@@ -886,7 +858,7 @@
       const items = store[subjectCode] || [];
       if (!items.length) return;
       queue = items.map(it => ({ ...it }));
-      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
+      currentIdx = 0; answers = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
       window._futureReviewSubject = subjectCode;
@@ -919,7 +891,7 @@
       const end = (n === null) ? total : Math.min(lastDone + n, total);
       queue = allQuestions.slice(lastDone, end);
       if (!queue.length) { showOptions(); return; }
-      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
+      currentIdx = 0; answers = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'seq';
       window._sessionStartIdx = lastDone;
@@ -940,7 +912,7 @@
         q: a.q, correct: a.correct, section: a.section,
         subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || []
       }));
-      currentIdx = 0; answers = []; sessionAIFlashcards = []; _sessionRecorded = false;
+      currentIdx = 0; answers = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong';
       window._futureReviewSubject = null;
@@ -1178,20 +1150,11 @@
     // ─── Wrong pill (push notification recolhida) ────────────────────
     function showWrongPill(q) {
       currentWrongQ = q;
-      pendingFlashcard = null;
       pendingExplanation = null;
       const speakBtn = document.getElementById('wpSpeak');
       if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
       document.getElementById('wpLabel').textContent = `✓ ${q.correct}`;
       document.getElementById('wrongPill').style.display = 'flex';
-      generateFlashcardIA(q).then(fc => {
-        if (!fc?.front) return;
-        pendingFlashcard = fc;
-        pendingExplanation = fc.explanation || null;
-        if (!sessionAIFlashcards.some(c => c.q === fc.front)) {
-          sessionAIFlashcards.push({ q: fc.front, a: fc.back });
-        }
-      });
     }
 
     function dismissPill() {
@@ -1205,7 +1168,6 @@
       if (pendingExplanation) { speakQuestion(pendingExplanation); return; }
       if (speakBtn) { speakBtn.textContent = '⏳'; speakBtn.disabled = true; }
       const fc = await generateFlashcardIA(currentWrongQ);
-      pendingFlashcard = fc;
       pendingExplanation = fc?.explanation || null;
       if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
       if (pendingExplanation) speakQuestion(pendingExplanation);
@@ -1219,19 +1181,6 @@
       document.getElementById('wrongDrawer').classList.add('open');
       document.getElementById('wrongOverlay').style.display = 'block';
       drawerOpen = true;
-      const fcEl = document.getElementById('wdGeneratedFC');
-      if (pendingFlashcard) {
-        renderGeneratedFlashcard(pendingFlashcard);
-      } else {
-        fcEl.innerHTML = '<div class="wdfc-loading">Gerando flashcard IA...</div>';
-        generateFlashcardIA(currentWrongQ).then(fc => {
-          pendingFlashcard = fc;
-          if (fc?.front && !sessionAIFlashcards.some(c => c.q === fc.front)) {
-            sessionAIFlashcards.push({ q: fc.front, a: fc.back });
-          }
-          renderGeneratedFlashcard(fc);
-        });
-      }
     }
 
     function closeWrongDrawer() {
@@ -1258,39 +1207,33 @@
       } catch { return null; }
     }
 
-    function renderGeneratedFlashcard(fc) {
-      const el = document.getElementById('wdGeneratedFC');
-      if (!el) return;
-      if (!fc?.front) { el.innerHTML = ''; return; }
-      el.innerHTML = `
-        <div class="fc-gen-card">
-          <div class="fc-gen-front">${escHtml(fc.front)}</div>
-          <div class="fc-gen-sep">▼</div>
-          <div class="fc-gen-back">${escHtml(fc.back)}</div>
-        </div>`;
+    // ─── AI Summary generation (bullet points dos erros) ─────────────
+    async function generateSummaryIA(items) {
+      try {
+        const r = await fetch('/api/generate-summary', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ items })
+        });
+        if (!r.ok) return null;
+        return await r.json();
+      } catch { return null; }
     }
 
-    function handleSaveAIDeck() {
-      if (!sessionAIFlashcards.length) return;
-      const now = Date.now();
-      const label = `IA — ${deckName} — ${new Date().toLocaleDateString('pt-BR')}`;
-      const existing = JSON.parse(localStorage.getItem('tps_review_decks') || '[]');
-      existing.push({
-        id: now,
-        name: label,
-        source: deckName,
-        cards: sessionAIFlashcards,
-        wrongCount: sessionAIFlashcards.length,
-        relatedCount: 0,
-        createdAt: now,
-        expiresAt: now + 365 * 24 * 3600 * 1000
-      });
-      localStorage.setItem('tps_review_decks', JSON.stringify(existing));
-      const btn = document.getElementById('btnSaveAIDeck');
-      if (btn) { btn.textContent = '✅ Salvo!'; btn.disabled = true; }
-      const aiSection = document.getElementById('aiDeckSection');
-      if (aiSection) aiSection.insertAdjacentHTML('beforeend',
-        '<a class="btn btn-primary" href="flashcards.html?tab=review" style="margin-top:8px;display:inline-block">▶ Ver Revisões</a>');
+    async function renderAISummary(wrongAnswers) {
+      const section = document.getElementById('aiSummarySection');
+      const content = document.getElementById('aiSummaryContent');
+      if (!wrongAnswers.length || !section || !content) return;
+      section.style.display = 'block';
+      content.innerHTML = '<div class="wdfc-loading">Gerando resumo...</div>';
+      const items = wrongAnswers.map(a => ({
+        question: a.q, correct_answer: a.correct, subject_label: a.subjectLabel || ''
+      }));
+      const result = await generateSummaryIA(items);
+      if (!result?.bullets?.length) { content.innerHTML = ''; section.style.display = 'none'; return; }
+      content.innerHTML = `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px">` +
+        result.bullets.map(b => `<li style="font-size:12.5px;color:#ccc;line-height:1.5">${escHtml(b)}</li>`).join('') +
+        `</ul>`;
     }
 
     // ─── Flashcard CSV loading + keyword matching ────────────────────
@@ -1380,23 +1323,11 @@
       if (retryBtn) retryBtn.style.display = wrong > 0 ? 'inline-block' : 'none';
       showView('viewSummary');
 
-      // AI deck section
-      const aiSection = document.getElementById('aiDeckSection');
-      const aiBtn = document.getElementById('btnSaveAIDeck');
+      // AI summary section (bullet points dos erros)
+      const aiSection = document.getElementById('aiSummarySection');
       if (aiSection) aiSection.style.display = 'none';
-      if (aiBtn) { aiBtn.textContent = '💾 Salvar baralho IA para revisão'; aiBtn.disabled = false; }
-      if (sessionAIFlashcards.length > 0 && aiSection) {
-        aiSection.style.display = 'block';
-        document.getElementById('aiDeckPreview').innerHTML =
-          sessionAIFlashcards.slice(0, 5).map(c => `
-            <div class="ai-card-preview">
-              <div class="ai-card-preview-front">${escHtml(c.q)}</div>
-              <div class="ai-card-preview-back">${escHtml(c.a.slice(0, 100))}${c.a.length > 100 ? '…' : ''}</div>
-            </div>`).join('') +
-          (sessionAIFlashcards.length > 5
-            ? `<div style="font-size:10px;color:#555;margin-top:4px">+${sessionAIFlashcards.length - 5} cards gerados</div>`
-            : '');
-      }
+      const wrongAnswers = answers.filter(a => !a.isCorrect);
+      if (wrongAnswers.length > 0) renderAISummary(wrongAnswers);
     }
 
     // ─── Review panel with lazy flashcard loading ────────────────────
