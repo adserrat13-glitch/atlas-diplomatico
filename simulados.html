@@ -1210,10 +1210,10 @@
     // ─── AI Summary generation (bullet points dos erros) ─────────────
     async function generateSummaryIA(items) {
       try {
-        const r = await fetch('/api/generate-summary', {
+        const r = await fetch('/api/generate-flashcard', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ items })
+          body: JSON.stringify({ mode: 'summary', items })
         });
         if (!r.ok) return null;
         return await r.json();
