@@ -1869,7 +1869,7 @@
         });
       } catch (e) { console.warn('metas: falha ao ler sessões', e); }
       // Soma o progresso da sessão de simulado em andamento (ainda não finalizada/gravada)
-      if (typeof answers !== 'undefined' && answers.length && window._currentSimMode !== 'retry-wrong') {
+      if (typeof answers !== 'undefined' && answers.length) {
         dayTotal += answers.length;
         answers.forEach(a => {
           const sc = a.subjectCode || 'PI';
