@@ -1260,7 +1260,7 @@
 
     // Grava a sessão (parcial ou completa) no DB — usado tanto ao finalizar quanto ao sair no meio.
     // Retorna as estatísticas calculadas, ou null se não havia nada a gravar.
-    function recordSessionResult() {
+    async function recordSessionResult() {
       if (_sessionRecorded) return null;
       if (!answers.length) return null;
       _sessionRecorded = true;
@@ -1283,7 +1283,7 @@
 
       saveDeckScore(deckName, pct).then(() => loadSimBrowser());
 
-      DB.addSession({
+      await DB.addSession({
         type: isRetry ? 'simulado-revisao' : 'simulado', deck: deckName,
         subject: dominantSubject(answers),
         total, correct, wrong, time_seconds: timerSecs,
@@ -1296,13 +1296,13 @@
         window.registerDeckCompletion(deckName, pct);
       }
 
-      if (typeof renderMetas === 'function') renderMetas();
+      if (typeof renderMetas === 'function') await renderMetas();
 
       return { total, correct, wrong, pct, mins };
     }
 
-    function showSummary() {
-      const stats = recordSessionResult();
+    async function showSummary() {
+      const stats = await recordSessionResult();
       const total = stats ? stats.total : 0;
       const correct = stats ? stats.correct : 0;
       const wrong = stats ? stats.wrong : 0;
