@@ -59,7 +59,7 @@ async function handleSummary(req, res, groq) {
   const { items } = req.body || {};
   if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'items é obrigatório' });
 
-  const userContent = items.slice(0, 40).map((it, i) =>
+  const userContent = items.slice(0, 150).map((it, i) =>
     [
       `${i + 1}. Questão: ${it.question || ''}`,
       it.subject_label ? `Matéria: ${it.subject_label}` : null,
@@ -76,7 +76,7 @@ async function handleSummary(req, res, groq) {
       { role: 'user', content: userContent },
     ],
     temperature: 0.4,
-    max_tokens: 1200,
+    max_tokens: 4000,
   });
 
   const raw = completion.choices[0]?.message?.content;
@@ -87,10 +87,10 @@ async function handleSummary(req, res, groq) {
   catch { return res.status(502).json({ error: 'Resposta inválida do modelo' }); }
 
   const bullets = Array.isArray(parsed.bullets)
-    ? parsed.bullets.map(b => String(b || '').trim()).filter(Boolean).slice(0, 40)
+    ? parsed.bullets.map(b => String(b || '').trim()).filter(Boolean).slice(0, 150)
     : [];
 
-  return res.status(200).json({ bullets });
+  return res.status(200).json({ bullets: bullets.slice(0, 150) });
 }
 
 module.exports = async function handler(req, res) {
