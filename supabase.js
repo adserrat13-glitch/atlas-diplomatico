@@ -213,7 +213,8 @@ const DB = {
       correct: session.correct,
       wrong:   session.wrong,
       time_seconds: session.time_seconds || 0,
-      wrong_items:  session.wrong_items  || []
+      wrong_items:  session.wrong_items  || [],
+      subjects_breakdown: session.subjects_breakdown || null
     }).select().single();
     if (!error) {
       // increment activity (uses db function to avoid race conditions)
