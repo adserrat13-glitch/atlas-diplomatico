@@ -30,6 +30,12 @@ const MOD_ROLES   = ['super_admin', 'admin', 'moderator'];
 // ── cached profile (avoid redundant DB calls within a page) ──────────
 let _profile = null;
 
+// Data local do usuário (não UTC) — evita que sessões feitas à noite em
+// fusos atrás de UTC (ex: Brasil) sejam gravadas com a data do dia seguinte.
+function localDateStr(d = new Date()) {
+  return d.toLocaleDateString('en-CA');
+}
+
 const DB = {
 
   // ── AUTH ────────────────────────────────────────────────────────────
@@ -202,7 +208,7 @@ const DB = {
   async addSession(session) {
     const user = await this.getUser();
     if (!user) return null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr();
     const { data, error } = await _sb.from('sessions').insert({
       user_id: user.id,
       date: today,
@@ -413,7 +419,7 @@ const DB = {
   async upsertEditalSession(session) {
     const user = await this.getUser();
     if (!user) return null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr();
     const { data, error } = await _sb.from('edital_sessions').upsert({
       user_id: user.id,
       edital_id: session.edital_id,
@@ -506,7 +512,7 @@ const DB = {
   async addTerceiraFaseSession(session) {
     const user = await this.getUser();
     if (!user) return null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr();
     const { data, error } = await _sb.from('terceira_fase_sessions').insert({
       user_id:         user.id,
       subject:         session.subject,
@@ -539,7 +545,7 @@ const DB = {
   async addIdiomaSession(session) {
     const user = await this.getUser();
     if (!user) return null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr();
     const { data, error } = await _sb.from('idiomas_sessions').insert({
       user_id:  user.id,
       lang:     session.lang,
@@ -571,7 +577,7 @@ const DB = {
   async addCespeSession(session) {
     const user = await this.getUser();
     if (!user) return null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateStr();
     const { data, error } = await _sb.from('idiomas_cespe_sessions').insert({
       user_id:         user.id,
       lang:            session.lang,
