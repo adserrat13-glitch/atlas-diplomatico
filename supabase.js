@@ -216,10 +216,9 @@ const DB = {
       wrong_items:  session.wrong_items  || [],
       subjects_breakdown: session.subjects_breakdown || null
     }).select().single();
-    if (!error) {
-      // increment activity (uses db function to avoid race conditions)
-      await _sb.rpc('upsert_activity', { p_user_id: user.id, p_date: today });
-    }
+    if (error) { console.error('addSession error:', error.message, error); return null; }
+    // increment activity (uses db function to avoid race conditions)
+    await _sb.rpc('upsert_activity', { p_user_id: user.id, p_date: today });
     return data;
   },
 
