@@ -14,6 +14,9 @@ A partir de uma lista de questões de CERTO/ERRADO que o candidato errou, gere u
 bem sucinto, cobrindo os pontos-chave que o candidato precisa revisar.
 Cada bullet point deve ser uma frase curta e objetiva (máx 1-2 linhas), afirmando o conceito correto
 (não repita a questão, vá direto ao ponto que precisa ser corrigido/entendido).
+NUNCA termine o bullet com "(certo)", "(errado)", "(CERTO)", "(ERRADO)" ou qualquer indicação do
+gabarito da questão original — isso confunde o candidato. Escreva a afirmação já como o fato correto,
+sem rótulos de certo/errado.
 Agrupe por tema quando fizer sentido. Não use markdown além do "-" no início de cada bullet.
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {"bullets":["...", "..."]}`;
@@ -87,7 +90,12 @@ async function handleSummary(req, res, groq) {
   catch { return res.status(502).json({ error: 'Resposta inválida do modelo' }); }
 
   const bullets = Array.isArray(parsed.bullets)
-    ? parsed.bullets.map(b => String(b || '').trim()).filter(Boolean).slice(0, 150)
+    ? parsed.bullets
+        .map(b => String(b || '')
+          .replace(/\s*\((?:certo|errado)\)\.?\s*$/i, '.')
+          .trim())
+        .filter(Boolean)
+        .slice(0, 150)
     : [];
 
   return res.status(200).json({ bullets: bullets.slice(0, 150) });
