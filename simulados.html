@@ -1043,11 +1043,22 @@
       utter.lang = deckLang || cfg.lang;
       utter.rate = cfg.rate;
       utter.pitch = cfg.pitch;
-      const voices = speechSynthesis.getVoices();
-      const chosen = !deckLang && cfg.voiceName && voices.find(v => v.name === cfg.voiceName);
-      const langVoice = chosen || pickVoice(voices, utter.lang);
-      if (langVoice) utter.voice = langVoice;
-      speechSynthesis.speak(utter);
+      const go = () => {
+        const voices = speechSynthesis.getVoices();
+        const chosen = !deckLang && cfg.voiceName && voices.find(v => v.name === cfg.voiceName);
+        const langVoice = chosen || pickVoice(voices, utter.lang);
+        if (langVoice) utter.voice = langVoice;
+        speechSynthesis.resume(); // Chrome às vezes fica "pausado" e engole a fala
+        speechSynthesis.speak(utter);
+      };
+      // Chrome descarta speak() logo após cancel() e antes de as vozes carregarem
+      if (speechSynthesis.getVoices().length) setTimeout(go, 60);
+      else {
+        let done = false;
+        const once = () => { if (done) return; done = true; go(); };
+        speechSynthesis.addEventListener('voiceschanged', once, { once: true });
+        setTimeout(once, 700);
+      }
     }
     // As vozes do Windows carregam de forma assíncrona; pré-carrega a lista
     if ('speechSynthesis' in window) {
