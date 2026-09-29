@@ -367,10 +367,10 @@
         <div class="q-tags" id="questionTags"></div>
       </div>
       <div class="answer-btns">
-        <button class="btn-errado" onclick="answer('ERRADO')">ERRADO <small style="font-size:12px;font-weight:400">(E)</small></button>
-        <button class="btn-certo" onclick="answer('CERTO')">CERTO <small style="font-size:12px;font-weight:400">(C)</small></button>
+        <button class="btn-errado" id="btnAnsLeft" onclick="answer('ERRADO')">ERRADO <small style="font-size:12px;font-weight:400">(E)</small></button>
+        <button class="btn-certo" id="btnAnsRight" onclick="answer('CERTO')">CERTO <small style="font-size:12px;font-weight:400">(C)</small></button>
       </div>
-      <div class="shortcut-hint">C = CERTO · E = ERRADO</div>
+      <div class="shortcut-hint" id="shortcutHint">C = CERTO · E = ERRADO</div>
     </div>
 
     <!-- SUMMARY -->
@@ -724,13 +724,26 @@
     function processSimData(rows, folder) {
       allQuestions = []; sections = {};
       const collected = []; let currentSection = ''; let currentSubject = null;
-      const folderSubject = folder ? FOLDER_TO_SUBJECT[folder] : null;
+      const folderSubject = folder
+        ? (FOLDER_TO_SUBJECT[folder] || (folder.startsWith('LINGUAS/') ? { code: 'LING', label: folder.slice(8) } : null))
+        : null;
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
         if (!q) return;
         const marker = q.match(SECTION_MARKER_RX);
         if (marker) { currentSubject = marker[1]; return; }
         if (!a) { if (q.length <= 80) currentSection = q; return; }
+        // Deck de línguas: palavra;tradução certa;tradução errada → dois botões
+        const wrongOpt = (row[2] || '').trim();
+        if (wrongOpt && !/^(CERTO|ERRADO)$/i.test(a)) {
+          const rightFirst = Math.random() < 0.5;
+          collected.push({
+            q, options: rightFirst ? [a, wrongOpt] : [wrongOpt, a], answerText: a,
+            correct: rightFirst ? 'ERRADO' : 'CERTO', // ERRADO = botão da esquerda, CERTO = da direita
+            section: currentSection, subjectCode: currentSubject
+          });
+          return;
+        }
         const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
         if (!ans) return;
         collected.push({ q, correct: ans, section: currentSection, subjectCode: currentSubject });
@@ -1038,6 +1051,7 @@
       document.getElementById('sectionLabel').style.display = q.section ? 'block' : 'none';
       document.getElementById('simCounter').textContent = ` ${currentIdx + 1}/${queue.length}`;
       document.getElementById('questionTags').innerHTML = renderTags(q);
+      setAnswerButtons(q);
       document.getElementById('progressFill').style.width = (currentIdx / queue.length * 100) + '%';
       updateRetryDot();
       speakQuestion(q.q);
@@ -1069,7 +1083,25 @@
       document.getElementById('sectionLabel').style.display = 'block';
       document.getElementById('simCounter').textContent = ` repetição`;
       document.getElementById('questionTags').innerHTML = renderTags(q);
+      setAnswerButtons(q);
       speakQuestion(q.q);
+    }
+
+    // Decks de línguas mostram as duas traduções nos botões; os demais, CERTO/ERRADO
+    function setAnswerButtons(q) {
+      const left = document.getElementById('btnAnsLeft');
+      const right = document.getElementById('btnAnsRight');
+      const hint = document.getElementById('shortcutHint');
+      const small = k => ` <small style="font-size:12px;font-weight:400">(${k})</small>`;
+      if (q.options) {
+        left.innerHTML = escHtml(q.options[0]) + small('E');
+        right.innerHTML = escHtml(q.options[1]) + small('C');
+        hint.textContent = 'E = opção da esquerda · C = opção da direita';
+      } else {
+        left.innerHTML = 'ERRADO' + small('E');
+        right.innerHTML = 'CERTO' + small('C');
+        hint.textContent = 'C = CERTO · E = ERRADO';
+      }
     }
 
     function renderWaitingForRetry() {
@@ -1153,7 +1185,7 @@
       pendingExplanation = null;
       const speakBtn = document.getElementById('wpSpeak');
       if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
-      document.getElementById('wpLabel').textContent = `✓ ${q.correct}`;
+      document.getElementById('wpLabel').textContent = `✓ ${q.answerText || q.correct}`;
       document.getElementById('wrongPill').style.display = 'flex';
     }
 

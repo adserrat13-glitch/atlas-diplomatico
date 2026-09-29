@@ -43,6 +43,16 @@ if os.path.isdir(tq_dir):
             if files:
                 manifest["tps_questoes"][folder] = files
 
+# TPS/questões/LINGUAS/<idioma> (decks de vocabulário: palavra;certa;errada)
+linguas_dir = os.path.join(tq_dir, "LINGUAS")
+if os.path.isdir(linguas_dir):
+    for lang in sorted(os.listdir(linguas_dir)):
+        lang_path = os.path.join(linguas_dir, lang)
+        if os.path.isdir(lang_path):
+            files = sorted([f for f in os.listdir(lang_path) if f.lower().endswith('.csv')])
+            if files:
+                manifest["tps_questoes"]["LINGUAS/" + lang] = files
+
 # DISCURSIVAS (pergutnas/<matéria>/*.csv)
 disc_dir = os.path.join(BASE, "pergutnas")
 if os.path.isdir(disc_dir):
