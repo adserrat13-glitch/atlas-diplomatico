@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -477,6 +477,7 @@
       'POLITICA INTERNACIONAL': { code: 'PI', label: 'Política Internacional' },
       'INGLES':                { code: 'ING', label: 'Inglesa' },
       'PORTUGUES':             { code: 'LP',  label: 'L. Portuguesa' },
+      'LINGUAS':               { code: 'LING', label: 'Línguas' },
     };
 
     const STOPWORDS = new Set([
@@ -646,16 +647,7 @@
           </div>`;
         }).join('');
       }
-      const deckButton = (folder, f) => {
-        const folderSafe = folder.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const fileSafe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const deckKey = `${folder} - ${f.replace(/\.csv$/i, '').trim()}`;
-        return `<div class="sb-file"${deckScoreStyle(deckKey)} onclick="loadSimFromPath('${fileSafe}', '${folderSafe}')">
-            <span>${escHtml(f.replace(/\.csv$/i, ''))}</span><span class="arr">→</span>
-          </div>`;
-      };
-      const langFolders = Object.keys(questoes).filter(k => k.startsWith('LINGUAS/'));
-      Object.keys(questoes).filter(k => !k.startsWith('LINGUAS/')).forEach(folder => {
+      Object.keys(questoes).forEach(folder => {
         const folderSafe = folder.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         html += `<div class="section-label" style="grid-column:1/-1">${escHtml(folder)}</div>`;
         html += questoes[folder].map(f => {
@@ -667,26 +659,7 @@
           </div>`;
         }).join('');
       });
-      // LÍNGUAS: uma pasta por idioma; clicar abre/fecha os decks daquele idioma
-      if (langFolders.length) {
-        html += `<div class="section-label" style="grid-column:1/-1">LÍNGUAS</div>`;
-        langFolders.forEach(folder => {
-          const lang = folder.slice('LINGUAS/'.length);
-          const langSafe = lang.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          const open = openLangFolder === lang;
-          html += `<div class="sb-file" onclick="toggleLangFolder('${langSafe}')">
-            <span>📁 ${escHtml(lang)}</span><span class="arr">${open ? '▾' : '▸'}</span>
-          </div>`;
-          if (open) html += questoes[folder].map(f => deckButton(folder, f)).join('');
-        });
-      }
       browser.innerHTML = html;
-    }
-
-    let openLangFolder = null;
-    function toggleLangFolder(lang) {
-      openLangFolder = openLangFolder === lang ? null : lang;
-      loadSimBrowser();
     }
 
     let _simLoadToken = 0;
@@ -752,9 +725,7 @@
     function processSimData(rows, folder) {
       allQuestions = []; sections = {};
       const collected = []; let currentSection = ''; let currentSubject = null;
-      const folderSubject = folder
-        ? (FOLDER_TO_SUBJECT[folder] || (folder.startsWith('LINGUAS/') ? { code: 'LING', label: folder.slice(8) } : null))
-        : null;
+      const folderSubject = folder ? FOLDER_TO_SUBJECT[folder] : null;
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
         if (!q) return;
@@ -1042,19 +1013,46 @@
       document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
     });
 
-    function speakQuestion(text) {
+    // Decks de LINGUAS falam no idioma do deck (nome do arquivo) com a voz do Windows desse idioma
+    const LANG_DECK_CODES = {
+      'ALEMÃO': 'de-DE', 'ALEMAO': 'de-DE', 'INGLÊS': 'en-US', 'INGLES': 'en-US',
+      'FRANCÊS': 'fr-FR', 'FRANCES': 'fr-FR', 'ESPANHOL': 'es-ES', 'ITALIANO': 'it-IT',
+      'RUSSO': 'ru-RU', 'CHINÊS': 'zh-CN', 'CHINES': 'zh-CN', 'JAPONÊS': 'ja-JP', 'JAPONES': 'ja-JP',
+      'ÁRABE': 'ar-SA', 'ARABE': 'ar-SA',
+    };
+    function currentDeckLang() {
+      const m = (deckName || '').match(/^LINGUAS - (.+)$/i);
+      if (!m) return null;
+      const name = m[1].toUpperCase();
+      const key = Object.keys(LANG_DECK_CODES).find(k => name.startsWith(k));
+      return key ? LANG_DECK_CODES[key] : null;
+    }
+    function pickVoice(voices, lang) {
+      const sameLang = voices.filter(v => v.lang && v.lang.replace('_', '-').toLowerCase().startsWith(lang.slice(0, 2).toLowerCase()));
+      return sameLang.find(v => /microsoft/i.test(v.name) && /natural|online/i.test(v.name))
+          || sameLang.find(v => /microsoft/i.test(v.name))
+          || sameLang.find(v => v.lang.replace('_', '-') === lang)
+          || sameLang[0] || null;
+    }
+    function speakQuestion(text, forceLang) {
       if (!('speechSynthesis' in window)) return;
       speechSynthesis.cancel();
       const cfg = loadTtsConfig();
+      const deckLang = forceLang === undefined ? currentDeckLang() : forceLang;
       const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = cfg.lang;
+      utter.lang = deckLang || cfg.lang;
       utter.rate = cfg.rate;
       utter.pitch = cfg.pitch;
       const voices = speechSynthesis.getVoices();
-      const chosen = cfg.voiceName && voices.find(v => v.name === cfg.voiceName);
-      const langVoice = chosen || voices.find(v => v.lang === cfg.lang) || voices.find(v => v.lang && v.lang.startsWith(cfg.lang.slice(0, 2)));
+      const chosen = !deckLang && cfg.voiceName && voices.find(v => v.name === cfg.voiceName);
+      const langVoice = chosen || pickVoice(voices, utter.lang);
       if (langVoice) utter.voice = langVoice;
       speechSynthesis.speak(utter);
+    }
+    // As vozes do Windows carregam de forma assíncrona; pré-carrega a lista
+    if ('speechSynthesis' in window) {
+      speechSynthesis.getVoices();
+      speechSynthesis.addEventListener?.('voiceschanged', () => speechSynthesis.getVoices());
     }
 
     function renderQuestion() {
@@ -1225,12 +1223,12 @@
     async function speakExplanation() {
       if (!currentWrongQ) return;
       const speakBtn = document.getElementById('wpSpeak');
-      if (pendingExplanation) { speakQuestion(pendingExplanation); return; }
+      if (pendingExplanation) { speakQuestion(pendingExplanation, null); return; }
       if (speakBtn) { speakBtn.textContent = '⏳'; speakBtn.disabled = true; }
       const fc = await generateFlashcardIA(currentWrongQ);
       pendingExplanation = fc?.explanation || null;
       if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
-      if (pendingExplanation) speakQuestion(pendingExplanation);
+      if (pendingExplanation) speakQuestion(pendingExplanation, null);
     }
 
     function expandWrongDrawer() {
