@@ -646,7 +646,16 @@
           </div>`;
         }).join('');
       }
-      Object.keys(questoes).forEach(folder => {
+      const deckButton = (folder, f) => {
+        const folderSafe = folder.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const fileSafe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const deckKey = `${folder} - ${f.replace(/\.csv$/i, '').trim()}`;
+        return `<div class="sb-file"${deckScoreStyle(deckKey)} onclick="loadSimFromPath('${fileSafe}', '${folderSafe}')">
+            <span>${escHtml(f.replace(/\.csv$/i, ''))}</span><span class="arr">→</span>
+          </div>`;
+      };
+      const langFolders = Object.keys(questoes).filter(k => k.startsWith('LINGUAS/'));
+      Object.keys(questoes).filter(k => !k.startsWith('LINGUAS/')).forEach(folder => {
         const folderSafe = folder.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         html += `<div class="section-label" style="grid-column:1/-1">${escHtml(folder)}</div>`;
         html += questoes[folder].map(f => {
@@ -658,7 +667,26 @@
           </div>`;
         }).join('');
       });
+      // LÍNGUAS: uma pasta por idioma; clicar abre/fecha os decks daquele idioma
+      if (langFolders.length) {
+        html += `<div class="section-label" style="grid-column:1/-1">LÍNGUAS</div>`;
+        langFolders.forEach(folder => {
+          const lang = folder.slice('LINGUAS/'.length);
+          const langSafe = lang.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const open = openLangFolder === lang;
+          html += `<div class="sb-file" onclick="toggleLangFolder('${langSafe}')">
+            <span>📁 ${escHtml(lang)}</span><span class="arr">${open ? '▾' : '▸'}</span>
+          </div>`;
+          if (open) html += questoes[folder].map(f => deckButton(folder, f)).join('');
+        });
+      }
       browser.innerHTML = html;
+    }
+
+    let openLangFolder = null;
+    function toggleLangFolder(lang) {
+      openLangFolder = openLangFolder === lang ? null : lang;
+      loadSimBrowser();
     }
 
     let _simLoadToken = 0;
