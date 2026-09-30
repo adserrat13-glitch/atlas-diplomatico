@@ -745,7 +745,9 @@
         }
         const ans = a.toUpperCase().includes('CERTO') ? 'CERTO' : a.toUpperCase().includes('ERRADO') ? 'ERRADO' : null;
         if (!ans) return;
-        collected.push({ q, correct: ans, section: currentSection, subjectCode: currentSubject });
+        // Justificativa do CSV além do rótulo CERTO/ERRADO (ex: "Errado. O cabildo não existia mais em 1822.")
+        const justification = a.replace(/^\s*(CERTO|ERRADO)\.?\s*/i, '').trim();
+        collected.push({ q, correct: ans, justification: justification || null, section: currentSection, subjectCode: currentSubject });
       });
       if (!collected.length) { alert('Nenhuma questão CERTO/ERRADO encontrada.'); return; }
       collected.forEach((item, i) => {
@@ -830,7 +832,7 @@
     function startRedoAllWrong() {
       if (!allWrongItemsCache || !allWrongItemsCache.length) return;
       queue = allWrongItemsCache.map(it => ({
-        q: it.q, correct: it.answer, section: it.section || '',
+        q: it.q, correct: it.answer, justification: it.justification || null, section: it.section || '',
         subjectCode: it.subjectCode, subjectLabel: it.subjectLabel || it.subjectCode || '',
         tags: it.tags || []
       }));
@@ -921,7 +923,7 @@
       const wrong = answers.filter(a => !a.isCorrect);
       if (!wrong.length) return;
       queue = wrong.map(a => ({
-        q: a.q, correct: a.correct, section: a.section,
+        q: a.q, correct: a.correct, justification: a.justification || null, section: a.section,
         subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || []
       }));
       currentIdx = 0; answers = []; _sessionRecorded = false;
@@ -1167,7 +1169,7 @@
         else DB.unmarkWrongItemResolved(deckName, q.q).catch(() => {});
       }
       answers.push({
-        q: q.q, correct: q.correct, userAns, isCorrect: correct,
+        q: q.q, correct: q.correct, justification: q.justification || null, userAns, isCorrect: correct,
         section: q.section, subjectCode: q.subjectCode,
         subjectLabel: q.subjectLabel, tags: q.tags || []
       });
@@ -1267,6 +1269,7 @@
           body: JSON.stringify({
             question: q.q,
             correct_answer: q.correct,
+            justification: q.justification || '',
             subject_label: q.subjectLabel || '',
             section: q.section || ''
           })
@@ -1296,7 +1299,7 @@
       section.style.display = 'block';
       content.innerHTML = '<div class="wdfc-loading">Gerando resumo...</div>';
       const items = wrongAnswers.map(a => ({
-        question: a.q, correct_answer: a.correct, subject_label: a.subjectLabel || ''
+        question: a.q, correct_answer: a.correct, justification: a.justification || '', subject_label: a.subjectLabel || ''
       }));
       const result = await generateSummaryIA(items);
       if (!result?.bullets?.length) { content.innerHTML = ''; section.style.display = 'none'; return; }

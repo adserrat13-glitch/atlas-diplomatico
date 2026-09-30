@@ -1,11 +1,23 @@
 const Groq = require('groq-sdk');
 
+const CORRECTION_RULES = `Regras para lidar com o gabarito:
+- Se o gabarito for CERTO: apenas reafirme a assertiva como está, sem inventar ressalvas.
+- Se o gabarito for ERRADO e vier uma justificativa do CSV: essa justificativa é a fonte da verdade
+  sobre qual detalhe da assertiva está errado. Corrija SOMENTE esse detalhe, mantendo o resto do
+  enunciado como verdadeiro.
+- Se o gabarito for ERRADO e NÃO vier justificativa: você não sabe qual detalhe específico está
+  errado. NUNCA negue a existência do evento, missão, tratado, pessoa ou instituição citado na
+  assertiva — eles normalmente existem de fato, o erro costuma estar em outro detalhe (data,
+  motivo, consequência, atores envolvidos). Nesse caso, diga que a assertiva é falsa e oriente o
+  candidato a conferir a fonte primária, em vez de inventar qual é o erro.`;
+
 const SYSTEM_PROMPT = `Você é professor especializado no CACD (Concurso de Admissão à Carreira Diplomática).
 A partir de uma questão de CERTO/ERRADO que o candidato errou, gere um flashcard didático e uma explicação falada.
 front = conceito principal da questão (nome do tema, máx 80 chars).
 back = explicação clara e objetiva do que é correto e por quê (2-3 frases, sem rodeios).
 explanation = explicação em áudio (será lida por TTS) de por que a resposta correta é CERTO ou ERRADO,
 falada, clara, objetiva, 2-4 frases, sem markdown, sem listas, texto corrido.
+${CORRECTION_RULES}
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {"front":"...","back":"...","explanation":"..."}`;
 
@@ -17,30 +29,32 @@ Cada bullet point deve ser uma frase curta e objetiva (máx 1-2 linhas), afirman
 NUNCA termine o bullet com "(certo)", "(errado)", "(CERTO)", "(ERRADO)" ou qualquer indicação do
 gabarito da questão original — isso confunde o candidato. Escreva a afirmação já como o fato correto,
 sem rótulos de certo/errado.
+${CORRECTION_RULES}
 Agrupe por tema quando fizer sentido. Não use markdown além do "-" no início de cada bullet.
 Responda APENAS em JSON válido, sem markdown, sem texto extra:
 {"bullets":["...", "..."]}`;
 
 async function handleFlashcard(req, res, groq) {
-  const { question, correct_answer, subject_label, section } = req.body || {};
+  const { question, correct_answer, justification, subject_label, section } = req.body || {};
   if (!question) return res.status(400).json({ error: 'question é obrigatório' });
 
   const userContent = [
     subject_label ? `Matéria: ${subject_label}` : null,
     section ? `Tópico: ${section}` : null,
     `Questão: ${question}`,
-    `Resposta correta: ${correct_answer || ''}`,
+    `Resposta correta (gabarito): ${correct_answer || ''}`,
+    justification ? `Justificativa do gabarito (fonte da verdade sobre o que está errado): ${justification}` : null,
   ].filter(Boolean).join('\n');
 
   const completion = await groq.chat.completions.create({
     model: 'openai/gpt-oss-120b',
     response_format: { type: 'json_object' },
-    reasoning_effort: 'low',
+    reasoning_effort: 'medium',
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: userContent },
     ],
-    temperature: 0.4,
+    temperature: 0.2,
     max_tokens: 600,
   });
 
@@ -66,19 +80,20 @@ async function handleSummary(req, res, groq) {
     [
       `${i + 1}. Questão: ${it.question || ''}`,
       it.subject_label ? `Matéria: ${it.subject_label}` : null,
-      `Resposta correta: ${it.correct_answer || ''}`,
+      `Resposta correta (gabarito): ${it.correct_answer || ''}`,
+      it.justification ? `Justificativa do gabarito: ${it.justification}` : null,
     ].filter(Boolean).join(' | ')
   ).join('\n');
 
   const completion = await groq.chat.completions.create({
     model: 'openai/gpt-oss-120b',
     response_format: { type: 'json_object' },
-    reasoning_effort: 'low',
+    reasoning_effort: 'medium',
     messages: [
       { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
       { role: 'user', content: userContent },
     ],
-    temperature: 0.4,
+    temperature: 0.2,
     max_tokens: 4000,
   });
 
