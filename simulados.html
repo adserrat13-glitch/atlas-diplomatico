@@ -126,6 +126,7 @@
       background:rgba(110,231,183,0.12); border:2px solid var(--green); color:var(--green);
       cursor:pointer; font-family:inherit; transition:0.2s; }
     .btn-certo:hover { background:rgba(110,231,183,0.22); transform:scale(1.03); }
+    .ling-hl { background:rgba(234,179,8,0.18); color:inherit; font-weight:700; padding:0 4px; border-radius:4px; border-bottom:2px solid rgba(234,179,8,0.7); }
     .btn-errado { padding:16px 48px; font-size:16px; font-weight:700; border-radius:14px;
       background:rgba(248,113,113,0.12); border:2px solid var(--red); color:var(--red);
       cursor:pointer; font-family:inherit; transition:0.2s; }
@@ -1068,6 +1069,12 @@
       speechSynthesis.addEventListener?.('voiceschanged', () => speechSynthesis.getVoices());
     }
 
+    // Decks de frases marcam a palavra-alvo com [colchetes] → destaque
+    function renderQText(text) {
+      const esc = String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+      return esc.replace(/\[([^\]]+)\]/g, '<mark class="ling-hl">$1</mark>');
+    }
+
     function renderQuestion() {
       clearInterval(retryPollInterval); retryPollInterval = null;
       const queueDone = currentIdx >= queue.length;
@@ -1084,7 +1091,7 @@
       }
       currentRetryItem = null;
       const q = queue[currentIdx];
-      document.getElementById('questionText').textContent = q.q;
+      document.getElementById('questionText').innerHTML = renderQText(q.q);
       document.getElementById('qNum').textContent = currentIdx + 1;
       document.getElementById('sectionLabel').textContent = q.section || '';
       document.getElementById('sectionLabel').style.display = q.section ? 'block' : 'none';
@@ -1093,7 +1100,7 @@
       setAnswerButtons(q);
       document.getElementById('progressFill').style.width = (currentIdx / queue.length * 100) + '%';
       updateRetryDot();
-      speakQuestion(q.q);
+      speakQuestion(q.q.replace(/[[\]]/g, ''));
     }
 
     // ─── Ponto vermelho na barra: marca onde a próxima questão errada deve reaparecer ─
@@ -1116,14 +1123,14 @@
     }
 
     function renderRetryQuestion(q) {
-      document.getElementById('questionText').textContent = q.q;
+      document.getElementById('questionText').innerHTML = renderQText(q.q);
       document.getElementById('qNum').textContent = '↻';
       document.getElementById('sectionLabel').textContent = (q.section || '') + ' · repetição';
       document.getElementById('sectionLabel').style.display = 'block';
       document.getElementById('simCounter').textContent = ` repetição`;
       document.getElementById('questionTags').innerHTML = renderTags(q);
       setAnswerButtons(q);
-      speakQuestion(q.q);
+      speakQuestion(q.q.replace(/[[\]]/g, ''));
     }
 
     // Decks de línguas mostram as duas traduções nos botões; os demais, CERTO/ERRADO
