@@ -391,6 +391,44 @@ const DB = {
       .eq('question_text', questionText);
   },
 
+  // ── CADERNO (resumos de erros salvos ao fim do simulado) ──────────────
+
+  async getNotebookEntries() {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data, error } = await _sb.from('simulado_notebook')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async addNotebookEntry(entry) {
+    const user = await this.getUser();
+    if (!user) throw new Error('Não autenticado');
+    const { error } = await _sb.from('simulado_notebook').insert({
+      user_id: user.id,
+      deck_name: entry.deck_name,
+      pct: entry.pct,
+      total: entry.total,
+      correct: entry.correct,
+      bullets: entry.bullets,
+      wrong_items: entry.wrong_items
+    });
+    if (error) throw new Error(error.message);
+  },
+
+  async deleteNotebookEntry(id) {
+    const user = await this.getUser();
+    if (!user) throw new Error('Não autenticado');
+    const { error } = await _sb.from('simulado_notebook')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+    if (error) throw new Error(error.message);
+  },
+
   // ── EDITAL SESSIONS (Central de Análise por Edital — módulo isolado) ─
   // Tabela própria `edital_sessions`, nunca `sessions`. Usada exclusivamente
   // por analise-edital.html; não afeta nem é afetada pela Central TPS.

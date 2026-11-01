@@ -209,6 +209,21 @@
     /* AI SUMMARY na summary */
     .ai-deck-title{font-size:12px;font-weight:700;letter-spacing:1px;color:#d4af37;
       text-transform:uppercase;margin-bottom:10px}
+    .ai-save-row{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:14px}
+    .ai-save-msg{font-size:12px;color:var(--red)}
+
+    /* CADERNO */
+    .nb-list{width:100%;display:flex;flex-direction:column;gap:10px}
+    .nb-entry{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+    .nb-entry summary{cursor:pointer;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+    .nb-meta{display:block;margin-top:4px;font-size:12px;font-weight:400;color:var(--muted)}
+    .nb-bullets{margin:14px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px;
+      font-size:13px;color:#ccc;line-height:1.5}
+    .nb-sub{margin-top:16px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+    .nb-delete{margin-top:14px;background:none;border:1px solid var(--border);border-radius:8px;
+      color:var(--muted);font-size:12px;cursor:pointer;padding:5px 12px;font-family:inherit}
+    .nb-delete:hover{color:var(--red);border-color:var(--red)}
+    .nb-empty{color:var(--muted);font-size:14px;text-align:center;padding:16px}
 
     /* WRONG PILL — push notification recolhida */
     .wrong-pill {
@@ -288,6 +303,15 @@
         <div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Carregando arquivos...</div>
       </div>
       <div style="font-size:12px;color:var(--muted);text-align:center">ou carregue um arquivo manualmente acima</div>
+      <button class="btn btn-secondary" onclick="openNotebook()">📓 Meu caderno</button>
+    </div>
+
+    <!-- CADERNO -->
+    <div class="view" id="viewNotebook">
+      <div class="loader-title">CADERNO</div>
+      <div class="loader-sub">Resumos de erros salvos para revisar</div>
+      <div class="nb-list" id="notebookList"></div>
+      <button class="btn btn-secondary" onclick="showView('viewLoader')">← Voltar</button>
     </div>
 
     <!-- OPTIONS -->
@@ -390,6 +414,10 @@
       <div id="aiSummarySection" style="display:none;width:100%;text-align:left;margin-top:16px;max-width:520px;margin-inline:auto">
         <div class="ai-deck-title" style="text-align:center">🤖 Resumo dos erros</div>
         <div id="aiSummaryContent"></div>
+        <div class="ai-save-row" id="aiSaveRow" style="display:none">
+          <button class="btn btn-secondary" id="btnSaveNotebook" onclick="saveSummaryToNotebook()">📓 Salvar no caderno</button>
+          <div class="ai-save-msg" id="aiSaveMsg"></div>
+        </div>
       </div>
       <div class="review-section" id="reviewSection" style="display:none">
         <div class="review-tabs">
@@ -1305,14 +1333,103 @@
       if (!wrongAnswers.length || !section || !content) return;
       section.style.display = 'block';
       content.innerHTML = '<div class="wdfc-loading">Gerando resumo...</div>';
+      document.getElementById('aiSaveRow').style.display = 'none';
       const items = wrongAnswers.map(a => ({
         question: a.q, correct_answer: a.correct, justification: a.justification || '', subject_label: a.subjectLabel || ''
       }));
+      // Captura antes do await: `answers` pode mudar se o usuário iniciar outra rodada
+      const total = answers.length;
+      const correct = answers.filter(a => a.isCorrect).length;
+      const snapshot = {
+        deck_name: deckName, total, correct,
+        pct: total > 0 ? Math.round((correct / total) * 100) : 0,
+        wrong_items: wrongAnswers.map(a => ({
+          q: a.q, correct: a.correct, userAns: a.userAns, subjectLabel: a.subjectLabel || ''
+        }))
+      };
       const result = await generateSummaryIA(items);
       if (!result?.bullets?.length) { content.innerHTML = ''; section.style.display = 'none'; return; }
       content.innerHTML = `<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px">` +
         result.bullets.map(b => `<li style="font-size:12.5px;color:#ccc;line-height:1.5">${escHtml(b)}</li>`).join('') +
         `</ul>`;
+      _pendingNotebookEntry = { ...snapshot, bullets: result.bullets };
+      const saveBtn = document.getElementById('btnSaveNotebook');
+      saveBtn.textContent = '📓 Salvar no caderno';
+      saveBtn.disabled = false;
+      document.getElementById('aiSaveMsg').textContent = '';
+      document.getElementById('aiSaveRow').style.display = 'flex';
+    }
+
+    // ─── Caderno (resumos salvos, persistidos no Supabase) ───────────
+    let _pendingNotebookEntry = null;
+
+    async function saveSummaryToNotebook() {
+      if (!_pendingNotebookEntry) return;
+      const btn = document.getElementById('btnSaveNotebook');
+      const msg = document.getElementById('aiSaveMsg');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+      msg.textContent = '';
+      try {
+        await DB.addNotebookEntry(_pendingNotebookEntry);
+        _pendingNotebookEntry = null;
+        btn.textContent = '✓ Salvo no caderno';
+      } catch (e) {
+        console.warn('addNotebookEntry error:', e);
+        btn.disabled = false;
+        btn.textContent = '📓 Salvar no caderno';
+        msg.textContent = 'Não foi possível salvar. Tente novamente.';
+      }
+    }
+
+    async function openNotebook() {
+      const list = document.getElementById('notebookList');
+      list.innerHTML = '<div class="nb-empty">Carregando...</div>';
+      showView('viewNotebook');
+      try {
+        renderNotebook(await DB.getNotebookEntries());
+      } catch (e) {
+        console.warn('getNotebookEntries error:', e);
+        list.innerHTML = '<div class="nb-empty">Não foi possível carregar o caderno.</div>';
+      }
+    }
+
+    function renderNotebook(entries) {
+      const list = document.getElementById('notebookList');
+      if (!entries.length) {
+        list.innerHTML = '<div class="nb-empty">Nada salvo ainda. Ao terminar um simulado, use “Salvar no caderno” no resumo dos erros.</div>';
+        return;
+      }
+      list.innerHTML = entries.map(e => {
+        const date = new Date(e.created_at).toLocaleDateString('pt-BR');
+        const wrongItems = e.wrong_items || [];
+        const wrongHtml = wrongItems.map(w => `<div class="qresult qresult-wrong">
+          <div class="qresult-q">${escHtml(w.q)}</div>
+          <div class="qresult-ans">
+            <span class="ans-correct">✓ Gabarito: ${escHtml(w.correct)}</span>
+            <span class="ans-user">Sua resp.: ${escHtml(w.userAns)}</span>
+          </div>
+        </div>`).join('');
+        return `<details class="nb-entry">
+          <summary>${escHtml(e.deck_name)}
+            <span class="nb-meta">${date} · ${e.correct}/${e.total} acertos (${e.pct}%)</span>
+          </summary>
+          <ul class="nb-bullets">${(e.bullets || []).map(b => `<li>${escHtml(b)}</li>`).join('')}</ul>
+          ${wrongItems.length ? `<div class="nb-sub">Questões erradas (${wrongItems.length})</div>${wrongHtml}` : ''}
+          <button class="nb-delete" onclick="deleteNotebookEntry('${escHtml(e.id)}')">Excluir</button>
+        </details>`;
+      }).join('');
+    }
+
+    async function deleteNotebookEntry(id) {
+      if (!confirm('Excluir este resumo do caderno?')) return;
+      try {
+        await DB.deleteNotebookEntry(id);
+        await openNotebook();
+      } catch (e) {
+        console.warn('deleteNotebookEntry error:', e);
+        alert('Não foi possível excluir. Tente novamente.');
+      }
     }
 
     // ─── Flashcard CSV loading + keyword matching ────────────────────
