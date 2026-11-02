@@ -36,6 +36,14 @@ function localDateStr(d = new Date()) {
   return d.toLocaleDateString('en-CA');
 }
 
+// Relógio + cronômetro flutuantes — caminho relativo a este script, pois
+// páginas em subpastas (GAMES/...) carregam o supabase.js com ../
+if (document.currentScript) {
+  const relogio = document.createElement('script');
+  relogio.src = new URL('relogio.js', document.currentScript.src).href;
+  document.head.appendChild(relogio);
+}
+
 const DB = {
 
   // ── AUTH ────────────────────────────────────────────────────────────
