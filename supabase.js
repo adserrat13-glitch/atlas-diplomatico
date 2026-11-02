@@ -213,6 +213,95 @@ const DB = {
       .eq('user_id', user.id).eq('deck', deckName).eq('question_text', questionText);
   },
 
+  // ── REPETIÇÃO ESPAÇADA (agenda por questão dos simulados) ───────────
+  // Erros aqui são lançados: quem chama não pode confundir falha com "sem dados",
+  // senão uma questão com histórico seria regravada como nova.
+
+  // Lê todas as páginas: o PostgREST corta cada resposta em 1000 linhas
+  async _srsFetchAll(buildQuery) {
+    const rows = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await buildQuery().range(from, from + 999);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < 1000) return rows;
+    }
+  },
+
+  async getSrsCards(deckName) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    return this._srsFetchAll(() => _sb.from('simulado_srs')
+      .select('question_text, step, lapses, reps, due_date, last_review')
+      .eq('user_id', user.id).eq('deck', deckName).order('question_text'));
+  },
+
+  async getSrsCardsByQuestions(deckName, questions) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    const rows = [];
+    for (let i = 0; i < questions.length; i += 15) {
+      const { data, error } = await _sb.from('simulado_srs')
+        .select('question_text, step, lapses, reps, due_date, last_review, payload')
+        .eq('user_id', user.id).eq('deck', deckName)
+        .in('question_text', questions.slice(i, i + 15));
+      if (error) throw error;
+      rows.push(...(data || []));
+    }
+    return rows;
+  },
+
+  async getDueSrsCards(today, limit, deckName) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    let query = _sb.from('simulado_srs').select('*')
+      .eq('user_id', user.id).lte('due_date', today);
+    if (deckName) query = query.eq('deck', deckName);
+    const { data, error } = await query
+      .order('lapses', { ascending: false })
+      .order('due_date', { ascending: true })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
+  },
+
+  /** Returns map: { deck: quantidade vencida } */
+  async getSrsDueCounts(today) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    const rows = await this._srsFetchAll(() => _sb.from('simulado_srs')
+      .select('deck').eq('user_id', user.id).lte('due_date', today).order('id'));
+    const counts = {};
+    rows.forEach(r => { counts[r.deck] = (counts[r.deck] || 0) + 1; });
+    return counts;
+  },
+
+  /** onlyNew = true preserva as linhas existentes (usado na importação do histórico) */
+  async upsertSrsCards(rows, onlyNew = false) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    for (let i = 0; i < rows.length; i += 500) {
+      const { error } = await _sb.from('simulado_srs').upsert(
+        rows.slice(i, i + 500).map(r => ({ ...r, user_id: user.id, updated_at: new Date().toISOString() })),
+        { onConflict: 'user_id,deck,question_text', ignoreDuplicates: onlyNew }
+      );
+      if (error) throw error;
+    }
+  },
+
+  /** Returns map: { questão: vezes errada } somando todas as sessões do deck */
+  async getWrongCounts(deckName) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    const rows = await this._srsFetchAll(() => _sb.from('sessions')
+      .select('wrong_items').eq('user_id', user.id).eq('deck', deckName).order('created_at'));
+    const counts = {};
+    rows.forEach(row => (row.wrong_items || []).forEach(item => {
+      if (item?.q) counts[item.q] = (counts[item.q] || 0) + 1;
+    }));
+    return counts;
+  },
+
   async addSession(session) {
     const user = await this.getUser();
     if (!user) return null;

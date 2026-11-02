@@ -10,6 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
+  <script src="js/srs.js"></script>
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
@@ -299,6 +300,17 @@
         <div class="upload-label"><strong>Clique para selecionar</strong> um arquivo CSV de questões</div>
         <div class="upload-hint">Formato: questão ; CERTO (ou ERRADO)</div>
       </div>
+      <div id="srsHomeBox" style="display:none;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center;width:100%;max-width:540px">
+        <div style="font-size:13px;color:#9ca3af;margin-bottom:10px" id="srsHomeMsg"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:10px">
+          <button class="btn btn-primary" onclick="startSrsHome(null)">🧠 Revisão geral</button>
+          <label style="font-size:12px;color:#9ca3af">até
+            <input id="srsHomeLimit" type="number" min="1" max="1000" value="50"
+              style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);text-align:center">
+            questões</label>
+        </div>
+        <div id="srsHomeDecks" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+      </div>
       <div class="sim-browser" id="simBrowser">
         <div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Carregando arquivos...</div>
       </div>
@@ -358,6 +370,10 @@
             style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);text-align:center">
         </div>
       </details>
+      <div id="srsBox" style="display:none;margin-bottom:16px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center;width:100%;max-width:540px">
+        <button class="btn btn-primary" id="btnSrsReview" onclick="startSrsReview()"></button>
+        <div style="font-size:12px;color:#9ca3af;margin-top:10px;line-height:1.5" id="srsBoxMsg"></div>
+      </div>
       <div id="futureReviewBox" style="display:none;margin-bottom:16px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center;width:100%;max-width:540px">
         <div style="font-size:13px;color:#9ca3af;margin-bottom:10px" id="futureReviewMsg"></div>
         <div id="futureReviewSubjects" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
@@ -395,6 +411,7 @@
         <button class="btn-errado" id="btnAnsLeft" onclick="answer('ERRADO')">ERRADO <small style="font-size:12px;font-weight:400">(E)</small></button>
         <button class="btn-certo" id="btnAnsRight" onclick="answer('CERTO')">CERTO <small style="font-size:12px;font-weight:400">(C)</small></button>
       </div>
+      <button class="btn btn-secondary" id="btnGuess" style="font-size:12px;padding:8px 12px" onclick="toggleGuess()" title="Marque antes de responder: um acerto no chute não aumenta o intervalo de revisão">🎲 Chutei (D)</button>
       <div class="shortcut-hint" id="shortcutHint">C = CERTO · E = ERRADO</div>
     </div>
 
@@ -404,6 +421,7 @@
       <div class="summary-title" id="summaryTitle"></div>
       <div class="summary-sub" id="summarySub"></div>
       <div class="summary-stats" id="summaryStats"></div>
+      <div id="summarySrs" style="display:none;font-size:13px;color:#9ca3af;text-align:center;margin-bottom:16px;line-height:1.5"></div>
       <div class="btns">
         <button class="btn btn-primary" onclick="showReview('wrong')">Revisar erros</button>
         <button class="btn btn-primary" onclick="startRetryWrong()" id="btnRetryWrong">🔁 Refazer questões erradas</button>
@@ -583,6 +601,7 @@
       if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
       loadSimBrowser();
       refreshDeckScoresFromRemote();
+      renderSrsHome();
     })();
 
     // ─── Manifest-based folder scanning (GitHub Pages compatible) ──────
@@ -716,6 +735,7 @@
       const remoteLastDone = remoteSaved ? (remoteSaved.current_index || 0) : 0;
       const localLastDone = localSaved ? (localSaved.lastDone || 0) : 0;
       deckName = newDeckName;
+      _srsCheckpointDeck = newDeckName;
       currentProgressKey = progKey;
       window._pendingSimText = text;
       window._pendingSimFile = filename;
@@ -796,6 +816,7 @@
     function showView(id) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(id).classList.add('active');
+      if (id === 'viewLoader') renderSrsHome();
     }
 
     function detectSubject(name) {
@@ -842,9 +863,235 @@
         DB.clearCheckpoint(deckName).catch(() => {});
         resumeEl.style.display = 'none';
       };
+      renderSrsBox();
       renderFutureReviewBox();
       renderRedoAllWrongButton();
       showView('viewOptions');
+    }
+
+    // ─── Repetição espaçada ──────────────────────────────────────────
+    // As respostas ficam em localStorage até o envio. A agenda só é calculada no
+    // envio, sobre o estado atual do servidor: fechar a aba ou usar outro
+    // dispositivo não perde respostas nem apaga o histórico de erros.
+    const SRS_PENDING_KEY = 'srs_pending';
+    const SRS_GENERAL_DECK = 'Revisão geral';
+    let _srsCheckpointDeck = null; // deck cujo window._lastDone é confiável
+    let _srsChain = Promise.resolve();
+    let _srsSessionDays = [];
+    let _srsDueCards = [];
+    let _srsHomeDecks = [];
+    let _guessed = false;
+
+    // Serializa envio e importação, para um não ler a agenda no meio do outro
+    function srsRun(fn) {
+      const result = _srsChain.then(fn);
+      _srsChain = result.catch(() => {});
+      return result;
+    }
+
+    function srsLoadPending() {
+      try { return JSON.parse(localStorage.getItem(SRS_PENDING_KEY)) || []; }
+      catch { return []; }
+    }
+
+    function srsPayload(q) {
+      const payload = {
+        correct: q.correct, justification: q.justification || null, section: q.section || '',
+        subjectCode: q.subjectCode || null, subjectLabel: q.subjectLabel || '', tags: q.tags || []
+      };
+      if (q.options) {
+        payload.answerText = q.answerText;
+        payload.wrongOpt = q.options.find(o => o !== q.answerText);
+      }
+      return payload;
+    }
+
+    function srsRecordAnswer(q, correct, guessed) {
+      const pending = srsLoadPending();
+      pending.push({
+        deck: q.deck || deckName, q: q.q, correct, guessed, date: localDateStr(),
+        payload: srsPayload(q), hasOptions: !!q.options
+      });
+      try { localStorage.setItem(SRS_PENDING_KEY, JSON.stringify(pending)); }
+      catch (e) { console.warn('srs: localStorage cheio', e); }
+      if (pending.length >= 10) flushSrs().catch(e => console.warn('srs: envio falhou', e));
+    }
+
+    function flushSrs() {
+      return srsRun(async () => {
+        const pending = srsLoadPending();
+        if (!pending.length) return;
+        const byDeck = {};
+        pending.forEach(ev => { (byDeck[ev.deck] = byDeck[ev.deck] || []).push(ev); });
+        for (const deck of Object.keys(byDeck)) {
+          const events = byDeck[deck];
+          const existing = await DB.getSrsCardsByQuestions(deck, [...new Set(events.map(ev => ev.q))]);
+          const cards = new Map(existing.map(c => [c.question_text, c]));
+          const changed = new Map();
+          for (const ev of events) {
+            const card = cards.get(ev.q) || null;
+            if (card && card.last_review === ev.date) continue; // só a 1ª resposta do dia conta
+            const next = SRS.nextState(card, ev, ev.date);
+            const row = {
+              deck, question_text: ev.q, ...next,
+              payload: card && card.payload && !ev.hasOptions ? card.payload : ev.payload
+            };
+            cards.set(ev.q, row);
+            changed.set(ev.q, row);
+            _srsSessionDays.push(SRS.daysBetween(ev.date, next.due_date));
+          }
+          if (changed.size) await DB.upsertSrsCards([...changed.values()]);
+        }
+        // Mantém o que foi respondido durante o envio
+        localStorage.setItem(SRS_PENDING_KEY, JSON.stringify(srsLoadPending().slice(pending.length)));
+      });
+    }
+
+    // Primeira abertura do deck: traz o histórico para a agenda, sem recomeçar
+    async function srsImportHistory(deck, questions, lastDone) {
+      const wrongCounts = await DB.getWrongCounts(deck);
+      const today = localDateStr();
+      const rows = new Map();
+      questions.forEach((q, i) => {
+        if (rows.has(q.q)) return;
+        const lapses = wrongCounts[q.q] || 0;
+        if (lapses) {
+          rows.set(q.q, { deck, question_text: q.q, step: 0, lapses, reps: 0, due_date: today, last_review: null, payload: srsPayload(q) });
+        } else if (i < lastDone) {
+          // Presumida como sabida; distribui em 30 dias para não vencer tudo de uma vez
+          const offset = 1 + Math.floor(Math.random() * 30);
+          rows.set(q.q, { deck, question_text: q.q, step: SRS.FIRST_CORRECT_STEP, lapses: 0, reps: 0, due_date: SRS.addDays(today, offset), last_review: null, payload: srsPayload(q) });
+        }
+      });
+      if (rows.size) await DB.upsertSrsCards([...rows.values()], true);
+    }
+
+    async function renderSrsBox() {
+      const deck = deckName;
+      const questions = allQuestions;
+      const lastDone = _srsCheckpointDeck === deck ? (window._lastDone || 0) : 0;
+      const box = document.getElementById('srsBox');
+      box.style.display = 'none';
+      _srsDueCards = [];
+      try {
+        await flushSrs();
+        const cards = await srsRun(async () => {
+          let rows = await DB.getSrsCards(deck);
+          if (!rows.length) {
+            await srsImportHistory(deck, questions, lastDone);
+            rows = await DB.getSrsCards(deck);
+          }
+          return rows;
+        });
+        if (deck !== deckName) return; // outro deck foi aberto nesse meio-tempo
+        const today = localDateStr();
+        const live = new Set(questions.map(q => q.q));
+        const known = cards.filter(c => live.has(c.question_text)); // ignora as que saíram do CSV
+        const knownSet = new Set(known.map(c => c.question_text));
+        _srsDueCards = SRS.buildDueQueue(known, today);
+        const errs = _srsDueCards.filter(c => c.lapses > 0).length;
+        const week = SRS.addDays(today, 7);
+        const upcoming = known.filter(c => c.due_date > today && c.due_date <= week).length;
+        const fresh = live.size - knownSet.size;
+        const btn = document.getElementById('btnSrsReview');
+        btn.textContent = _srsDueCards.length ? `🧠 Revisar hoje (${_srsDueCards.length})` : '🧠 Nada para revisar hoje';
+        btn.disabled = !_srsDueCards.length;
+        document.getElementById('srsBoxMsg').innerHTML =
+          (_srsDueCards.length ? `${errs} já erradas · ${_srsDueCards.length - errs} de manutenção<br>` : '') +
+          `📅 Próximos 7 dias: ${upcoming} · Novas restantes: ${fresh}`;
+        box.style.display = 'block';
+      } catch (e) { console.warn('srs: agenda indisponível', e); }
+    }
+
+    async function renderSrsHome() {
+      const box = document.getElementById('srsHomeBox');
+      try {
+        await flushSrs();
+        const counts = await DB.getSrsDueCounts(localDateStr());
+        _srsHomeDecks = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        const total = _srsHomeDecks.reduce((sum, d) => sum + counts[d], 0);
+        if (!total) { box.style.display = 'none'; return; }
+        document.getElementById('srsHomeMsg').textContent =
+          `🧠 Revisão de hoje: ${total} questão(ões) em ${_srsHomeDecks.length} baralho(s)`;
+        document.getElementById('srsHomeDecks').innerHTML = _srsHomeDecks.slice(0, 8).map((d, i) =>
+          `<button class="btn btn-secondary" style="font-size:12px;padding:8px 12px"
+            onclick="startSrsHome(${i})">${escHtml(d)} (${counts[d]})</button>`).join('');
+        box.style.display = 'block';
+      } catch (e) { box.style.display = 'none'; console.warn('srs: agenda indisponível', e); }
+    }
+
+    // Reconstrói a questão a partir da cópia guardada na agenda
+    function srsHydrate(card) {
+      const p = card.payload || {};
+      const q = {
+        q: card.question_text, deck: card.deck, correct: p.correct, justification: p.justification || null,
+        section: p.section || '', subjectCode: p.subjectCode, subjectLabel: p.subjectLabel || '',
+        tags: p.tags || [], srsLapses: card.lapses
+      };
+      if (p.answerText) {
+        // Em decks de línguas, `correct` depende de que lado a opção certa caiu
+        const rightFirst = Math.random() < 0.5;
+        q.options = rightFirst ? [p.answerText, p.wrongOpt] : [p.wrongOpt, p.answerText];
+        q.answerText = p.answerText;
+        q.correct = rightFirst ? 'ERRADO' : 'CERTO';
+      }
+      return q;
+    }
+
+    function srsBeginSession(items, title) {
+      queue = items;
+      currentIdx = 0; answers = []; _sessionRecorded = false; _srsSessionDays = [];
+      retryPending = []; currentRetryItem = null;
+      window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
+      window._srsReview = true;
+      window._futureReviewSubject = null;
+      window._redoAllWrongMode = false;
+      timerSecs = 0; updateTimer();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
+      renderQuestion();
+      showView('viewStudy');
+      document.getElementById('simDeck').textContent = title;
+    }
+
+    function startSrsReview() {
+      if (!_srsDueCards.length) return;
+      const limit = parseInt(document.getElementById('customQtdInput').value, 10);
+      const byText = new Map(allQuestions.map(q => [q.q, q]));
+      const items = (limit > 0 ? _srsDueCards.slice(0, limit) : _srsDueCards)
+        .map(c => ({ ...byText.get(c.question_text), srsLapses: c.lapses }));
+      srsBeginSession(items, deckName + ' (Revisão de hoje)');
+    }
+
+    async function startSrsHome(deckIdx) {
+      const limit = parseInt(document.getElementById('srsHomeLimit').value, 10) || 50;
+      const deck = deckIdx === null ? null : _srsHomeDecks[deckIdx];
+      try {
+        await flushSrs();
+        const cards = await DB.getDueSrsCards(localDateStr(), limit, deck);
+        if (!cards.length) { renderSrsHome(); return; }
+        deckName = deck || SRS_GENERAL_DECK;
+        srsBeginSession(cards.map(srsHydrate), deckName + ' (Revisão de hoje)');
+      } catch (e) { alert('Não foi possível carregar a revisão: ' + e.message); }
+    }
+
+    function setGuess(on) {
+      _guessed = on;
+      const btn = document.getElementById('btnGuess');
+      btn.textContent = on ? '🎲 Chute marcado (D)' : '🎲 Chutei (D)';
+      btn.style.borderColor = on ? '#d4af37' : '';
+      btn.style.color = on ? '#d4af37' : '';
+    }
+    function toggleGuess() { setGuess(!_guessed); }
+
+    function renderSrsSummary() {
+      const el = document.getElementById('summarySrs');
+      if (!_srsSessionDays.length) { el.style.display = 'none'; return; }
+      const buckets = {};
+      _srsSessionDays.forEach(d => { buckets[d] = (buckets[d] || 0) + 1; });
+      el.textContent = '🧠 Voltam: ' + Object.keys(buckets).map(Number).sort((a, b) => a - b)
+        .map(d => `${buckets[d]} em ${d} dia${d > 1 ? 's' : ''}`).join(' · ');
+      el.style.display = 'block';
     }
 
     // ─── Botão "Refazer todas as erradas" (histórico completo do deck) ─
@@ -868,6 +1115,7 @@
       currentIdx = 0; answers = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong';
+      window._srsReview = false; _srsSessionDays = [];
       window._futureReviewSubject = null;
       window._redoAllWrongMode = true;
       timerSecs = 0; updateTimer();
@@ -904,6 +1152,7 @@
       currentIdx = 0; answers = []; _sessionRecorded = false;
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
+      window._srsReview = false; _srsSessionDays = [];
       window._futureReviewSubject = subjectCode;
       window._redoAllWrongMode = false;
       timerSecs = 0; updateTimer();
@@ -938,6 +1187,7 @@
       retryPending = []; currentRetryItem = null;
       window._currentSimMode = 'seq';
       window._sessionStartIdx = lastDone;
+      window._srsReview = false; _srsSessionDays = [];
       window._futureReviewSubject = null;
       window._redoAllWrongMode = false;
       timerSecs = 0; updateTimer();
@@ -952,7 +1202,7 @@
       const wrong = answers.filter(a => !a.isCorrect);
       if (!wrong.length) return;
       queue = wrong.map(a => ({
-        q: a.q, correct: a.correct, justification: a.justification || null, section: a.section,
+        q: a.q, deck: a.deck, correct: a.correct, justification: a.justification || null, section: a.section,
         subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || []
       }));
       currentIdx = 0; answers = []; _sessionRecorded = false;
@@ -1052,6 +1302,8 @@
       'ÁRABE': 'ar-SA', 'ARABE': 'ar-SA',
     };
     function currentDeckLang() {
+      // GRAMMAR TRANSFORMAR tem os enunciados em português: segue a voz configurada no painel
+      if (/^INGLES - (?!GRAMMAR TRANSFORMAR)/i.test(deckName || '')) return 'en-US';
       const m = (deckName || '').match(/^LINGUAS - (.+)$/i);
       if (!m) return null;
       const name = m[1].toUpperCase();
@@ -1124,7 +1376,8 @@
       document.getElementById('sectionLabel').textContent = q.section || '';
       document.getElementById('sectionLabel').style.display = q.section ? 'block' : 'none';
       document.getElementById('simCounter').textContent = ` ${currentIdx + 1}/${queue.length}`;
-      document.getElementById('questionTags').innerHTML = renderTags(q);
+      document.getElementById('questionTags').innerHTML = renderTags(q) +
+        (q.srsLapses >= SRS.LEECH_LAPSES ? `<span class="tag-pill tag-keyword" title="Errada ${q.srsLapses} vezes: vale gerar um resumo e salvar no Caderno">⚠ Difícil</span>` : '');
       setAnswerButtons(q);
       document.getElementById('progressFill').style.width = (currentIdx / queue.length * 100) + '%';
       updateRetryDot();
@@ -1163,6 +1416,7 @@
 
     // Decks de línguas mostram as duas traduções nos botões; os demais, CERTO/ERRADO
     function setAnswerButtons(q) {
+      setGuess(false);
       const left = document.getElementById('btnAnsLeft');
       const right = document.getElementById('btnAnsRight');
       const hint = document.getElementById('shortcutHint');
@@ -1170,11 +1424,11 @@
       if (q.options) {
         left.innerHTML = escHtml(q.options[0]) + small('E');
         right.innerHTML = escHtml(q.options[1]) + small('C');
-        hint.textContent = 'E = opção da esquerda · C = opção da direita';
+        hint.textContent = 'E = opção da esquerda · C = opção da direita · D = chutei';
       } else {
         left.innerHTML = 'ERRADO' + small('E');
         right.innerHTML = 'CERTO' + small('C');
-        hint.textContent = 'C = CERTO · E = ERRADO';
+        hint.textContent = 'C = CERTO · E = ERRADO · D = chutei';
       }
     }
 
@@ -1196,6 +1450,8 @@
       if (currentIdx >= queue.length) return; // aguardando repetição — nada a responder
       const q = queue[currentIdx];
       const correct = userAns === q.correct;
+      // Revisão futura mistura decks sem identificar a origem de cada questão
+      if (!window._futureReviewSubject) srsRecordAnswer(q, correct, _guessed);
       if (correct && window._futureReviewSubject) {
         removeFromFutureReview(window._futureReviewSubject, q.q);
       }
@@ -1204,7 +1460,7 @@
         else DB.unmarkWrongItemResolved(deckName, q.q).catch(() => {});
       }
       answers.push({
-        q: q.q, correct: q.correct, justification: q.justification || null, userAns, isCorrect: correct,
+        q: q.q, deck: q.deck, correct: q.correct, justification: q.justification || null, userAns, isCorrect: correct,
         section: q.section, subjectCode: q.subjectCode,
         subjectLabel: q.subjectLabel, tags: q.tags || []
       });
@@ -1477,7 +1733,10 @@
         if (a.isCorrect) subjectsBreakdown[sc].correct++;
       });
 
-      saveDeckScore(deckName, pct).then(() => loadSimBrowser());
+      flushSrs().catch(e => console.warn('srs: envio falhou', e));
+
+      // Revisão só traz as questões vencidas: a % não representa o deck inteiro
+      if (!window._srsReview) saveDeckScore(deckName, pct).then(() => loadSimBrowser());
 
       await DB.addSession({
         type: isRetry ? 'simulado-revisao' : 'simulado', deck: deckName,
@@ -1517,6 +1776,8 @@
       document.getElementById('reviewSection').style.display = 'none';
       const retryBtn = document.getElementById('btnRetryWrong');
       if (retryBtn) retryBtn.style.display = wrong > 0 ? 'inline-block' : 'none';
+      try { await flushSrs(); } catch (e) { console.warn('srs: envio falhou', e); }
+      renderSrsSummary();
       showView('viewSummary');
 
       // AI summary section (bullet points dos erros)
@@ -1634,7 +1895,7 @@
       if (currentIdx > 0) {
         if (confirm('Sair? As questões respondidas serão contabilizadas em Metas do dia e Sessões hoje, e você poderá continuar de onde parou.')) {
           // Progresso (posição) já foi salvo em saveProgress() após cada resposta
-          window._lastDone = (window._sessionStartIdx || 0) + currentIdx;
+          if (!window._srsReview) window._lastDone = (window._sessionStartIdx || 0) + currentIdx;
           recordSessionResult();
           if ('speechSynthesis' in window) speechSynthesis.cancel();
           clearInterval(retryPollInterval); retryPollInterval = null;
@@ -1656,6 +1917,7 @@
       if (!document.getElementById('viewStudy').classList.contains('active')) return;
       if (e.key.toLowerCase() === 'c') answer('CERTO');
       if (e.key.toLowerCase() === 'e') answer('ERRADO');
+      if (e.key.toLowerCase() === 'd') toggleGuess();
     });
 
     // ─── Auto-load from URL param (?file=path) ───────────────────────
