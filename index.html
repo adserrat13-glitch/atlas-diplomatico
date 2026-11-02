@@ -749,7 +749,7 @@
       let s = 0;
       for (let i = 0; i < 365; i++) {
         const d = new Date(); d.setDate(d.getDate() - i);
-        const k = d.toISOString().split('T')[0];
+        const k = localDateStr(d);
         if ((act[k]||0) > 0) s++; else if (i > 0) break;
       }
       return s;
@@ -766,11 +766,11 @@
     }
     function computeWeekHours(s) {
       const cut = new Date(); cut.setDate(cut.getDate()-7);
-      const cutS = cut.toISOString().split('T')[0];
+      const cutS = localDateStr(cut);
       return s.filter(x => x.date >= cutS).reduce((a,x) => a+(x.time_seconds||0),0)/3600;
     }
     function computeTodayHours(s) {
-      const t = new Date().toISOString().split('T')[0];
+      const t = localDateStr();
       return s.filter(x => x.date===t).reduce((a,x) => a+(x.time_seconds||0),0)/3600;
     }
     function relativeDate(d) {
@@ -858,7 +858,7 @@
       const tf=document.getElementById('todayFill'); if(tf) tf.style.width=Math.min(100,todayH/2*100)+'%';
     }
     function renderNextTask() {
-      const today=new Date().toISOString().split('T')[0];
+      const today=localDateStr();
       const studied=new Set(_sessions.filter(s=>s.date===today).map(s=>s.subject));
       const cands=(SUBJECTS.filter(s=>!studied.has(s.id)).length?SUBJECTS.filter(s=>!studied.has(s.id)):SUBJECTS)
         .map(s=>({...s,pct:getSubjectStats(s.id).pct})).sort((a,b)=>a.pct-b.pct);
@@ -875,7 +875,7 @@
     /* ── RENDER HEATMAP ANUAL ─────────────────────────────── */
     function renderHeatmap() {
       const grid = document.getElementById('heatmapGrid'); if (!grid) return;
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = localDateStr();
 
       /* Dia 1 fixo: 19/06/2026 — mostra mínimo de 26 semanas (182 dias) de grade */
       const STUDY_START = '2026-06-19';
@@ -964,7 +964,7 @@
       ];
 
       const nowBSB = new Date(new Date().toLocaleString('en-US',{timeZone:'America/Sao_Paulo'}));
-      const today  = nowBSB.toISOString().split('T')[0];
+      const today  = localDateStr(nowBSB);
       const rotIdx = Math.floor(nowBSB.getTime()/86400000) % 3;
       const subs   = [...ALWAYS, ROTATE[rotIdx%3], ROTATE[(rotIdx+1)%3]];
 
@@ -1068,12 +1068,12 @@
       _sessions = sessions;
       _activity = activity;
 
-      const todayKey = new Date().toISOString().split('T')[0];
+      const todayKey = localDateStr();
       _todaySessionsCount =
         sessions.filter(s => s.date === todayKey).length +
         terceiraFase.filter(s => s.date === todayKey).length +
         edital.filter(s => s.date === todayKey).length +
-        idiomas.filter(s => (s.created_at || '').slice(0, 10) === todayKey).length;
+        idiomas.filter(s => s.created_at && localDateStr(new Date(s.created_at)) === todayKey).length;
 
       renderHero(examDate);
       renderHeroVisible(examDate);
