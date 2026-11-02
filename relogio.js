@@ -30,7 +30,7 @@
 
   /* ── Estilo ──────────────────────────────────────────────────── */
   const css = `
-    #atlasClock { position: fixed; right: 16px; bottom: 16px; z-index: 9000;
+    #atlasClock { position: fixed; left: 16px; bottom: 16px; z-index: 9000;
       display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px;
       background: #12131a; color: #f0ece6; border: 1px solid rgba(255,255,255,0.14);
       border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.35);
