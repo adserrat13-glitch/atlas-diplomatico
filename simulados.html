@@ -2046,6 +2046,14 @@
     .deck-bonus-item .dpct { font-size:12px; font-weight:800; color:#d4af37; font-variant-numeric:tabular-nums; }
     .deck-bonus-item.done .dpct { color:#34d399; }
     .deck-bonus-empty { font-size:11.5px; color:#5b6272; padding:2px 0 4px; }
+    .next-deck {
+      display:block; width:100%; margin-top:8px; padding:7px 10px; text-align:left;
+      background:rgba(212,175,55,0.08); border:1px solid rgba(212,175,55,0.3); border-radius:8px;
+      color:#d4af37; font-size:12px; font-weight:700; cursor:pointer;
+    }
+    .next-deck:hover { background:rgba(212,175,55,0.16); }
+    .next-deck span { color:#8a92a3; font-weight:500; margin-left:4px; }
+    .next-deck.muted { background:none; border:none; color:#34d399; cursor:default; padding:6px 0 0; }
 
     .trophies-toggle {
       margin:0 24px; padding:9px 14px; border-radius:10px; border:1px solid #23262f;
@@ -2337,11 +2345,55 @@
       return { sums, dayTotal };
     }
 
+    // ─── Próximo baralho por matéria ─────────────────────────────────
+    // Ordem de estudo: liste aqui os arquivos na ordem desejada (por pasta).
+    // Pastas não listadas (ou arquivos fora da lista) seguem a ordem do manifest.json.
+    const DECK_ORDER = {
+      // 'HISTORIADOBRASIL': ['TPS HB.csv', 'BRASIL IMPERIO.csv', ...],
+    };
+    const DECK_SKIP = /\.local\.csv$/i;
+    const SUBJECT_FOLDERS = {
+      DIR: ['DIREITOCONSTITUCIONAL'], DIP: ['DIREITOINTERNACIONAL'], ECO: ['ECONOMIA'],
+      GEO: ['GEOGRAFIA'], HB: ['HISTORIADOBRASIL'], HM: ['HISTORIAMUNDIAL'],
+      PI: ['POLITICA INTERNACIONAL'], ING: ['INGLES'], LP: ['PORTUGUES'],
+    };
+    function orderedDecks(folder, files) {
+      const list = files.filter(f => !DECK_SKIP.test(f));
+      const pref = DECK_ORDER[folder] || [];
+      const rank = f => { const i = pref.indexOf(f); return i === -1 ? pref.length + list.indexOf(f) : i; };
+      return list.slice().sort((a, b) => rank(a) - rank(b));
+    }
+    async function nextDeckFor(code) {
+      const m = (typeof loadManifest === 'function') ? await loadManifest() : { tps_questoes: {} };
+      const tq = m.tps_questoes || {};
+      const completed = new Set();
+      Object.values(loadDeckBonus()).forEach(arr => (arr || []).forEach(d => completed.add(d.deck)));
+      const candidates = [];
+      (SUBJECT_FOLDERS[code] || []).forEach(folder => {
+        orderedDecks(folder, tq[folder] || []).forEach(file => {
+          const name = `${folder} - ${file.replace(/\.csv$/i, '').trim()}`;
+          let prog = null;
+          try { prog = JSON.parse(localStorage.getItem('sim_prog_' + name.replace(/\s+/g, '_'))); } catch {}
+          const done = completed.has(name) || (prog && prog.totalQ && prog.lastDone >= prog.totalQ);
+          candidates.push({ folder, file, name, done, prog });
+        });
+      });
+      const open = candidates.filter(c => !c.done);
+      const pick = open.find(c => c.prog && c.prog.lastDone > 0) || open[0] || null;
+      return { pick, total: candidates.length, doneCount: candidates.length - open.length };
+    }
+    window.openNextDeck = function (folder, file) {
+      closeMetasOverlay();
+      loadSimFromPath(file, folder);
+    };
+
     let _lastRender = null;
 
     async function renderMetas() {
       const { day, goals } = getGoalsForToday();
       const { sums, dayTotal } = await sumTodayBySubject();
+      const nexts = {};
+      await Promise.all(goals.map(async g => { nexts[g.code] = await nextDeckFor(g.code); }));
       const history = loadHistory();
       const streak = computeStreak(history);
 
@@ -2365,6 +2417,13 @@
           </div>
           <div class="meta-track"><div class="meta-fill" style="width:${pct}%"></div></div>
           <span class="count">${got.toLocaleString('pt-BR')} / ${g.target.toLocaleString('pt-BR')} questões</span>
+          ${(() => {
+            const n = nexts[g.code];
+            if (!n || !n.pick) return n && n.total ? `<div class="next-deck muted">✓ Todos os ${n.total} baralhos concluídos</div>` : '';
+            const p = n.pick, f = p.folder.replace(/'/g, "\\'"), fl = p.file.replace(/'/g, "\\'");
+            const prog = p.prog && p.prog.lastDone > 0 ? ` · ${p.prog.lastDone}/${p.prog.totalQ}` : '';
+            return `<button class="next-deck" onclick="openNextDeck('${f}','${fl}')">▶ ${p.file.replace(/\.csv$/i,'').trim()}<span>${prog} · baralho ${n.doneCount + 1}/${n.total}</span></button>`;
+          })()}
         </div>`;
       }).join('');
 
