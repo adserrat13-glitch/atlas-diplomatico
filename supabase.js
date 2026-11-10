@@ -40,7 +40,7 @@ function localDateStr(d = new Date()) {
 // páginas em subpastas (GAMES/...) carregam o supabase.js com ../
 if (document.currentScript) {
   const relogio = document.createElement('script');
-  relogio.src = new URL('relogio.js', document.currentScript.src).href;
+  relogio.src = new URL('relogio.js?v=2', document.currentScript.src).href;
   document.head.appendChild(relogio);
 }
 
