@@ -116,6 +116,38 @@ async function handleSummary(req, res, groq) {
   return res.status(200).json({ bullets: bullets.slice(0, 150) });
 }
 
+async function handleVocabText(req, res, groq) {
+  const { words, language } = req.body || {};
+  if (!Array.isArray(words) || !words.length) return res.status(400).json({ error: 'words é obrigatório' });
+  const lang = language === 'es' ? 'espanhol' : 'inglês';
+  const list = words.slice(0, 60).map(w => `- ${w.word} (= ${w.meaning})`).join('\n');
+
+  const completion = await groq.chat.completions.create({
+    model: 'openai/gpt-oss-120b',
+    response_format: { type: 'json_object' },
+    reasoning_effort: 'low',
+    messages: [
+      { role: 'system', content: `Você é professor de ${lang} para candidatos ao CACD (carreira diplomática).
+Escreva um texto curto em ${lang} (150-300 palavras), no estilo de artigo de política internacional
+(diplomacia, organismos internacionais, geopolítica, comércio), usando NATURALMENTE TODAS as palavras da lista.
+Envolva cada palavra da lista com **asteriscos duplos** no texto. Depois, uma tradução fiel em português.
+Responda APENAS em JSON válido: {"title":"...","text":"...","translation":"..."}` },
+      { role: 'user', content: `Palavras que o candidato errou:\n${list}` },
+    ],
+    temperature: 0.6,
+    max_tokens: 3000,
+  });
+
+  const raw = completion.choices[0]?.message?.content;
+  if (!raw) return res.status(502).json({ error: 'Resposta vazia do modelo' });
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch { return res.status(502).json({ error: 'Resposta inválida do modelo' }); }
+  return res.status(200).json({
+    title: String(parsed.title || ''), text: String(parsed.text || ''), translation: String(parsed.translation || '')
+  });
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -130,6 +162,7 @@ module.exports = async function handler(req, res) {
   try {
     const groq = new Groq({ apiKey });
     if (req.body?.mode === 'summary') return await handleSummary(req, res, groq);
+    if (req.body?.mode === 'vocab_text') return await handleVocabText(req, res, groq);
     return await handleFlashcard(req, res, groq);
   } catch (err) {
     return res.status(err?.status || 500).json({ error: err?.message || 'Erro interno' });

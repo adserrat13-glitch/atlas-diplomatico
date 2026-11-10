@@ -437,6 +437,10 @@
           <div class="ai-save-msg" id="aiSaveMsg"></div>
         </div>
       </div>
+      <div id="vocabTextSection" style="display:none;width:100%;text-align:left;margin-top:16px;max-width:520px;margin-inline:auto">
+        <div class="ai-deck-title" style="text-align:center">📰 Texto com as palavras que você errou</div>
+        <div id="vocabTextContent"></div>
+      </div>
       <div class="review-section" id="reviewSection" style="display:none">
         <div class="review-tabs">
           <button class="rtab active" onclick="showReview('wrong')">Erros</button>
@@ -1467,6 +1471,7 @@
       }
       answers.push({
         q: q.q, deck: q.deck, correct: q.correct, justification: q.justification || null, userAns, isCorrect: correct,
+        answerText: q.answerText || null,
         section: q.section, subjectCode: q.subjectCode,
         subjectLabel: q.subjectLabel, tags: q.tags || []
       });
@@ -1791,6 +1796,36 @@
       if (aiSection) aiSection.style.display = 'none';
       const wrongAnswers = answers.filter(a => !a.isCorrect);
       if (wrongAnswers.length > 0) renderAISummary(wrongAnswers);
+      renderVocabText(wrongAnswers);
+    }
+
+    // ─── Texto de política internacional com as palavras erradas (vocabulário EN/ES) ───
+    async function renderVocabText(wrongAnswers) {
+      const sec = document.getElementById('vocabTextSection');
+      if (!sec) return;
+      sec.style.display = 'none';
+      const isEn = /INGL|ENGLISH/i.test(deckName), isEs = /ESPANHOL|SPANISH/i.test(deckName);
+      const words = wrongAnswers.filter(a => a.answerText).map(a => ({ word: a.q, meaning: a.answerText }));
+      if (!(isEn || isEs) || !words.length) return;
+      const content = document.getElementById('vocabTextContent');
+      sec.style.display = 'block';
+      content.innerHTML = '<div class="wdfc-loading">Gerando texto com as palavras que você errou...</div>';
+      try {
+        const r = await fetch('/api/generate-flashcard', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ mode: 'vocab_text', language: isEs ? 'es' : 'en', words })
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const d = await r.json();
+        const fmt = s => escHtml(s).replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--yellow)">$1</strong>').replace(/\n/g, '<br>');
+        content.innerHTML = `
+          ${d.title ? `<div style="font-weight:700;margin-bottom:8px">${escHtml(d.title)}</div>` : ''}
+          <div style="font-size:13.5px;line-height:1.7;color:#ddd">${fmt(d.text)}</div>
+          <details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;color:#aaa">Ver tradução</summary>
+            <div style="font-size:12.5px;line-height:1.6;color:#bbb;margin-top:6px">${fmt(d.translation)}</div></details>`;
+      } catch (e) {
+        content.innerHTML = '<div style="font-size:12px;color:#aaa">Não foi possível gerar o texto agora.</div>';
+      }
     }
 
     // ─── Review panel with lazy flashcard loading ────────────────────
