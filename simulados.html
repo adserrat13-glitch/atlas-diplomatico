@@ -774,7 +774,11 @@
     function processSimData(rows, folder) {
       allQuestions = []; sections = {};
       const collected = []; let currentSection = ''; let currentSubject = null;
-      const folderSubject = folder ? FOLDER_TO_SUBJECT[folder] : null;
+      let folderSubject = folder ? FOLDER_TO_SUBJECT[folder] : null;
+      // Baralhos de inglês e espanhol (LINGUAS) contam para a meta diária de Inglesa
+      if (folder === 'LINGUAS' && /INGL|ENGLISH|ESPANHOL|SPANISH/i.test(deckName || '')) {
+        folderSubject = FOLDER_TO_SUBJECT['INGLES'];
+      }
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
         if (!q) return;
