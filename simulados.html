@@ -776,8 +776,10 @@
       const collected = []; let currentSection = ''; let currentSubject = null;
       let folderSubject = folder ? FOLDER_TO_SUBJECT[folder] : null;
       // Baralhos de inglês e espanhol (LINGUAS) contam para a meta diária de Inglesa
-      if (folder === 'LINGUAS' && /INGL|ENGLISH|ESPANHOL|SPANISH/i.test(deckName || '')) {
+      if (folder === 'LINGUAS' && /INGL|ENGLISH/i.test(deckName || '')) {
         folderSubject = FOLDER_TO_SUBJECT['INGLES'];
+      } else if (folder === 'LINGUAS' && /ESPANHOL|SPANISH/i.test(deckName || '')) {
+        folderSubject = { code: 'ESP', label: 'Espanhol' };
       }
       rows.forEach(row => {
         const q = (row[0] || '').trim(), a = (row[1] || '').trim();
@@ -2195,7 +2197,7 @@
       { variaveis: [ ['DIP','Dir. Internacional',550], ['GEO','Geografia',500], ['HM','Hist. Mundial',350] ] },
       { variaveis: [ ['HB','Hist. Brasil',550], ['DIR','Direito',500], ['PI','Pol. Internacional',350] ] },
     ];
-    const FIXED = [ ['LP','L. Portuguesa',300], ['ING','Inglesa',300] ];
+    const FIXED = [ ['LP','L. Portuguesa',300], ['ING','Inglesa',300], ['ESP','Espanhol',300] ];
 
     const PATCH_FILES = ['10.png','20.png','30.png','40.png','50.png','60.png','70.png','80.png','90.png','100.png'];
     const STREAK_KEY = 'metas_streak_v1';
@@ -2359,8 +2361,10 @@
     const SUBJECT_FOLDERS = {
       DIR: ['DIREITOCONSTITUCIONAL'], DIP: ['DIREITOINTERNACIONAL'], ECO: ['ECONOMIA'],
       GEO: ['GEOGRAFIA'], HB: ['HISTORIADOBRASIL'], HM: ['HISTORIAMUNDIAL'],
-      PI: ['POLITICA INTERNACIONAL'], ING: ['INGLES'], LP: ['PORTUGUES'],
+      PI: ['POLITICA INTERNACIONAL'], ING: ['INGLES'], LP: ['PORTUGUES'], ESP: ['LINGUAS'],
     };
+    // Filtro de arquivos por matéria quando a pasta é compartilhada (LINGUAS)
+    const SUBJECT_FILE_FILTER = { ESP: /ESPANHOL|SPANISH/i };
     function orderedDecks(folder, files) {
       const list = files.filter(f => !DECK_SKIP.test(f));
       const pref = DECK_ORDER[folder] || [];
@@ -2374,7 +2378,8 @@
       Object.values(loadDeckBonus()).forEach(arr => (arr || []).forEach(d => completed.add(d.deck)));
       const candidates = [];
       (SUBJECT_FOLDERS[code] || []).forEach(folder => {
-        orderedDecks(folder, tq[folder] || []).forEach(file => {
+        const ff = SUBJECT_FILE_FILTER[code];
+        orderedDecks(folder, (tq[folder] || []).filter(f => !ff || ff.test(f))).forEach(file => {
           const name = `${folder} - ${file.replace(/\.csv$/i, '').trim()}`;
           let prog = null;
           try { prog = JSON.parse(localStorage.getItem('sim_prog_' + name.replace(/\s+/g, '_'))); } catch {}
