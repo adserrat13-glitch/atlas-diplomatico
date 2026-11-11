@@ -168,51 +168,6 @@ const DB = {
     return data || [];
   },
 
-  // Agrega wrong_items de todas as sessões desse deck (dedup por texto da questão,
-  // fica com a ocorrência mais recente), excluindo as já marcadas como resolvidas.
-  async getAllWrongItems(deckName) {
-    const user = await this.getUser();
-    if (!user) return [];
-    const [{ data, error }, { data: resolved }] = await Promise.all([
-      _sb.from('sessions')
-        .select('wrong_items, created_at')
-        .eq('user_id', user.id)
-        .eq('deck', deckName)
-        .order('created_at', { ascending: true }),
-      _sb.from('simulado_wrong_resolved')
-        .select('question_text')
-        .eq('user_id', user.id)
-        .eq('deck', deckName)
-    ]);
-    if (error) { console.warn('getAllWrongItems error:', error.message); return []; }
-    const resolvedSet = new Set((resolved || []).map(r => r.question_text));
-    const byQuestion = new Map();
-    for (const row of data || []) {
-      for (const item of row.wrong_items || []) {
-        if (item?.q && !resolvedSet.has(item.q)) byQuestion.set(item.q, item);
-        else if (item?.q) byQuestion.delete(item.q);
-      }
-    }
-    return [...byQuestion.values()];
-  },
-
-  async markWrongItemResolved(deckName, questionText) {
-    const user = await this.getUser();
-    if (!user) return;
-    const { error } = await _sb.from('simulado_wrong_resolved').upsert({
-      user_id: user.id, deck: deckName, question_text: questionText
-    }, { onConflict: 'user_id,deck,question_text' });
-    if (error) console.warn('markWrongItemResolved error:', error.message);
-  },
-
-  async unmarkWrongItemResolved(deckName, questionText) {
-    const user = await this.getUser();
-    if (!user) return;
-    await _sb.from('simulado_wrong_resolved')
-      .delete()
-      .eq('user_id', user.id).eq('deck', deckName).eq('question_text', questionText);
-  },
-
   // ── REPETIÇÃO ESPAÇADA (agenda por questão dos simulados) ───────────
   // Erros aqui são lançados: quem chama não pode confundir falha com "sem dados",
   // senão uma questão com histórico seria regravada como nova.
@@ -232,7 +187,7 @@ const DB = {
     const user = await this.getUser();
     if (!user) throw new Error('sem usuário');
     return this._srsFetchAll(() => _sb.from('simulado_srs')
-      .select('question_text, step, lapses, reps, due_date, last_review')
+      .select('question_text, step, lapses, reps, streak, status, due_date, last_review')
       .eq('user_id', user.id).eq('deck', deckName).order('question_text'));
   },
 
@@ -242,7 +197,7 @@ const DB = {
     const rows = [];
     for (let i = 0; i < questions.length; i += 15) {
       const { data, error } = await _sb.from('simulado_srs')
-        .select('question_text, step, lapses, reps, due_date, last_review, payload')
+        .select('question_text, step, lapses, reps, streak, status, due_date, last_review, payload')
         .eq('user_id', user.id).eq('deck', deckName)
         .in('question_text', questions.slice(i, i + 15));
       if (error) throw error;
@@ -251,29 +206,75 @@ const DB = {
     return rows;
   },
 
-  async getDueSrsCards(today, limit, deckName) {
+  /**
+   * Fila da revisão. opts.subject filtra por matéria ('' = sem matéria), opts.deck por baralho.
+   * opts.mode = 'final' (reta final): dominadas e já erradas, sem olhar a data.
+   */
+  async getDueSrsCards(today, limit, opts = {}) {
     const user = await this.getUser();
     if (!user) throw new Error('sem usuário');
-    let query = _sb.from('simulado_srs').select('*')
-      .eq('user_id', user.id).lte('due_date', today);
-    if (deckName) query = query.eq('deck', deckName);
-    const { data, error } = await query
-      .order('lapses', { ascending: false })
-      .order('due_date', { ascending: true })
-      .limit(limit);
+    let query = _sb.from('simulado_srs').select('*').eq('user_id', user.id);
+    if (opts.mode === 'final') query = query.or('status.eq.mastered,lapses.gt.0');
+    else query = query.neq('status', 'mastered').lte('due_date', today);
+    if (opts.deck) query = query.eq('deck', opts.deck);
+    if (opts.subject === '') query = query.is('subject_code', null);
+    else if (opts.subject) query = query.eq('subject_code', opts.subject);
+    if (opts.mode === 'final') {
+      query = query.order('lapses', { ascending: false }).order('last_review', { ascending: true, nullsFirst: true });
+    } else {
+      query = query.order('lapses', { ascending: false }).order('due_date', { ascending: true });
+    }
+    const { data, error } = await query.limit(limit);
     if (error) throw error;
     return data || [];
   },
 
-  /** Returns map: { deck: quantidade vencida } */
-  async getSrsDueCounts(today) {
+  // Conta por matéria ('' = sem matéria)
+  async _srsCountBySubject(filter) {
     const user = await this.getUser();
     if (!user) throw new Error('sem usuário');
-    const rows = await this._srsFetchAll(() => _sb.from('simulado_srs')
-      .select('deck').eq('user_id', user.id).lte('due_date', today).order('id'));
+    const rows = await this._srsFetchAll(() => filter(_sb.from('simulado_srs')
+      .select('subject_code').eq('user_id', user.id)).order('id'));
     const counts = {};
-    rows.forEach(r => { counts[r.deck] = (counts[r.deck] || 0) + 1; });
+    rows.forEach(r => { const k = r.subject_code || ''; counts[k] = (counts[k] || 0) + 1; });
     return counts;
+  },
+
+  /** Returns map: { subject_code: quantidade vencida } */
+  getSrsDueCounts(today) {
+    return this._srsCountBySubject(q => q.neq('status', 'mastered').lte('due_date', today));
+  },
+
+  /** Returns map: { subject_code: quantidade para a reta final } (dominadas + já erradas) */
+  getSrsFinalCounts() {
+    return this._srsCountBySubject(q => q.or('status.eq.mastered,lapses.gt.0'));
+  },
+
+  async logSrsReviews(rows) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    for (let i = 0; i < rows.length; i += 500) {
+      const { error } = await _sb.from('simulado_srs_log')
+        .insert(rows.slice(i, i + 500).map(r => ({ ...r, user_id: user.id })));
+      if (error) throw error;
+    }
+  },
+
+  /** Returns map: { subject_code: { sabia, total } } das revisões (não da 1ª vez) desde sinceDate */
+  async getRetentionStats(sinceDate) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    const rows = await this._srsFetchAll(() => _sb.from('simulado_srs_log')
+      .select('subject_code, grade').eq('user_id', user.id).eq('was_review', true)
+      .gte('review_date', sinceDate).order('id'));
+    const stats = {};
+    rows.forEach(r => {
+      const k = r.subject_code || '';
+      const s = stats[k] = stats[k] || { sabia: 0, total: 0 };
+      s.total++;
+      if (r.grade === 'sabia') s.sabia++;
+    });
+    return stats;
   },
 
   /** onlyNew = true preserva as linhas existentes (usado na importação do histórico) */
@@ -438,54 +439,6 @@ const DB = {
       .delete()
       .eq('user_id', user.id)
       .eq('deck_name', deck_name);
-  },
-
-  // ── REVISÃO FUTURA (questões erradas 2x+, por matéria) ────────────────
-
-  async getFutureReview() {
-    const user = await this.getUser();
-    if (!user) return {};
-    const { data, error } = await _sb.from('simulado_review_future')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('added_at', { ascending: true });
-    if (error) { console.warn('getFutureReview error:', error.message); return {}; }
-    const store = {};
-    for (const row of data || []) {
-      const key = row.subject_code || 'GERAL';
-      if (!store[key]) store[key] = [];
-      store[key].push({
-        q: row.question_text, correct: row.correct_answer, section: row.section,
-        subjectCode: row.subject_code, subjectLabel: row.subject_label,
-        tags: row.tags || [], addedAt: new Date(row.added_at).getTime()
-      });
-    }
-    return store;
-  },
-
-  async addFutureReviewItem(q) {
-    const user = await this.getUser();
-    if (!user) return;
-    const { error } = await _sb.from('simulado_review_future').upsert({
-      user_id: user.id,
-      subject_code: q.subjectCode || 'GERAL',
-      subject_label: q.subjectLabel || null,
-      question_text: q.q,
-      correct_answer: q.correct,
-      section: q.section || null,
-      tags: q.tags || []
-    }, { onConflict: 'user_id,subject_code,question_text' });
-    if (error) console.warn('addFutureReviewItem error:', error.message);
-  },
-
-  async removeFutureReviewItem(subjectCode, questionText) {
-    const user = await this.getUser();
-    if (!user) return;
-    await _sb.from('simulado_review_future')
-      .delete()
-      .eq('user_id', user.id)
-      .eq('subject_code', subjectCode)
-      .eq('question_text', questionText);
   },
 
   // ── CADERNO (resumos de erros salvos ao fim do simulado) ──────────────

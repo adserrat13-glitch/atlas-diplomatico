@@ -226,6 +226,12 @@
     .nb-delete:hover{color:var(--red);border-color:var(--red)}
     .nb-empty{color:var(--muted);font-size:14px;text-align:center;padding:16px}
 
+    /* Avaliação depois do acerto: os mesmos botões viram Chutei / Sabia */
+    .question-card.rating { border-color:rgba(74,222,128,.55); box-shadow:0 0 0 1px rgba(74,222,128,.25); }
+    .answer-btns.rating .btn-errado { background:rgba(212,175,55,.12); border-color:rgba(212,175,55,.5); color:#d4af37; }
+    .answer-btns.rating .btn-certo { background:rgba(74,222,128,.15); border-color:rgba(74,222,128,.55); }
+    .srs-toast { min-height:18px; font-size:12px; color:#9ca3af; text-align:center; margin-top:6px; transition:opacity .4s; }
+
     /* WRONG PILL — push notification recolhida */
     .wrong-pill {
       position:fixed; bottom:24px; right:24px; z-index:301;
@@ -303,13 +309,27 @@
       <div id="srsHomeBox" style="display:none;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center;width:100%;max-width:540px">
         <div style="font-size:13px;color:#9ca3af;margin-bottom:10px" id="srsHomeMsg"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-bottom:10px">
-          <button class="btn btn-primary" onclick="startSrsHome(null)">🧠 Revisão geral</button>
+          <button class="btn btn-primary" id="btnSrsGeneral" onclick="startSrsHome(null)">🧠 Revisão geral</button>
           <label style="font-size:12px;color:#9ca3af">até
-            <input id="srsHomeLimit" type="number" min="1" max="1000" value="50"
+            <input id="srsHomeLimit" type="number" min="1" max="1000" value="300"
               style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);text-align:center">
             questões</label>
         </div>
         <div id="srsHomeDecks" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+        <div id="srsHomeContinue" style="display:none;margin-top:10px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;align-items:center;margin-top:12px;font-size:12px;color:#9ca3af">
+          <label>📅 Data da prova
+            <input id="srsExamDate" type="date" onchange="saveExamDate(this.value)"
+              style="padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text)">
+          </label>
+          <span id="srsExamCountdown"></span>
+          <button class="btn btn-secondary" id="btnSrsFinal" style="font-size:12px;padding:6px 12px" onclick="toggleSrsFinal()">🏁 Reta final</button>
+        </div>
+        <div id="srsFinalBox" style="display:none;margin-top:10px">
+          <div style="font-size:12px;color:#9ca3af;margin-bottom:8px">Dominadas + já erradas, das mais erradas para as menos erradas</div>
+          <div id="srsFinalSubjects" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
+        </div>
+        <div id="srsRetention" style="display:none;margin-top:12px;font-size:12px;color:#9ca3af;line-height:1.6"></div>
       </div>
       <div class="sim-browser" id="simBrowser">
         <div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Carregando arquivos...</div>
@@ -337,7 +357,7 @@
       </div>
       <div id="resumeInline" style="display:none;margin-bottom:16px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center">
         <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:10px;line-height:1.5"></div>
-        <button id="btnResumeReset" style="background:transparent;color:#9ca3af;border:1px solid #2a2f3a;padding:8px 16px;border-radius:8px;font-size:12px;cursor:pointer">Zerar progresso</button>
+        <button id="btnResumeReset" style="background:transparent;color:#6b7280;border:none;padding:4px 8px;font-size:11px;cursor:pointer;text-decoration:underline">Recomeçar primeira passada</button>
       </div>
       <details class="tts-panel" id="ttsPanel">
         <summary>Configurar leitura em voz alta</summary>
@@ -374,12 +394,7 @@
         <button class="btn btn-primary" id="btnSrsReview" onclick="startSrsReview()"></button>
         <div style="font-size:12px;color:#9ca3af;margin-top:10px;line-height:1.5" id="srsBoxMsg"></div>
       </div>
-      <div id="futureReviewBox" style="display:none;margin-bottom:16px;padding:14px 20px;background:#1a1d24;border:1px solid #d4af37;border-radius:12px;text-align:center;width:100%;max-width:540px">
-        <div style="font-size:13px;color:#9ca3af;margin-bottom:10px" id="futureReviewMsg"></div>
-        <div id="futureReviewSubjects" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
-      </div>
       <div class="btns">
-        <button class="btn btn-primary" id="btnRedoAllWrong" style="display:none" onclick="startRedoAllWrong()"></button>
         <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
           <input id="customQtdInput" type="number" min="1" placeholder="Quantas questões agora?"
@@ -411,8 +426,8 @@
         <button class="btn-errado" id="btnAnsLeft" onclick="answer('ERRADO')">ERRADO <small style="font-size:12px;font-weight:400">(E)</small></button>
         <button class="btn-certo" id="btnAnsRight" onclick="answer('CERTO')">CERTO <small style="font-size:12px;font-weight:400">(C)</small></button>
       </div>
-      <button class="btn btn-secondary" id="btnGuess" style="font-size:12px;padding:8px 12px" onclick="toggleGuess()" title="Marque antes de responder: um acerto no chute não aumenta o intervalo de revisão">🎲 Chutei (D)</button>
       <div class="shortcut-hint" id="shortcutHint">C = CERTO · E = ERRADO</div>
+      <div id="srsToast" class="srs-toast"></div>
     </div>
 
     <!-- SUMMARY -->
@@ -462,7 +477,7 @@
     <button class="wd-continue" onclick="closeWrongDrawer()">Fechar ✕</button>
   </div>
   <div class="wrong-pill" id="wrongPill">
-    <span class="wp-icon">❌</span>
+    <span class="wp-icon" id="wpIcon">❌</span>
     <span class="wp-label" id="wpLabel">Resposta errada</span>
     <button class="wp-expand" id="wpSpeak" onclick="speakExplanation()" title="Ouvir explicação">🔊</button>
     <button class="wp-expand" onclick="expandWrongDrawer()">📚 Ver flashcards</button>
@@ -744,6 +759,7 @@
       window._pendingSimText = text;
       window._pendingSimFile = filename;
       window._lastDone = Math.max(localLastDone, remoteLastDone);
+      try { localStorage.setItem(SIM_LAST_DECK_KEY, JSON.stringify({ filename, folder: folder || null, deckName: newDeckName })); } catch {}
       // Sempre processa o CSV para popular allQuestions, depois showOptions mostra o banner
       processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data, folder);
     }
@@ -862,20 +878,19 @@
         resumeEl.style.display = 'block';
       } else if (lastDone >= total) {
         document.getElementById('resumeMsg').textContent =
-          `✓ Todas as ${total} questões do deck foram concluídas!`;
+          `✓ Primeira passada concluída (${total} questões): as revisões vêm pela agenda.`;
         resumeEl.style.display = 'block';
       } else {
         resumeEl.style.display = 'none';
       }
       resetBtn.onclick = () => {
+        if (!confirm('Recomeçar a primeira passada deste baralho desde a questão 1? A agenda de revisão não é apagada.')) return;
         window._lastDone = 0;
         localStorage.removeItem(currentProgressKey);
         DB.clearCheckpoint(deckName).catch(() => {});
         resumeEl.style.display = 'none';
       };
       renderSrsBox();
-      renderFutureReviewBox();
-      renderRedoAllWrongButton();
       showView('viewOptions');
     }
 
@@ -883,14 +898,23 @@
     // As respostas ficam em localStorage até o envio. A agenda só é calculada no
     // envio, sobre o estado atual do servidor: fechar a aba ou usar outro
     // dispositivo não perde respostas nem apaga o histórico de erros.
+    // Acerto pede avaliação (Chutei / Sabia) com os mesmos dois botões; erro não.
     const SRS_PENDING_KEY = 'srs_pending';
     const SRS_GENERAL_DECK = 'Revisão geral';
+    const SRS_EXAM_KEY = 'srs_exam_date';
+    const SIM_LAST_DECK_KEY = 'sim_last_deck';
     let _srsCheckpointDeck = null; // deck cujo window._lastDone é confiável
     let _srsChain = Promise.resolve();
     let _srsSessionDays = [];
+    let _srsSessionMastered = 0;
     let _srsDueCards = [];
-    let _srsHomeDecks = [];
-    let _guessed = false;
+    let _srsHomeSubjects = [];
+    let _srsFinalSubjects = [];
+    let _pendingRating = null;      // questão acertada aguardando Chutei/Sabia
+    const _srsKnown = new Map();    // deck|questão → estado conhecido, para o aviso "volta em…"
+    let _srsToastTimer = null;
+
+    const srsKey = (deck, q) => deck + '\u0001' + q;
 
     // Serializa envio e importação, para um não ler a agenda no meio do outro
     function srsRun(fn) {
@@ -902,6 +926,22 @@
     function srsLoadPending() {
       try { return JSON.parse(localStorage.getItem(SRS_PENDING_KEY)) || []; }
       catch { return []; }
+    }
+
+    function getExamDate() {
+      try { return localStorage.getItem(SRS_EXAM_KEY) || null; } catch { return null; }
+    }
+    function saveExamDate(v) {
+      try { v ? localStorage.setItem(SRS_EXAM_KEY, v) : localStorage.removeItem(SRS_EXAM_KEY); } catch {}
+      renderExamCountdown();
+    }
+    function srsOpts() { return { examDate: getExamDate() }; }
+
+    function subjectLabel(code) {
+      if (!code) return 'Sem matéria';
+      if (TPS_LABELS[code]) return TPS_LABELS[code];
+      const f = Object.values(FOLDER_TO_SUBJECT).find(s => s.code === code);
+      return f ? f.label : code === 'ESP' ? 'Espanhol' : code;
     }
 
     function srsPayload(q) {
@@ -916,16 +956,29 @@
       return payload;
     }
 
-    function srsRecordAnswer(q, correct, guessed) {
+    // Só sessões que contam para a agenda pedem avaliação e gravam resposta
+    function srsCounts() { return !!window._srsCounts; }
+
+    // Registra a resposta e devolve uma prévia do novo estado (o envio recalcula sobre o servidor)
+    function srsRecordAnswer(q, grade) {
+      const deck = q.deck || deckName;
+      const today = localDateStr();
       const pending = srsLoadPending();
-      pending.push({
-        deck: q.deck || deckName, q: q.q, correct, guessed, date: localDateStr(),
-        payload: srsPayload(q), hasOptions: !!q.options
-      });
+      pending.push({ deck, q: q.q, grade, date: today, payload: srsPayload(q), hasOptions: !!q.options });
       try { localStorage.setItem(SRS_PENDING_KEY, JSON.stringify(pending)); }
       catch (e) { console.warn('srs: localStorage cheio', e); }
       if (pending.length >= 10) flushSrs().catch(e => console.warn('srs: envio falhou', e));
+
+      const key = srsKey(deck, q.q);
+      const card = _srsKnown.has(key) ? _srsKnown.get(key) : null;
+      if (card && card.last_review === today) return { already: true, ...card };
+      const next = SRS.nextState(card, grade, today, srsOpts());
+      _srsKnown.set(key, next);
+      return next;
     }
+
+    // Eventos antigos (antes das avaliações) guardavam correct/guessed
+    const srsEventGrade = ev => ev.grade || (!ev.correct ? 'errou' : ev.guessed ? 'chutei' : 'sabia');
 
     function flushSrs() {
       return srsRun(async () => {
@@ -933,6 +986,7 @@
         if (!pending.length) return;
         const byDeck = {};
         pending.forEach(ev => { (byDeck[ev.deck] = byDeck[ev.deck] || []).push(ev); });
+        const logs = [];
         for (const deck of Object.keys(byDeck)) {
           const events = byDeck[deck];
           const existing = await DB.getSrsCardsByQuestions(deck, [...new Set(events.map(ev => ev.q))]);
@@ -941,19 +995,26 @@
           for (const ev of events) {
             const card = cards.get(ev.q) || null;
             if (card && card.last_review === ev.date) continue; // só a 1ª resposta do dia conta
-            const next = SRS.nextState(card, ev, ev.date);
+            const grade = srsEventGrade(ev);
+            const next = SRS.nextState(card, grade, ev.date, srsOpts());
+            const payload = ev.payload || (card && card.payload) || {};
             const row = {
               deck, question_text: ev.q, ...next,
-              payload: card && card.payload && !ev.hasOptions ? card.payload : ev.payload
+              subject_code: payload.subjectCode || null, payload
             };
             cards.set(ev.q, row);
             changed.set(ev.q, row);
-            _srsSessionDays.push(SRS.daysBetween(ev.date, next.due_date));
+            _srsKnown.set(srsKey(deck, ev.q), row);
+            logs.push({ review_date: ev.date, deck, subject_code: row.subject_code, grade, was_review: !!card });
+            if (next.status === 'mastered') _srsSessionMastered++;
+            else _srsSessionDays.push(SRS.daysBetween(ev.date, next.due_date));
           }
           if (changed.size) await DB.upsertSrsCards([...changed.values()]);
         }
         // Mantém o que foi respondido durante o envio
         localStorage.setItem(SRS_PENDING_KEY, JSON.stringify(srsLoadPending().slice(pending.length)));
+        // O log mede a retenção; falhar aqui não pode travar a agenda
+        if (logs.length) DB.logSrsReviews(logs).catch(e => console.warn('srs: log falhou', e));
       });
     }
 
@@ -962,17 +1023,24 @@
       const wrongCounts = await DB.getWrongCounts(deck);
       const today = localDateStr();
       const rows = new Map();
+      const wrong = [];
       questions.forEach((q, i) => {
         if (rows.has(q.q)) return;
         const lapses = wrongCounts[q.q] || 0;
+        const base = { deck, question_text: q.q, reps: 0, streak: 0, last_review: null,
+          subject_code: q.subjectCode || null, payload: srsPayload(q) };
         if (lapses) {
-          rows.set(q.q, { deck, question_text: q.q, step: 0, lapses, reps: 0, due_date: today, last_review: null, payload: srsPayload(q) });
+          const row = { ...base, step: 0, lapses, status: 'learning', due_date: today };
+          rows.set(q.q, row); wrong.push(row);
         } else if (i < lastDone) {
-          // Presumida como sabida; distribui em 30 dias para não vencer tudo de uma vez
-          const offset = 1 + Math.floor(Math.random() * 30);
-          rows.set(q.q, { deck, question_text: q.q, step: SRS.FIRST_CORRECT_STEP, lapses: 0, reps: 0, due_date: SRS.addDays(today, offset), last_review: null, payload: srsPayload(q) });
+          // Presumida como sabida: uma checagem só, espalhada entre 45 e 120 dias
+          rows.set(q.q, { ...base, step: SRS.MASTER_STEP, lapses: 0, status: 'review',
+            due_date: SRS.addDays(today, SRS.randBetween(45, 120, Math.random)) });
         }
       });
+      // Erros antigos: espalhados em 14 dias, mais errados primeiro
+      wrong.sort((a, b) => b.lapses - a.lapses)
+        .forEach((row, i) => { row.due_date = SRS.addDays(today, Math.floor(i * 14 / wrong.length)); });
       if (rows.size) await DB.upsertSrsCards([...rows.values()], true);
     }
 
@@ -997,20 +1065,67 @@
         const today = localDateStr();
         const live = new Set(questions.map(q => q.q));
         const known = cards.filter(c => live.has(c.question_text)); // ignora as que saíram do CSV
-        const knownSet = new Set(known.map(c => c.question_text));
+        known.forEach(c => _srsKnown.set(srsKey(deck, c.question_text), c));
         _srsDueCards = SRS.buildDueQueue(known, today);
         const errs = _srsDueCards.filter(c => c.lapses > 0).length;
         const week = SRS.addDays(today, 7);
-        const upcoming = known.filter(c => c.due_date > today && c.due_date <= week).length;
-        const fresh = live.size - knownSet.size;
+        const upcoming = known.filter(c => !SRS.isMastered(c) && c.due_date > today && c.due_date <= week).length;
+        const byStatus = { learning: 0, review: 0, mastered: 0 };
+        known.forEach(c => { byStatus[SRS.isMastered(c) ? 'mastered' : (c.status === 'review' ? 'review' : 'learning')]++; });
+        const fresh = live.size - new Set(known.map(c => c.question_text)).size;
         const btn = document.getElementById('btnSrsReview');
         btn.textContent = _srsDueCards.length ? `🧠 Revisar hoje (${_srsDueCards.length})` : '🧠 Nada para revisar hoje';
         btn.disabled = !_srsDueCards.length;
         document.getElementById('srsBoxMsg').innerHTML =
-          (_srsDueCards.length ? `${errs} já erradas · ${_srsDueCards.length - errs} de manutenção<br>` : '') +
-          `📅 Próximos 7 dias: ${upcoming} · Novas restantes: ${fresh}`;
+          `Novas ${fresh} · Aprendendo ${byStatus.learning} · Checagem ${byStatus.review} · <span style="color:var(--green)">Dominadas ${byStatus.mastered}</span><br>` +
+          (_srsDueCards.length ? `Hoje: ${errs} já erradas · ${_srsDueCards.length - errs} de checagem · ` : '') +
+          `📅 Próximos 7 dias: ${upcoming}`;
         box.style.display = 'block';
       } catch (e) { console.warn('srs: agenda indisponível', e); }
+    }
+
+    function renderExamCountdown() {
+      const el = document.getElementById('srsExamCountdown');
+      const input = document.getElementById('srsExamDate');
+      const exam = getExamDate();
+      if (input && input.value !== (exam || '')) input.value = exam || '';
+      const finalBtn = document.getElementById('btnSrsFinal');
+      if (!exam) { el.textContent = ''; finalBtn.style.borderColor = ''; finalBtn.style.color = ''; return; }
+      const days = SRS.daysBetween(localDateStr(), exam);
+      el.textContent = days >= 0 ? `faltam ${days} dias` : 'prova já passou';
+      const finalPhase = days >= 0 && days <= 45;
+      finalBtn.style.borderColor = finalPhase ? '#d4af37' : '';
+      finalBtn.style.color = finalPhase ? '#d4af37' : '';
+    }
+
+    function lastDeckInfo() {
+      try { return JSON.parse(localStorage.getItem(SIM_LAST_DECK_KEY)); } catch { return null; }
+    }
+
+    function renderSrsContinue(show) {
+      const el = document.getElementById('srsHomeContinue');
+      const last = lastDeckInfo();
+      if (!show || !last) { el.style.display = 'none'; return; }
+      const fileSafe = String(last.filename).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+      const folderSafe = last.folder ? "'" + String(last.folder).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'" : 'null';
+      el.innerHTML = `<button class="btn btn-primary" style="font-size:13px" onclick="loadSimFromPath('${fileSafe}', ${folderSafe})">▶ Continuar: ${escHtml(last.deckName)}</button>`;
+      el.style.display = 'block';
+    }
+
+    async function renderSrsRetention() {
+      const el = document.getElementById('srsRetention');
+      try {
+        const stats = await DB.getRetentionStats(SRS.addDays(localDateStr(), -30));
+        const keys = Object.keys(stats).filter(k => stats[k].total >= 5)
+          .sort((a, b) => stats[b].total - stats[a].total);
+        if (!keys.length) { el.style.display = 'none'; return; }
+        el.innerHTML = '🎯 Retenção nas revisões (30 dias, meta 95%):<br>' + keys.map(k => {
+          const pct = Math.round(stats[k].sabia / stats[k].total * 100);
+          const color = pct >= 95 ? 'var(--green)' : pct >= 85 ? 'var(--yellow)' : 'var(--red)';
+          return `${escHtml(subjectLabel(k))} <b style="color:${color}">${pct}%</b> <span style="opacity:.7">(${stats[k].total})</span>`;
+        }).join(' · ');
+        el.style.display = 'block';
+      } catch (e) { el.style.display = 'none'; }
     }
 
     async function renderSrsHome() {
@@ -1018,16 +1133,38 @@
       try {
         await flushSrs();
         const counts = await DB.getSrsDueCounts(localDateStr());
-        _srsHomeDecks = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-        const total = _srsHomeDecks.reduce((sum, d) => sum + counts[d], 0);
-        if (!total) { box.style.display = 'none'; return; }
-        document.getElementById('srsHomeMsg').textContent =
-          `🧠 Revisão de hoje: ${total} questão(ões) em ${_srsHomeDecks.length} baralho(s)`;
-        document.getElementById('srsHomeDecks').innerHTML = _srsHomeDecks.slice(0, 8).map((d, i) =>
+        _srsHomeSubjects = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        const total = _srsHomeSubjects.reduce((sum, s) => sum + counts[s], 0);
+        const generalBtn = document.getElementById('btnSrsGeneral');
+        if (generalBtn) generalBtn.style.display = total ? '' : 'none';
+        document.getElementById('srsHomeMsg').textContent = total
+          ? `🧠 Revisão de hoje: ${total} questão(ões) em ${_srsHomeSubjects.length} matéria(s)`
+          : '✓ Revisão de hoje feita. Agora, questões novas:';
+        document.getElementById('srsHomeDecks').innerHTML = _srsHomeSubjects.map((s, i) =>
           `<button class="btn btn-secondary" style="font-size:12px;padding:8px 12px"
-            onclick="startSrsHome(${i})">${escHtml(d)} (${counts[d]})</button>`).join('');
+            onclick="startSrsHome(${i})">${escHtml(subjectLabel(s))} (${counts[s]})</button>`).join('');
+        renderSrsContinue(!total);
+        renderExamCountdown();
+        document.getElementById('srsFinalBox').style.display = 'none';
         box.style.display = 'block';
+        renderSrsRetention();
       } catch (e) { box.style.display = 'none'; console.warn('srs: agenda indisponível', e); }
+    }
+
+    async function toggleSrsFinal() {
+      const box = document.getElementById('srsFinalBox');
+      if (box.style.display === 'block') { box.style.display = 'none'; return; }
+      const el = document.getElementById('srsFinalSubjects');
+      el.innerHTML = '<span style="font-size:12px;color:#9ca3af">Carregando…</span>';
+      box.style.display = 'block';
+      try {
+        const counts = await DB.getSrsFinalCounts();
+        _srsFinalSubjects = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        el.innerHTML = _srsFinalSubjects.length
+          ? _srsFinalSubjects.map((s, i) => `<button class="btn btn-secondary" style="font-size:12px;padding:8px 12px"
+              onclick="startSrsFinal(${i})">${escHtml(subjectLabel(s))} (${counts[s]})</button>`).join('')
+          : '<span style="font-size:12px;color:#9ca3af">Nada ainda: dominadas e erradas aparecem aqui.</span>';
+      } catch (e) { el.innerHTML = '<span style="font-size:12px;color:var(--red)">Não foi possível carregar.</span>'; }
     }
 
     // Reconstrói a questão a partir da cópia guardada na agenda
@@ -1035,7 +1172,7 @@
       const p = card.payload || {};
       const q = {
         q: card.question_text, deck: card.deck, correct: p.correct, justification: p.justification || null,
-        section: p.section || '', subjectCode: p.subjectCode, subjectLabel: p.subjectLabel || '',
+        section: p.section || '', subjectCode: p.subjectCode || card.subject_code, subjectLabel: p.subjectLabel || subjectLabel(p.subjectCode || card.subject_code),
         tags: p.tags || [], srsLapses: card.lapses
       };
       if (p.answerText) {
@@ -1048,20 +1185,26 @@
       return q;
     }
 
-    function srsBeginSession(items, title) {
+    // Estado comum a todo início de sessão
+    function beginSession(items, title, { mode, srsCounts, srsReview }) {
       queue = items;
-      currentIdx = 0; answers = []; _sessionRecorded = false; _srsSessionDays = [];
+      currentIdx = 0; answers = []; _sessionRecorded = false;
+      _srsSessionDays = []; _srsSessionMastered = 0; _pendingRating = null;
       retryPending = []; currentRetryItem = null;
-      window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
-      window._srsReview = true;
-      window._futureReviewSubject = null;
-      window._redoAllWrongMode = false;
+      window._currentSimMode = mode;
+      window._srsCounts = srsCounts;
+      window._srsReview = srsReview;
       timerSecs = 0; updateTimer();
       clearInterval(timerInterval);
       timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
       renderQuestion();
       showView('viewStudy');
       document.getElementById('simDeck').textContent = title;
+    }
+
+    function srsBeginSession(items, title) {
+      // 'retry-wrong' não grava checkpoint da primeira passada
+      beginSession(items, title, { mode: 'retry-wrong', srsCounts: true, srsReview: true });
     }
 
     function startSrsReview() {
@@ -1073,115 +1216,59 @@
       srsBeginSession(items, deckName + ' (Revisão de hoje)');
     }
 
-    async function startSrsHome(deckIdx) {
-      const limit = parseInt(document.getElementById('srsHomeLimit').value, 10) || 50;
-      const deck = deckIdx === null ? null : _srsHomeDecks[deckIdx];
+    async function srsStartFromDb(opts, title) {
+      const limit = parseInt(document.getElementById('srsHomeLimit').value, 10) || 300;
       try {
         await flushSrs();
-        const cards = await DB.getDueSrsCards(localDateStr(), limit, deck);
+        const cards = await DB.getDueSrsCards(localDateStr(), limit, opts);
         if (!cards.length) { renderSrsHome(); return; }
-        deckName = deck || SRS_GENERAL_DECK;
-        srsBeginSession(cards.map(srsHydrate), deckName + ' (Revisão de hoje)');
+        cards.forEach(c => _srsKnown.set(srsKey(c.deck, c.question_text), c));
+        deckName = SRS_GENERAL_DECK;
+        srsBeginSession(cards.map(srsHydrate), title);
       } catch (e) { alert('Não foi possível carregar a revisão: ' + e.message); }
     }
 
-    function setGuess(on) {
-      _guessed = on;
-      const btn = document.getElementById('btnGuess');
-      btn.textContent = on ? '🎲 Chute marcado (D)' : '🎲 Chutei (D)';
-      btn.style.borderColor = on ? '#d4af37' : '';
-      btn.style.color = on ? '#d4af37' : '';
+    function startSrsHome(idx) {
+      if (idx === null) return srsStartFromDb({}, 'Revisão geral (hoje)');
+      const s = _srsHomeSubjects[idx];
+      return srsStartFromDb({ subject: s }, subjectLabel(s) + ' (Revisão de hoje)');
     }
-    function toggleGuess() { setGuess(!_guessed); }
+
+    function startSrsFinal(idx) {
+      const s = _srsFinalSubjects[idx];
+      return srsStartFromDb({ subject: s, mode: 'final' }, subjectLabel(s) + ' (Reta final)');
+    }
+
+    function showSrsToast(text) {
+      const el = document.getElementById('srsToast');
+      el.textContent = text; el.style.opacity = '1';
+      clearTimeout(_srsToastTimer);
+      _srsToastTimer = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+    }
 
     function renderSrsSummary() {
       const el = document.getElementById('summarySrs');
-      if (!_srsSessionDays.length) { el.style.display = 'none'; return; }
-      const buckets = {};
-      _srsSessionDays.forEach(d => { buckets[d] = (buckets[d] || 0) + 1; });
-      el.textContent = '🧠 Voltam: ' + Object.keys(buckets).map(Number).sort((a, b) => a - b)
-        .map(d => `${buckets[d]} em ${d} dia${d > 1 ? 's' : ''}`).join(' · ');
+      const sabia = answers.filter(a => a.grade === 'sabia').length;
+      const chutei = answers.filter(a => a.grade === 'chutei').length;
+      const parts = [];
+      if (sabia || chutei) parts.push(`✓ Sabia ${sabia} · 🎲 Chutei ${chutei}`);
+      if (_srsSessionMastered) parts.push(`<span style="color:var(--green)">🏆 ${_srsSessionMastered} dominada(s)</span>`);
+      if (_srsSessionDays.length) {
+        const buckets = {};
+        _srsSessionDays.forEach(d => { buckets[d] = (buckets[d] || 0) + 1; });
+        parts.push('🧠 Voltam: ' + Object.keys(buckets).map(Number).sort((a, b) => a - b)
+          .map(d => `${buckets[d]} em ${d} dia${d > 1 ? 's' : ''}`).join(' · '));
+      }
+      if (!parts.length) { el.style.display = 'none'; return; }
+      el.innerHTML = parts.join('<br>');
       el.style.display = 'block';
-    }
-
-    // ─── Botão "Refazer todas as erradas" (histórico completo do deck) ─
-    let allWrongItemsCache = null;
-    async function renderRedoAllWrongButton() {
-      const btn = document.getElementById('btnRedoAllWrong');
-      if (!btn) return;
-      allWrongItemsCache = await DB.getAllWrongItems(deckName).catch(() => []);
-      if (!allWrongItemsCache.length) { btn.style.display = 'none'; return; }
-      btn.textContent = `🔁 Refazer todas as erradas (${allWrongItemsCache.length})`;
-      btn.style.display = '';
-    }
-
-    function startRedoAllWrong() {
-      if (!allWrongItemsCache || !allWrongItemsCache.length) return;
-      queue = allWrongItemsCache.map(it => ({
-        q: it.q, correct: it.answer, justification: it.justification || null, section: it.section || '',
-        subjectCode: it.subjectCode, subjectLabel: it.subjectLabel || it.subjectCode || '',
-        tags: it.tags || []
-      }));
-      currentIdx = 0; answers = []; _sessionRecorded = false;
-      retryPending = []; currentRetryItem = null;
-      window._currentSimMode = 'retry-wrong';
-      window._srsReview = false; _srsSessionDays = [];
-      window._futureReviewSubject = null;
-      window._redoAllWrongMode = true;
-      timerSecs = 0; updateTimer();
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
-      renderQuestion();
-      showView('viewStudy');
-      document.getElementById('simDeck').textContent = deckName + ' (Todas as erradas)';
-    }
-
-    // ─── Caixa de revisão futura (questões erradas 2x+, por matéria) ─
-    async function renderFutureReviewBox() {
-      const box = document.getElementById('futureReviewBox');
-      const msgEl = document.getElementById('futureReviewMsg');
-      const subjEl = document.getElementById('futureReviewSubjects');
-      const store = await loadFutureReview();
-      const subjects = Object.keys(store).filter(k => store[k]?.length);
-      if (!subjects.length) { box.style.display = 'none'; return; }
-      const total = subjects.reduce((sum, k) => sum + store[k].length, 0);
-      msgEl.textContent = `📚 Revisão futura: ${total} questão(ões) para revisar`;
-      subjEl.innerHTML = subjects.map(k => {
-        const label = store[k][0]?.subjectLabel || k;
-        return `<button class="btn btn-secondary" style="font-size:12px;padding:8px 12px"
-          onclick="startFutureReview('${k}')">${escHtml(label)} (${store[k].length})</button>`;
-      }).join('');
-      box.style.display = 'block';
-    }
-
-    async function startFutureReview(subjectCode) {
-      const store = await loadFutureReview();
-      const items = store[subjectCode] || [];
-      if (!items.length) return;
-      queue = items.map(it => ({ ...it }));
-      currentIdx = 0; answers = []; _sessionRecorded = false;
-      retryPending = []; currentRetryItem = null;
-      window._currentSimMode = 'retry-wrong'; // reusa modo que não grava checkpoint
-      window._srsReview = false; _srsSessionDays = [];
-      window._futureReviewSubject = subjectCode;
-      window._redoAllWrongMode = false;
-      timerSecs = 0; updateTimer();
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
-      renderQuestion();
-      showView('viewStudy');
-      document.getElementById('simDeck').textContent = deckName + ' (Revisão futura)';
-    }
-
-    function removeFromFutureReview(subjectCode, questionText) {
-      DB.removeFutureReviewItem(subjectCode, questionText).catch(() => {});
     }
 
     function startSeq(n) {
       const lastDone = window._lastDone || 0;
       const total = allQuestions.length;
       if (lastDone >= total) {
-        alert('Todas as questões do deck foram concluídas! Clique em "Zerar progresso" para reiniciar.');
+        alert('Primeira passada concluída! As revisões vêm pela agenda ("Revisar hoje"). Para refazer o baralho inteiro, use "Recomeçar primeira passada".');
         return;
       }
       if (n === undefined) {
@@ -1191,41 +1278,22 @@
       }
       // n === null significa "todas a partir de onde parou"
       const end = (n === null) ? total : Math.min(lastDone + n, total);
-      queue = allQuestions.slice(lastDone, end);
-      if (!queue.length) { showOptions(); return; }
-      currentIdx = 0; answers = []; _sessionRecorded = false;
-      retryPending = []; currentRetryItem = null;
-      window._currentSimMode = 'seq';
+      const items = allQuestions.slice(lastDone, end);
+      if (!items.length) { showOptions(); return; }
       window._sessionStartIdx = lastDone;
-      window._srsReview = false; _srsSessionDays = [];
-      window._futureReviewSubject = null;
-      window._redoAllWrongMode = false;
-      timerSecs = 0; updateTimer();
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
-      renderQuestion();
-      showView('viewStudy');
-      document.getElementById('simDeck').textContent = deckName;
+      beginSession(items, deckName, { mode: 'seq', srsCounts: true, srsReview: false });
     }
 
+    // Refazer as erradas desta sessão: treino do mesmo dia, não conta para a agenda
     function startRetryWrong() {
       const wrong = answers.filter(a => !a.isCorrect);
       if (!wrong.length) return;
-      queue = wrong.map(a => ({
+      const items = wrong.map(a => ({
         q: a.q, deck: a.deck, correct: a.correct, justification: a.justification || null, section: a.section,
-        subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || []
+        subjectCode: a.subjectCode, subjectLabel: a.subjectLabel, tags: a.tags || [],
+        options: a.options, answerText: a.answerText || undefined
       }));
-      currentIdx = 0; answers = []; _sessionRecorded = false;
-      retryPending = []; currentRetryItem = null;
-      window._currentSimMode = 'retry-wrong';
-      window._futureReviewSubject = null;
-      window._redoAllWrongMode = false;
-      timerSecs = 0; updateTimer();
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => { timerSecs++; updateTimer(); }, 1000);
-      renderQuestion();
-      showView('viewStudy');
-      document.getElementById('simDeck').textContent = deckName + ' (Revisão de erros)';
+      beginSession(items, deckName + ' (Revisão de erros)', { mode: 'retry-wrong', srsCounts: false, srsReview: !!window._srsReview });
     }
 
     function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
@@ -1426,7 +1494,7 @@
 
     // Decks de línguas mostram as duas traduções nos botões; os demais, CERTO/ERRADO
     function setAnswerButtons(q) {
-      setGuess(false);
+      setRatingMode(false);
       const left = document.getElementById('btnAnsLeft');
       const right = document.getElementById('btnAnsRight');
       const hint = document.getElementById('shortcutHint');
@@ -1434,12 +1502,23 @@
       if (q.options) {
         left.innerHTML = escHtml(q.options[0]) + small('E');
         right.innerHTML = escHtml(q.options[1]) + small('C');
-        hint.textContent = 'E = opção da esquerda · C = opção da direita · D = chutei';
+        hint.textContent = 'E = opção da esquerda · C = opção da direita';
       } else {
         left.innerHTML = 'ERRADO' + small('E');
         right.innerHTML = 'CERTO' + small('C');
-        hint.textContent = 'C = CERTO · E = ERRADO · D = chutei';
+        hint.textContent = 'C = CERTO · E = ERRADO';
       }
+    }
+
+    // Depois de um acerto, os mesmos botões viram Chutei (E) / Sabia (C)
+    function setRatingMode(on) {
+      document.querySelector('#viewStudy .question-card').classList.toggle('rating', on);
+      document.querySelector('#viewStudy .answer-btns').classList.toggle('rating', on);
+      if (!on) return;
+      const small = k => ` <small style="font-size:12px;font-weight:400">(${k})</small>`;
+      document.getElementById('btnAnsLeft').innerHTML = '🎲 Chutei' + small('E');
+      document.getElementById('btnAnsRight').innerHTML = '✓ Sabia' + small('C');
+      document.getElementById('shortcutHint').textContent = '✓ Certo! Como foi? E = chutei (volta em 3 dias) · C = sabia';
     }
 
     function renderWaitingForRetry() {
@@ -1453,32 +1532,64 @@
       document.getElementById('questionTags').innerHTML = '';
     }
 
-    // ─── Answer: avança automaticamente, pill aparece se errar ─────
+    // ─── Answer: 1º clique responde; se acertou, 2º clique avalia (Chutei/Sabia) ─
     function answer(userAns) {
       if (drawerOpen) return;
+      if (_pendingRating) { rateAnswer(userAns === 'CERTO' ? 'sabia' : 'chutei'); return; }
       if (currentRetryItem) { answerRetry(userAns); return; }
       if (currentIdx >= queue.length) return; // aguardando repetição — nada a responder
       const q = queue[currentIdx];
       const correct = userAns === q.correct;
-      // Revisão futura mistura decks sem identificar a origem de cada questão
-      if (!window._futureReviewSubject) srsRecordAnswer(q, correct, _guessed);
-      if (correct && window._futureReviewSubject) {
-        removeFromFutureReview(window._futureReviewSubject, q.q);
-      }
-      if (window._redoAllWrongMode) {
-        if (correct) DB.markWrongItemResolved(deckName, q.q).catch(() => {});
-        else DB.unmarkWrongItemResolved(deckName, q.q).catch(() => {});
-      }
       answers.push({
         q: q.q, deck: q.deck, correct: q.correct, justification: q.justification || null, userAns, isCorrect: correct,
-        answerText: q.answerText || null,
+        answerText: q.answerText || null, options: q.options,
         section: q.section, subjectCode: q.subjectCode,
-        subjectLabel: q.subjectLabel, tags: q.tags || []
+        subjectLabel: q.subjectLabel, tags: q.tags || [],
+        grade: correct ? null : 'errou'
       });
+      if (correct && srsCounts()) {
+        if ('speechSynthesis' in window) speechSynthesis.cancel();
+        _pendingRating = q;
+        dismissPill();
+        setRatingMode(true);
+        return;
+      }
+      if (!correct && srsCounts()) {
+        const state = srsRecordAnswer(q, 'errou');
+        showSrsToast(state.already ? 'já contada hoje na agenda' : '✗ ' + SRS.describe(state, localDateStr()));
+      }
+      advanceAfterAnswer(q, correct, !correct);
+    }
+
+    function rateAnswer(grade) {
+      const q = _pendingRating;
+      _pendingRating = null;
+      answers[answers.length - 1].grade = grade;
+      const state = srsRecordAnswer(q, grade);
+      showSrsToast(state.already ? 'já contada hoje na agenda'
+        : (grade === 'chutei' ? '🎲 ' : '✓ ') + SRS.describe(state, localDateStr()));
+      // Chute certo mostra a resposta e a justificativa, para fixar
+      advanceAfterAnswer(q, true, grade === 'chutei');
+    }
+
+    // Sair com um acerto ainda sem avaliação: conta como chute (o lado seguro)
+    function settlePendingRating() {
+      if (!_pendingRating) return;
+      const q = _pendingRating;
+      _pendingRating = null;
+      answers[answers.length - 1].grade = 'chutei';
+      srsRecordAnswer(q, 'chutei');
+      currentIdx++;
+      saveProgress();
+      setRatingMode(false);
+    }
+
+    function advanceAfterAnswer(q, correct, showPill) {
       currentIdx++;
       saveProgress();
       dismissPill();
-      if (!correct) { scheduleRetry(q); showWrongPill(q); }
+      if (!correct) scheduleRetry(q);
+      if (showPill) showWrongPill(q, correct);
       renderQuestion();
     }
 
@@ -1494,9 +1605,9 @@
         item = { q, dueAt: Date.now() + minutes * 60000, wrongCount: 1 };
         retryPending.push(item);
       }
-      if (item.wrongCount >= 2) addToFutureReview(q);
     }
 
+    // Repetição dentro da sessão: treino, não conta para a agenda (um clique só)
     function answerRetry(userAns) {
       const q = currentRetryItem.q;
       const correct = userAns === q.correct;
@@ -1504,29 +1615,23 @@
       if (!correct) {
         scheduleRetry(q);
         showWrongPill(q);
-      } else if (window._futureReviewSubject) {
-        removeFromFutureReview(window._futureReviewSubject, q.q);
       }
       currentRetryItem = null;
       renderQuestion();
     }
 
-    // ─── Deck de revisão futura (por matéria, persistido no Supabase) ─
-    async function loadFutureReview() {
-      try { return await DB.getFutureReview(); }
-      catch { return {}; }
-    }
-    function addToFutureReview(q) {
-      DB.addFutureReviewItem(q).catch(() => {});
-    }
-
     // ─── Wrong pill (push notification recolhida) ────────────────────
-    function showWrongPill(q) {
+    // guessed = acerto no chute: mesma pílula, para ver a resposta e a justificativa
+    function showWrongPill(q, guessed = false) {
       currentWrongQ = q;
       pendingExplanation = null;
       const speakBtn = document.getElementById('wpSpeak');
       if (speakBtn) { speakBtn.textContent = '🔊'; speakBtn.disabled = false; }
-      document.getElementById('wpLabel').textContent = `✓ ${q.answerText || q.correct}`;
+      document.getElementById('wpIcon').textContent = guessed ? '🎲' : '❌';
+      const label = document.getElementById('wpLabel');
+      label.textContent = `${guessed ? 'Chute certo: ' : '✓ '}${q.answerText || q.correct}` +
+        (q.justification ? ` — ${q.justification}` : '');
+      label.title = q.justification || '';
       document.getElementById('wrongPill').style.display = 'flex';
     }
 
@@ -1549,7 +1654,8 @@
     function expandWrongDrawer() {
       if (!currentWrongQ) return;
       dismissPill();
-      document.getElementById('wdCorrect').textContent = `✓ Resposta correta: ${currentWrongQ.correct}`;
+      document.getElementById('wdCorrect').textContent = `✓ Resposta correta: ${currentWrongQ.answerText || currentWrongQ.correct}`
+        + (currentWrongQ.justification ? ` — ${currentWrongQ.justification}` : '');
       document.getElementById('wdSubject').innerHTML   = renderTags(currentWrongQ);
       document.getElementById('wrongDrawer').classList.add('open');
       document.getElementById('wrongOverlay').style.display = 'block';
@@ -1933,8 +2039,9 @@
     // ─── Exit & keyboard ─────────────────────────────────────────────
     function confirmExit() {
       clearInterval(timerInterval);
-      if (currentIdx > 0) {
+      if (currentIdx > 0 || _pendingRating) {
         if (confirm('Sair? As questões respondidas serão contabilizadas em Metas do dia e Sessões hoje, e você poderá continuar de onde parou.')) {
+          settlePendingRating();
           // Progresso (posição) já foi salvo em saveProgress() após cada resposta
           if (!window._srsReview) window._lastDone = (window._sessionStartIdx || 0) + currentIdx;
           recordSessionResult();
@@ -1958,7 +2065,7 @@
       if (!document.getElementById('viewStudy').classList.contains('active')) return;
       if (e.key.toLowerCase() === 'c') answer('CERTO');
       if (e.key.toLowerCase() === 'e') answer('ERRADO');
-      if (e.key.toLowerCase() === 'd') toggleGuess();
+      if (e.key.toLowerCase() === 'd' && _pendingRating) rateAnswer('chutei');
     });
 
     // ─── Auto-load from URL param (?file=path) ───────────────────────
