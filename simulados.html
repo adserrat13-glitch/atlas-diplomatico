@@ -312,6 +312,7 @@
           <button class="btn btn-primary" id="btnSrsGeneral" onclick="startSrsHome(null)">🧠 Revisão geral</button>
           <label style="font-size:12px;color:#9ca3af">até
             <input id="srsHomeLimit" type="number" min="1" max="1000" value="300"
+              oninput="onSrsHomeLimitChange()" onchange="onSrsHomeLimitChange()"
               style="width:70px;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);text-align:center">
             questões</label>
         </div>
@@ -909,7 +910,9 @@
     let _srsSessionMastered = 0;
     let _srsDueCards = [];
     let _srsHomeSubjects = [];
+    let _srsHomeCounts = {};
     let _srsFinalSubjects = [];
+    const SRS_HOME_LIMIT_KEY = 'atlas_srs_home_limit';
     let _pendingRating = null;      // questão acertada aguardando Chutei/Sabia
     const _srsKnown = new Map();    // deck|questão → estado conhecido, para o aviso "volta em…"
     let _srsToastTimer = null;
@@ -1128,21 +1131,57 @@
       } catch (e) { el.style.display = 'none'; }
     }
 
+    // Limite de questões por sessão de revisão (guardado neste navegador)
+    function srsHomeLimit() {
+      const v = parseInt(document.getElementById('srsHomeLimit').value, 10);
+      return v > 0 ? v : 300;
+    }
+
+    function restoreSrsHomeLimit() {
+      try {
+        const saved = parseInt(localStorage.getItem(SRS_HOME_LIMIT_KEY), 10);
+        if (saved > 0) document.getElementById('srsHomeLimit').value = saved;
+      } catch {}
+    }
+
+    function onSrsHomeLimitChange() {
+      const v = parseInt(document.getElementById('srsHomeLimit').value, 10);
+      if (v > 0) { try { localStorage.setItem(SRS_HOME_LIMIT_KEY, String(v)); } catch {} }
+      renderSrsHomeCounts();
+    }
+
+    // Mostra o total devido e quanto entra na sessão com o limite atual
+    function renderSrsHomeCounts() {
+      const counts = _srsHomeCounts;
+      const total = _srsHomeSubjects.reduce((sum, s) => sum + counts[s], 0);
+      const limit = srsHomeLimit();
+      const generalBtn = document.getElementById('btnSrsGeneral');
+      if (generalBtn) {
+        generalBtn.style.display = total ? '' : 'none';
+        generalBtn.textContent = `🧠 Revisão geral (${Math.min(total, limit)})`;
+      }
+      document.getElementById('srsHomeMsg').innerHTML = total
+        ? `🧠 Revisão de hoje: ${total} questão(ões) em ${_srsHomeSubjects.length} matéria(s)` +
+          (limit < total ? `<br><span style="color:#d4af37">Limite ${limit}: as outras ${total - limit} ficam para a próxima sessão</span>` : '')
+        : '✓ Revisão de hoje feita. Agora, questões novas:';
+      document.getElementById('srsHomeDecks').innerHTML = _srsHomeSubjects.map((s, i) => {
+        const n = counts[s];
+        const label = limit < n ? `${limit} de ${n}` : `${n}`;
+        return `<button class="btn btn-secondary" style="font-size:12px;padding:8px 12px"
+            onclick="startSrsHome(${i})">${escHtml(subjectLabel(s))} (${label})</button>`;
+      }).join('');
+      return total;
+    }
+
     async function renderSrsHome() {
       const box = document.getElementById('srsHomeBox');
       try {
+        restoreSrsHomeLimit();
         await flushSrs();
         const counts = await DB.getSrsDueCounts(localDateStr());
+        _srsHomeCounts = counts;
         _srsHomeSubjects = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
-        const total = _srsHomeSubjects.reduce((sum, s) => sum + counts[s], 0);
-        const generalBtn = document.getElementById('btnSrsGeneral');
-        if (generalBtn) generalBtn.style.display = total ? '' : 'none';
-        document.getElementById('srsHomeMsg').textContent = total
-          ? `🧠 Revisão de hoje: ${total} questão(ões) em ${_srsHomeSubjects.length} matéria(s)`
-          : '✓ Revisão de hoje feita. Agora, questões novas:';
-        document.getElementById('srsHomeDecks').innerHTML = _srsHomeSubjects.map((s, i) =>
-          `<button class="btn btn-secondary" style="font-size:12px;padding:8px 12px"
-            onclick="startSrsHome(${i})">${escHtml(subjectLabel(s))} (${counts[s]})</button>`).join('');
+        const total = renderSrsHomeCounts();
         renderSrsContinue(!total);
         renderExamCountdown();
         document.getElementById('srsFinalBox').style.display = 'none';
@@ -1217,7 +1256,7 @@
     }
 
     async function srsStartFromDb(opts, title) {
-      const limit = parseInt(document.getElementById('srsHomeLimit').value, 10) || 300;
+      const limit = srsHomeLimit();
       try {
         await flushSrs();
         const cards = await DB.getDueSrsCards(localDateStr(), limit, opts);
