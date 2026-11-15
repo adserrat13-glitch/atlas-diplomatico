@@ -71,18 +71,18 @@
     .sb-file:hover { border-color:var(--accent); background:rgba(142,167,255,.06); }
     .sb-file span { flex:1; font-weight:500; }
     .sb-file .arr { color:var(--muted); font-size:12px; flex-shrink:0; }
-    /* Revisão urgente: brilho magenta pulsante por fora (a borda segue mostrando o desempenho) */
+    /* Revisão urgente: contorno vermelho fino e pulsante por fora (a borda segue mostrando o desempenho) */
     .sb-file[data-urgent] { position:relative; animation:deckUrgent 1.8s ease-in-out infinite; }
-    .sb-file[data-urgent]:not([style]) { border-color:rgba(232,121,249,.6); }
+    .sb-file[data-urgent]:not([style]) { border-color:rgba(239,68,68,.6); }
     .sb-file .sb-urgent { flex:0 0 auto; font-size:11px; font-weight:700; line-height:1;
-      padding:3px 7px; border-radius:999px; background:#d946ef; color:#fff;
+      padding:3px 7px; border-radius:999px; background:#dc2626; color:#fff;
       font-variant-numeric:tabular-nums; }
     @keyframes deckUrgent {
-      0%,100% { box-shadow:var(--score-ring, 0 0 0 0 transparent), 0 0 0 2px rgba(217,70,239,.55), 0 0 10px 1px rgba(217,70,239,.25); }
-      50%     { box-shadow:var(--score-ring, 0 0 0 0 transparent), 0 0 0 3px rgba(217,70,239,.9),  0 0 18px 4px rgba(217,70,239,.45); }
+      0%,100% { box-shadow:var(--score-ring, 0 0 0 0 transparent), 0 0 0 1px rgba(239,68,68,.45); }
+      50%     { box-shadow:var(--score-ring, 0 0 0 0 transparent), 0 0 0 1px rgba(239,68,68,.95), 0 0 6px rgba(239,68,68,.35); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .sb-file[data-urgent] { animation:none; box-shadow:var(--score-ring, 0 0 0 0 transparent), 0 0 0 3px rgba(217,70,239,.8); }
+      .sb-file[data-urgent] { animation:none; box-shadow:var(--score-ring, 0 0 0 0 transparent), 0 0 0 1px rgba(239,68,68,.85); }
     }
 
     /* OPTIONS */
@@ -704,7 +704,7 @@
       return `rgb(${r},${g},${b})`;
     }
     // ─── Urgência: questões da agenda com revisão atrasada (vencidas antes de hoje) ──
-    // A borda continua mostrando o desempenho; a urgência é um brilho magenta pulsante
+    // A borda continua mostrando o desempenho; a urgência é um contorno vermelho fino e pulsante
     // por fora + um selo com o número de questões atrasadas.
     const DECK_OVERDUE_KEY = 'deck_overdue_cache';
     let _deckOverdue = (() => { try { return JSON.parse(localStorage.getItem(DECK_OVERDUE_KEY)) || {}; } catch { return {}; } })();
