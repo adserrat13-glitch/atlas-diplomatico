@@ -250,6 +250,22 @@ const DB = {
     return this._srsCountBySubject(q => q.or('status.eq.mastered,lapses.gt.0'));
   },
 
+  /** Returns map: { deck: { late, worst } } — questões com revisão atrasada (vencida antes de hoje) */
+  async getSrsOverdueByDeck(today) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    const rows = await this._srsFetchAll(() => _sb.from('simulado_srs')
+      .select('deck, due_date').eq('user_id', user.id)
+      .neq('status', 'mastered').lt('due_date', today).order('id'));
+    const out = {};
+    rows.forEach(r => {
+      const d = out[r.deck] || (out[r.deck] = { late: 0, worst: r.due_date });
+      d.late++;
+      if (r.due_date < d.worst) d.worst = r.due_date;
+    });
+    return out;
+  },
+
   async logSrsReviews(rows) {
     const user = await this.getUser();
     if (!user) throw new Error('sem usuário');
