@@ -830,12 +830,12 @@
       const curKey = DeckLocks.currentDeckKey(cur);
       const pct = cur ? DeckLocks.pctOf(cur) : null;
       const tps = DeckLocks.tpsCurrent();
-      const nm = k => escHtml(k.replace(/^.* - /, ''));
+      const nm = k => escHtml(k.replace(/^.*? - /, ''));
       let h = '<div class="queue-panel" style="grid-column:1/-1">';
       h += '<div class="qp-title">Fila de estudo</div>';
       if (cur && curKey) {
         const done = cur.keys.filter(k => DeckLocks.status(k).done).length;
-        h += `<div class="qp-row"><div><div class="qp-lbl">Matéria da vez${pct !== null ? ` · ${pct}%` : ''}</div>
+        h += `<div class="qp-row"><div><div class="qp-lbl">Baralho da vez${pct !== null ? ` · ${escHtml(cur.label)} ${pct}%` : ''}</div>
           <div class="qp-val">${escHtml(cur.label)} <span class="qp-sub">baralho ${done + 1}/${cur.keys.length}</span></div></div>
           <button class="btn btn-primary qp-btn" onclick="openQueueDeck('${jsArg(curKey)}')">▶ ${nm(curKey)}</button></div>`;
       } else {
@@ -850,10 +850,21 @@
       } else {
         h += '<div class="qp-row"><div class="qp-val">✓ Todas as provas TPS aprovadas</div></div>';
       }
+      // Hobby: cota do dia (a cada 1.000 questões das outras matérias, +200)
+      const hb = DeckLocks.hobbyInfo();
+      const hobbyBtns = hb.remaining > 0
+        ? DeckLocks.hobbySubjects().filter(x => x.key).map(x =>
+            `<button class="btn btn-secondary qp-btn" onclick="openQueueDeck('${jsArg(x.key)}')">▶ ${escHtml(x.subject.label)}: ${nm(x.key)}</button>`).join('')
+        : '';
+      h += `<div class="qp-row"><div><div class="qp-lbl">Hobby (Russo e Alemão) · +${hb.grant} a cada ${hb.block.toLocaleString('pt-BR')} questões das outras matérias</div>
+        <div class="qp-val">${hb.remaining > 0 ? `${hb.remaining} liberadas hoje` : '🔒 Sem cota agora'}
+        <span class="qp-sub">${hb.hobby}/${hb.budget} usadas · faltam ${hb.toNext} para +${hb.grant}</span></div></div>
+        ${hobbyBtns ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${hobbyBtns}</div>` : ''}</div>`;
       const next = DeckLocks.upcoming();
       if (next.length) {
-        h += '<div class="qp-next">Depois (pela % de agora; recalcula quando a matéria atual terminar): ' +
-          next.map(s => { const p = DeckLocks.pctOf(s); return escHtml(s.label) + (p !== null ? ` ${p}%` : ''); }).join(' → ') + '</div>';
+        h += '<div class="qp-next">Rodízio — próximos baralhos virão de: ' +
+          next.map(s => { const p = DeckLocks.pctOf(s); return escHtml(s.label) + (p !== null ? ` ${p}%` : ''); }).join(' → ') +
+          '<br>A cada baralho terminado, a vez passa para a próxima matéria. A ordem segue a % (menor primeiro) e é recalculada a cada volta.</div>';
       }
       return h + '</div>';
     }
@@ -1530,7 +1541,19 @@
         if (!n || n < 1) { document.getElementById('customQtdInput').focus(); return; }
       }
       // n === null significa "todas a partir de onde parou"
-      const end = (n === null) ? total : Math.min(lastDone + n, total);
+      let end = (n === null) ? total : Math.min(lastDone + n, total);
+      // Hobby: a sessão não passa da cota liberada hoje
+      if (window.DeckLocks && DeckLocks.isHobby(deckName)) {
+        const h = DeckLocks.hobbyInfo();
+        if (h.remaining <= 0) {
+          alert(`Cota de hobby esgotada por hoje (${h.hobby}/${h.budget}). Faça mais ${h.toNext} questões das outras matérias para liberar +${h.grant}.`);
+          return;
+        }
+        if (end - lastDone > h.remaining) {
+          end = lastDone + h.remaining;
+          showSrsToast(`Hobby: sessão limitada às ${h.remaining} questões liberadas hoje`);
+        }
+      }
       const items = allQuestions.slice(lastDone, end);
       if (!items.length) { showOptions(); return; }
       window._sessionStartIdx = lastDone;
@@ -2122,6 +2145,8 @@
       if (!isRetry && window._lastDone >= allQuestions.length && typeof window.registerDeckCompletion === 'function') {
         window.registerDeckCompletion(deckName, pct);
       }
+      // Atualiza cota de hobby e rodízio com a sessão recém-gravada
+      if (window.DeckLocks) DeckLocks.refresh().catch(() => {});
 
       if (typeof renderMetas === 'function') await renderMetas();
 
@@ -2616,8 +2641,9 @@
       if (window.DeckLocks) {
         const cur = DeckLocks.currentSubject();
         const goals = [];
-        if (cur) goals.push({ code: cur.code, name: 'Matéria da vez · ' + cur.label, target: QUEUE_SUBJECT_TARGET,
-                              kind: 'subject', deckKey: DeckLocks.currentDeckKey(cur), tail: !!cur.tail });
+        // Rodízio: a matéria muda a cada baralho, então a meta conta todas as questões do dia
+        if (cur) goals.push({ code: 'ALL', name: 'Estudo do dia · vez de ' + cur.label, target: QUEUE_SUBJECT_TARGET,
+                              kind: 'subject', deckKey: DeckLocks.currentDeckKey(), allDay: true });
         goals.push({ code: 'TPS', name: 'Prova TPS do dia (≥ ' + DeckLocks.PASS_PCT + '%)', target: 1, kind: 'tps' });
         return { day, queue: true, goals };
       }
@@ -2819,7 +2845,7 @@
       document.getElementById('metasCycleTag').textContent = queue ? 'Fila de estudo' : `Dia ${day} do ciclo (1–6)`;
       document.getElementById('metasStreakVal').textContent = `${streak} dia${streak===1?'':'s'}`;
 
-      const deckName = k => (k || '').replace(/^.* - /, '').replace(/'/g, '&#39;');
+      const deckName = k => (k || '').replace(/^.*? - /, '').replace(/'/g, '&#39;');
       const keyArg = k => (k || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       let doneCount = 0, sumGoal = 0, sumDone = 0;
       const listEl = document.getElementById('metasList');
@@ -2838,8 +2864,7 @@
             ${btn}
           </div>`;
         }
-        // Russo/Alemão não têm código de matéria próprio nas sessões: conta o total do dia
-        const raw = g.tail ? dayTotal : (sums[g.code] || 0);
+        const raw = g.allDay ? dayTotal : (sums[g.code] || 0);
         const got = Math.min(raw, g.target);
         const pct = Math.round((got / g.target) * 100);
         const isDone = got >= g.target;
