@@ -13,9 +13,10 @@
   const PASS_PCT = 85;
   const STATE_DECK = '__fila_estudo__';
   const CACHE_KEY = 'deck_locks_v3';
-  const STATE_VERSION = 3; // estados de versões anteriores (outra regra/conta) são descartados
+  const STATE_VERSION = 4; // estados de versões anteriores (outra regra/conta) são descartados
   const WEAK_PCT = 72;      // abaixo disso a matéria entra 2x por volta
   const HOBBY_BLOCK = 1000, HOBBY_GRANT = 200;
+  const DAILY_TARGET = 200; // Inglês e Espanhol: exatamente 200 novas por dia (mínimo e limite)
 
   // Ordem dentro de cada matéria (fila única). [pasta, baralho]
   const SUBJECTS = [
@@ -46,7 +47,7 @@
       ['HISTORIADOBRASIL', 'HPEB DORATIOTO'], ['HISTORIADOBRASIL', 'HISTORIA DO BRASIL 2 FASE'],
       ['HISTORIADOBRASIL', 'HPEB GAMBIAGI'], ['HISTORIADOBRASIL', 'POLITICA EXTERNA 193012'],
       ['HISTORIADOBRASIL', 'TPS HB']] },
-    { code: 'ESP', label: 'Espanhol', decks: [['LINGUAS', 'ESPANHOL C1']] },
+    { code: 'ESP', label: 'Espanhol', daily: true, decks: [['LINGUAS', 'ESPANHOL C1']] },
     { code: 'GEO', label: 'Geografia', decks: [
       ['GEOGRAFIA', 'GEOGRAFIA FUNAG'], ['GEOGRAFIA', 'GEOGRAFIA APOSTILA NOVA']] },
     { code: 'LP', label: 'Português', decks: [
@@ -55,7 +56,7 @@
     { code: 'HM', label: 'Hist. Mundial', decks: [
       ['HISTORIAMUNDIAL', 'BURNS'], ['HISTORIAMUNDIAL', 'HM SOMBRA SARAIVA'], ['HISTORIAMUNDIAL', 'HM DIPLOMACIA'],
       ['HISTORIAMUNDIAL', 'HM MANUAL'], ['HISTORIAMUNDIAL', 'HSITORIA DIFICIL']] },
-    { code: 'ING', label: 'Inglês', decks: [
+    { code: 'ING', label: 'Inglês', daily: true, decks: [
       ['LINGUAS', 'INGLÊS C2'], ['INGLES', 'VOCABULARIO'], ['INGLES', 'GRAMMAR TRANSFORMAR'],
       ['INGLES', 'INGLES GRAN'], ['LINGUAS', 'INGLÊS']] },
     // Hobby (não caem no CACD): fora do rodízio, liberados pela cota diária
@@ -103,7 +104,7 @@
   const pctOf = s => (S.pct[s.code] && S.pct[s.code].total >= 20) ? S.pct[s.code].pct : null;
 
   // ── Rodízio de matérias ──
-  const MAIN = SUBJECTS.filter(x => !x.hobby);
+  const MAIN = SUBJECTS.filter(x => !x.hobby && !x.daily);   // só estas entram no rodízio
   const byCode = c => SUBJECTS.find(x => x.code === c);
   const nextDeckOf = sub => sub ? sub.keys.find(k => !isDone(k)) || null : null;
   function buildCycle() {
@@ -170,6 +171,23 @@
              toNext: HOBBY_BLOCK - (t.main % HOBBY_BLOCK), block: HOBBY_BLOCK, grant: HOBBY_GRANT };
   }
 
+  // ── Obrigatórias do dia: Inglês e Espanhol, 200 novas cada (mínimo e limite) ──
+  // Conta só questões novas (sessões "simulado") feitas hoje nos baralhos da matéria.
+  // Matéria sem baralho por fazer conta como cumprida.
+  const DAILY = SUBJECTS.filter(x => x.daily);
+  function dailyInfo() {
+    const t = S.today && S.today.date === today() ? S.today : { daily: {} };
+    return DAILY.map(sub => {
+      const doneQ = (t.daily && t.daily[sub.code]) || 0;
+      const key = nextDeckOf(sub);
+      const finished = !key;
+      return { subject: sub, key, done: doneQ, target: DAILY_TARGET,
+               remaining: finished ? 0 : Math.max(0, DAILY_TARGET - doneQ),
+               ok: finished || doneQ >= DAILY_TARGET };
+    });
+  }
+  const dailyAllOk = () => dailyInfo().every(d => d.ok);
+
   // ── Trilha TPS ──
   function tpsPass(key) {
     const p = S.passes[norm(key)];
@@ -232,8 +250,22 @@
       if (h.remaining > 0) return fin(Object.assign(base, { current: true, hobbyRemaining: h.remaining }), true);
       return fin(base, false, `Cota de hobby de hoje: ${h.hobby}/${h.budget} questões. Faça mais ${h.toNext} questões das outras matérias para liberar +${HOBBY_GRANT}.`);
     }
+    if (sub.daily) {
+      const nxt = nextDeckOf(sub);
+      if (norm(nxt || '') !== n) return fin(base, false, `Um baralho por vez em ${sub.label}. O da vez é ${(nxt || '—').replace(/^.*? - /, '')}.`);
+      const d = dailyInfo().find(x => x.subject === sub);
+      if (d.remaining > 0) return fin(Object.assign(base, { current: true, dailyRemaining: d.remaining }), true);
+      return fin(base, false, `${sub.label} de hoje feito (${d.done}/${DAILY_TARGET}). Amanhã libera mais ${DAILY_TARGET}.`);
+    }
     const curKey = currentDeckKey();
-    if (curKey && norm(curKey) === n) return fin(Object.assign(base, { current: true }), true);
+    if (curKey && norm(curKey) === n) {
+      if (!dailyAllOk()) {
+        const pend = dailyInfo().filter(x => !x.ok).map(x => `${x.subject.label} ${x.done}/${x.target}`).join(' e ');
+        return fin(Object.assign(base, { current: true, waitDaily: true }), false,
+          `Primeiro as obrigatórias do dia: ${pend}. Depois este baralho abre.`);
+      }
+      return fin(Object.assign(base, { current: true }), true);
+    }
     const cur = currentSubject();
     return fin(base, false, cur === sub
       ? `Um baralho por vez em ${sub.label}. O da vez é: ${curKey.replace(/^.*? - /, '')}.`
@@ -313,9 +345,11 @@
     return DB.getSessions(user.id);
   }
   function todayCounts(sessions) {
-    const d = today(), t = { date: d, main: 0, hobby: 0 };
+    const d = today(), t = { date: d, main: 0, hobby: 0, daily: {} };
     sessions.filter(x => x.date === d).forEach(x => {
       if (isHobbyName(x.deck || '')) t.hobby += x.total || 0; else t.main += x.total || 0;
+      const e = x.type === 'simulado' ? SUBJECT_OF.get(norm(realKey(x.deck || ''))) : null;
+      if (e && e.subject.daily) t.daily[e.subject.code] = (t.daily[e.subject.code] || 0) + (x.total || 0);
     });
     return t;
   }
@@ -366,6 +400,17 @@
     currentSubject, currentDeckKey, upcoming, tpsCurrent, tpsDoneToday, pctOf, hobbyInfo,
     hobbySubjects: () => SUBJECTS.filter(x => x.hobby).map(x => ({ subject: x, key: nextDeckOf(x) })),
     isHobby: key => { const e = SUBJECT_OF.get(norm(key)); return !!(e && e.subject.hobby); },
+    dailyInfo, dailyAllOk,
+    // Quantas questões novas a sessão deste baralho pode ter hoje (null = sem limite)
+    sessionCap: key => {
+      const e = SUBJECT_OF.get(norm(key));
+      if (!e) return null;
+      if (e.subject.hobby) { const h = hobbyInfo(); return { remaining: h.remaining, label: 'Hobby',
+        empty: `Cota de hobby esgotada por hoje (${h.hobby}/${h.budget}). Faça mais ${h.toNext} questões das outras matérias para liberar +${h.grant}.` }; }
+      if (e.subject.daily) { const d = dailyInfo().find(x => x.subject === e.subject); return { remaining: d.remaining, label: e.subject.label,
+        empty: `${e.subject.label} de hoje já feito (${d.done}/${d.target}). Amanhã libera mais ${d.target}.` }; }
+      return null;
+    },
     isTps: key => TPS_POS.has(norm(key)),
   };
 })();
