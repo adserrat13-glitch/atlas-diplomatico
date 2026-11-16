@@ -344,6 +344,7 @@
           <div id="srsFinalSubjects" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"></div>
         </div>
         <div id="srsRetention" style="display:none;margin-top:12px;font-size:12px;color:#9ca3af;line-height:1.6"></div>
+        <div id="ttsSlotHome" style="margin-top:12px;text-align:left;display:flex;justify-content:center"></div>
       </div>
       <div class="sim-browser" id="simBrowser">
         <div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Carregando arquivos...</div>
@@ -373,6 +374,7 @@
         <div id="resumeMsg" style="font-size:13px;color:#9ca3af;margin-bottom:10px;line-height:1.5"></div>
         <button id="btnResumeReset" style="background:transparent;color:#6b7280;border:none;padding:4px 8px;font-size:11px;cursor:pointer;text-decoration:underline">Recomeçar primeira passada</button>
       </div>
+      <div id="ttsSlotOptions" style="display:contents"></div>
       <details class="tts-panel" id="ttsPanel">
         <summary>Configurar leitura em voz alta</summary>
         <div class="tts-row">
@@ -510,6 +512,10 @@
     let currentProgressKey = null;
     let _cpDebounce = null;
     let retryPending = []; // { q: <question obj>, dueAt, wrongCount }
+    // Erros por questão nesta aba (inclui as repetições na sessão, que não vão para a agenda)
+    const _wrongTally = new Map();
+    const HARD_WRONG_MIN = 4;   // "errou mais de 3x" → resumo da IA em vermelho
+    const HARD_MARK = '⚠ ';     // prefixo dos bullets difíceis salvos no Caderno
     let retryPollInterval = null;
     let pendingExplanation = null;
     let currentRetryItem = null; // set when the question on screen came from retryPending
@@ -888,8 +894,23 @@
     function showView(id) {
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.getElementById(id).classList.add('active');
+      placeTtsPanel(id);
       if (id === 'viewLoader') renderSrsHome();
     }
+
+    // O painel de voz/tempo de repetição é um só: fica na caixa de revisão
+    // da tela inicial ou na tela do arquivo, conforme a tela ativa.
+    function placeTtsPanel(viewId) {
+      const panel = document.getElementById('ttsPanel');
+      if (!panel) return;
+      if (viewId === 'viewLoader') {
+        document.getElementById('ttsSlotHome').appendChild(panel);
+      } else if (viewId === 'viewOptions') {
+        const slot = document.getElementById('ttsSlotOptions');
+        slot.parentNode.insertBefore(panel, slot.nextSibling);
+      }
+    }
+    placeTtsPanel('viewLoader');
 
     function detectSubject(name) {
       const n = name.toUpperCase();
@@ -1680,6 +1701,8 @@
 
     // ─── Retry loop (repetição dentro da sessão) ────────────────────
     function scheduleRetry(q) {
+      const tk = srsKey(q.deck || deckName, q.q);
+      _wrongTally.set(tk, (_wrongTally.get(tk) || 0) + 1);
       const cfg = loadTtsConfig();
       const minutes = cfg.loopMinutes || TTS_DEFAULTS.loopMinutes;
       let item = retryPending.find(r => r.q.q === q.q);
