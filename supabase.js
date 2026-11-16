@@ -420,7 +420,7 @@ const DB = {
 
   // ── SIMULADO CHECKPOINTS ─────────────────────────────────────────────
 
-  async saveCheckpoint({ deck_name, current_index, total_questions, mode, timer_seconds }) {
+  async saveCheckpoint({ deck_name, current_index, total_questions, mode, timer_seconds, pass }) {
     const user = await this.getUser();
     if (!user) return;
     const { error } = await _sb.from('simulado_checkpoints').upsert({
@@ -428,7 +428,7 @@ const DB = {
       deck_name,
       current_index,
       total_questions,
-      answers: null,
+      answers: pass ? { pass } : null,
       queue_ids: null,
       mode,
       timer_seconds,
@@ -446,6 +446,28 @@ const DB = {
       .eq('deck_name', deck_name)
       .maybeSingle();
     return data;
+  },
+
+  async getAllCheckpoints() {
+    const user = await this.getUser();
+    if (!user) return [];
+    const { data, error } = await _sb.from('simulado_checkpoints')
+      .select('deck_name, current_index, total_questions, answers')
+      .eq('user_id', user.id);
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Estado da fila de estudo (matéria da vez), numa linha especial de checkpoint
+  async saveQueueState(deck_name, state) {
+    const user = await this.getUser();
+    if (!user) return;
+    const { error } = await _sb.from('simulado_checkpoints').upsert({
+      user_id: user.id, deck_name, current_index: 0, total_questions: 0,
+      answers: state, queue_ids: null, mode: 'state', timer_seconds: 0,
+      saved_at: new Date().toISOString()
+    }, { onConflict: 'user_id,deck_name' });
+    if (error) throw error;
   },
 
   async clearCheckpoint(deck_name) {

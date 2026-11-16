@@ -11,6 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
   <script src="js/srs.js"></script>
+  <script src="js/deck-locks.js"></script>
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
     :root {
@@ -84,6 +85,23 @@
     @media (prefers-reduced-motion: reduce) {
       .sb-file[data-urgent] { animation:none; box-shadow:var(--score-ring, 0 0 0 0 transparent), 0 0 0 1px rgba(239,68,68,.85); }
     }
+    /* Fila de estudo com cadeado */
+    .sb-file .sb-pos { flex:0 0 auto; min-width:20px; height:20px; padding:0 4px; font-size:10.5px; font-weight:700;
+      display:inline-flex; align-items:center; justify-content:center; border-radius:6px;
+      border:1px solid var(--border); color:var(--muted); font-variant-numeric:tabular-nums; }
+    .sb-file.sb-current { border-color:#d4af37; background:rgba(212,175,55,.07); }
+    .sb-file.sb-current .sb-pos { color:#d4af37; border-color:rgba(212,175,55,.6); }
+    .sb-file.sb-locked { opacity:.4; cursor:not-allowed; border-style:dashed; }
+    .sb-file.sb-locked:hover { border-color:var(--border); background:var(--card); }
+    .queue-panel { background:var(--card); border:1px solid rgba(212,175,55,.45); border-radius:14px;
+      padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+    .queue-panel .qp-title { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:#d4af37; font-weight:700; }
+    .queue-panel .qp-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .queue-panel .qp-lbl { font-size:11.5px; color:var(--muted); }
+    .queue-panel .qp-val { font-size:14px; font-weight:700; color:var(--text); }
+    .queue-panel .qp-sub { font-size:11.5px; font-weight:400; color:var(--muted); margin-left:4px; }
+    .queue-panel .qp-btn { padding:8px 14px; font-size:12.5px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .queue-panel .qp-next { font-size:11.5px; color:var(--muted); line-height:1.5; border-top:1px solid var(--border); padding-top:8px; }
 
     /* OPTIONS */
     .opt-title { font-size:22px; font-weight:700; }
@@ -640,6 +658,7 @@
       if (nc) nc.textContent = Math.ceil((examDate - Date.now()) / 86400000) + 'd';
       loadSimBrowser();
       refreshDeckScoresFromRemote();
+      if (window.DeckLocks) DeckLocks.refresh().catch(e => console.warn('fila de estudo: refresh falhou', e));
       renderSrsHome();
     })();
 
@@ -749,40 +768,109 @@
       return urgent ? `<span class="sb-urgent">${urgent.late > 999 ? '999+' : urgent.late}</span>` : '';
     }
 
+    // ─── Fila de estudo com cadeado (regras e ordem em js/deck-locks.js) ──
+    function deckKeyFor(filename, folder) {
+      const base = filename.replace(/\.csv$/i, '').trim();
+      return folder ? `${folder} - ${base}` : base;
+    }
+    function jsArg(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+    // Na tela, cada pasta segue a ordem da fila (baralhos fora da fila vão no fim)
+    function byQueue(files, folder) {
+      if (!window.DeckLocks) return files;
+      const rank = f => { const st = DeckLocks.status(deckKeyFor(f, folder)); return st.pos ?? 999; };
+      return files.map((f, i) => ({ f, i, r: rank(f) })).sort((a, b) => a.r - b.r || a.i - b.i).map(x => x.f);
+    }
+    function deckTile(f, folder, label) {
+      const deckKey = deckKeyFor(f, folder);
+      const st = window.DeckLocks ? DeckLocks.status(deckKey) : { locked: false };
+      const call = folder ? `loadSimFromPath('${jsArg(f)}', '${jsArg(folder)}')` : `loadSimFromPath('${jsArg(f)}')`;
+      let attrs = deckScoreStyle(deckKey);
+      if (st.locked) attrs = attrs.replace(/ title="[^"]*"/, '') + ` title="${escHtml('Bloqueado — ' + st.reason)}"`;
+      const cls = st.locked ? ' sb-locked' : st.current ? ' sb-current' : '';
+      const pos = st.pos !== undefined ? `<span class="sb-pos">${st.done ? '✓' : st.pos + 1}</span>` : '';
+      return `<div class="sb-file${cls}"${attrs} onclick="${call}">
+            ${pos}<span>${label}</span>${deckUrgentBadge(deckKey)}<span class="arr">${st.locked ? '🔒' : '→'}</span>
+          </div>`;
+    }
+    // Painel "Fila de estudo": matéria da vez, baralho da vez, prova TPS do dia
+    async function deckFileFor(key) {
+      const m = await loadManifest();
+      const n = DeckLocks.norm(key);
+      const hit = (m.tps || []).find(f => DeckLocks.norm(deckKeyFor(f, '')) === n);
+      if (hit) return { file: hit, folder: '' };
+      for (const [folder, files] of Object.entries(m.tps_questoes || {})) {
+        const f = files.find(x => DeckLocks.norm(deckKeyFor(x, folder)) === n);
+        if (f) return { file: f, folder };
+      }
+      return null;
+    }
+    async function openQueueDeck(key) {
+      const loc = await deckFileFor(key);
+      if (!loc) { alert('Baralho não encontrado: ' + key); return; }
+      if (typeof closeMetasOverlay === 'function') closeMetasOverlay();
+      loadSimFromPath(loc.file, loc.folder || undefined);
+    }
+    function queuePanelHtml() {
+      if (!window.DeckLocks) return '';
+      const cur = DeckLocks.currentSubject();
+      const curKey = DeckLocks.currentDeckKey(cur);
+      const pct = cur ? DeckLocks.pctOf(cur) : null;
+      const tps = DeckLocks.tpsCurrent();
+      const nm = k => escHtml(k.replace(/^.* - /, ''));
+      let h = '<div class="queue-panel" style="grid-column:1/-1">';
+      h += '<div class="qp-title">Fila de estudo</div>';
+      if (cur && curKey) {
+        const done = cur.keys.filter(k => DeckLocks.status(k).done).length;
+        h += `<div class="qp-row"><div><div class="qp-lbl">Matéria da vez${pct !== null ? ` · ${pct}%` : ''}</div>
+          <div class="qp-val">${escHtml(cur.label)} <span class="qp-sub">baralho ${done + 1}/${cur.keys.length}</span></div></div>
+          <button class="btn btn-primary qp-btn" onclick="openQueueDeck('${jsArg(curKey)}')">▶ ${nm(curKey)}</button></div>`;
+      } else {
+        h += '<div class="qp-row"><div class="qp-val">✓ Todas as matérias concluídas</div></div>';
+      }
+      if (tps.key) {
+        h += tps.waitTomorrow
+          ? `<div class="qp-row"><div><div class="qp-lbl">Prova TPS do dia</div><div class="qp-val">✓ Aprovada hoje <span class="qp-sub">${nm(tps.key)} abre amanhã</span></div></div></div>`
+          : `<div class="qp-row"><div><div class="qp-lbl">Prova TPS do dia · precisa de ≥ ${DeckLocks.PASS_PCT}%</div>
+              <div class="qp-val">${nm(tps.key)} <span class="qp-sub">prova ${tps.index + 1}/${DeckLocks.TPS.length}</span></div></div>
+              <button class="btn btn-secondary qp-btn" onclick="openQueueDeck('${jsArg(tps.key)}')">▶ Fazer prova</button></div>`;
+      } else {
+        h += '<div class="qp-row"><div class="qp-val">✓ Todas as provas TPS aprovadas</div></div>';
+      }
+      const next = DeckLocks.upcoming();
+      if (next.length) {
+        h += '<div class="qp-next">Depois (pela % de agora; recalcula quando a matéria atual terminar): ' +
+          next.map(s => { const p = DeckLocks.pctOf(s); return escHtml(s.label) + (p !== null ? ` ${p}%` : ''); }).join(' → ') + '</div>';
+      }
+      return h + '</div>';
+    }
+
     async function loadSimBrowser() {
       const files = await scanSimuladosFolder();
       const questoes = await scanQuestoesFolder();
       const browser = document.getElementById('simBrowser');
-      let html = '';
+      let html = queuePanelHtml();
       if (!files.length) {
         html += '<div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Coloque arquivos CSV em SIMULADOS/ para aparecerem aqui</div>';
       } else {
-        html += files.map(f => {
-          const label = f.replace(/\.csv$/i, '').replace(/^\d+\s*/, '');
-          const safe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          const deckKey = f.replace(/\.csv$/i, '').trim();
-          return `<div class="sb-file"${deckScoreStyle(deckKey)} onclick="loadSimFromPath('${safe}')">
-            <span>${label}</span>${deckUrgentBadge(deckKey)}<span class="arr">→</span>
-          </div>`;
-        }).join('');
+        html += '<div class="section-label" style="grid-column:1/-1">PROVAS TPS</div>';
+        html += byQueue(files, '').map(f =>
+          deckTile(f, '', f.replace(/\.csv$/i, '').replace(/^\d+\s*/, ''))).join('');
       }
       Object.keys(questoes).forEach(folder => {
-        const folderSafe = folder.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         html += `<div class="section-label" style="grid-column:1/-1">${escHtml(folder)}</div>`;
-        html += questoes[folder].map(f => {
-          const label = f.replace(/\.csv$/i, '');
-          const fileSafe = f.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          const deckKey = `${folder} - ${f.replace(/\.csv$/i, '').trim()}`;
-          return `<div class="sb-file"${deckScoreStyle(deckKey)} onclick="loadSimFromPath('${fileSafe}', '${folderSafe}')">
-            <span>${label}</span>${deckUrgentBadge(deckKey)}<span class="arr">→</span>
-          </div>`;
-        }).join('');
+        html += byQueue(questoes[folder], folder).map(f =>
+          deckTile(f, folder, f.replace(/\.csv$/i, ''))).join('');
       });
       browser.innerHTML = html;
     }
+    window.addEventListener('decklocks:update', () => loadSimBrowser());
 
     let _simLoadToken = 0;
     async function loadSimFromPath(filename, folder) {
+      if (window.DeckLocks && DeckLocks.status(deckKeyFor(filename, folder)).locked) {
+        DeckLocks.explain(deckKeyFor(filename, folder));
+        return;
+      }
       const loadToken = ++_simLoadToken;
       const path = folder ? `TPS/questões/${folder}/${filename}` : `TPS/${filename}`;
       const res = await fetch(path.split('/').map(encodeURIComponent).join('/'));
@@ -811,6 +899,21 @@
       window._pendingSimText = text;
       window._pendingSimFile = filename;
       window._lastDone = Math.max(localLastDone, remoteLastDone);
+      // Nota parcial da passada em curso, vinda do registro mais adiantado
+      const passSrc = remoteLastDone >= localLastDone
+        ? (remoteSaved && remoteSaved.answers && remoteSaved.answers.pass)
+        : (localSaved && localSaved.pass);
+      window._passPrior = window._lastDone > 0 && passSrc
+        ? { correct: passSrc.correct || 0, total: passSrc.total || 0 } : { correct: 0, total: 0 };
+      // Prova TPS concluída abaixo de 85%: refaz a prova inteira do zero
+      const savedTotal = Math.max(remoteSaved ? remoteSaved.total_questions || 0 : 0, localSaved ? localSaved.totalQ || 0 : 0);
+      if (window.DeckLocks && DeckLocks.tpsNeedsRetake(newDeckName, window._lastDone, savedTotal)) {
+        window._lastDone = 0;
+        window._passPrior = { correct: 0, total: 0 };
+        localStorage.removeItem(progKey);
+        DB.clearCheckpoint(newDeckName).catch(() => {});
+        setTimeout(() => alert(`Esta prova ficou abaixo de ${DeckLocks.PASS_PCT}% na última passada, por isso recomeça do zero. A próxima prova TPS só abre quando você passar desta.`), 50);
+      }
       try { localStorage.setItem(SIM_LAST_DECK_KEY, JSON.stringify({ filename, folder: folder || null, deckName: newDeckName })); } catch {}
       // Sempre processa o CSV para popular allQuestions, depois showOptions mostra o banner
       processSimData(Papa.parse(text, {delimiter:';', skipEmptyLines:true}).data, folder);
@@ -823,15 +926,28 @@
       try {
         const lastDone = (window._sessionStartIdx || 0) + currentIdx;
         const ts = new Date().toLocaleString('pt-BR');
-        const data = { lastDone, totalQ: allQuestions.length, savedAt: ts };
+        // Nota acumulada da passada atual (o que vale para a regra dos 85% das provas TPS)
+        const prior = window._passPrior || { correct: 0, total: 0 };
+        const seqAnswers = window._currentSimMode === 'seq' ? answers : [];
+        const pc = prior.correct + seqAnswers.filter(a => a.isCorrect).length;
+        const pt = prior.total + seqAnswers.length;
+        const complete = lastDone >= allQuestions.length && allQuestions.length > 0;
+        const pass = { correct: pc, total: pt, pct: pt ? Math.round(pc / pt * 100) : 0, complete,
+                       date: complete ? localDateStr() : null };
+        const data = { lastDone, totalQ: allQuestions.length, savedAt: ts, pass };
         localStorage.setItem(currentProgressKey, JSON.stringify(data));
         DB.saveCheckpoint({
           deck_name: deckName,
           current_index: lastDone,
           total_questions: allQuestions.length,
           mode: 'seq',
-          timer_seconds: timerSecs || 0
+          timer_seconds: timerSecs || 0,
+          pass
         }).catch(() => {});
+        if (window.DeckLocks) {
+          if (complete) DeckLocks.markDone(deckName);
+          DeckLocks.notePass(deckName, pass);
+        }
       } catch(e) { /* quota exceeded — ignore */ }
     }
 
@@ -925,6 +1041,7 @@
     document.getElementById('csvInput').addEventListener('change', function(e) {
       const file = e.target.files[0]; if (!file) return;
       deckName = file.name.replace(/\.csv$/i, '').trim();
+      window._passPrior = { correct: 0, total: 0 };
       Papa.parse(file, {delimiter:';', skipEmptyLines:true, complete(res) { processSimData(res.data); }});
     });
 
@@ -953,6 +1070,7 @@
       resetBtn.onclick = () => {
         if (!confirm('Recomeçar a primeira passada deste baralho desde a questão 1? A agenda de revisão não é apagada.')) return;
         window._lastDone = 0;
+        window._passPrior = { correct: 0, total: 0 };
         localStorage.removeItem(currentProgressKey);
         DB.clearCheckpoint(deckName).catch(() => {});
         resumeEl.style.display = 'none';
@@ -2462,8 +2580,18 @@
       const idx = ((diffDays % 6) + 6) % 6;
       return idx + 1; // 1..6
     }
+    // Metas seguem a fila de estudo: matéria da vez + prova TPS do dia (meta total segue 2.000/dia)
+    const QUEUE_SUBJECT_TARGET = 1500;
     function getGoalsForToday() {
       const day = cycleDayFor(new Date());
+      if (window.DeckLocks) {
+        const cur = DeckLocks.currentSubject();
+        const goals = [];
+        if (cur) goals.push({ code: cur.code, name: 'Matéria da vez · ' + cur.label, target: QUEUE_SUBJECT_TARGET,
+                              kind: 'subject', deckKey: DeckLocks.currentDeckKey(cur), tail: !!cur.tail });
+        goals.push({ code: 'TPS', name: 'Prova TPS do dia (≥ ' + DeckLocks.PASS_PCT + '%)', target: 1, kind: 'tps' });
+        return { day, queue: true, goals };
+      }
       const vars = CYCLE[day].variaveis;
       return { day, goals: [...FIXED.map(f => ({code:f[0], name:f[1], target:f[2], fixed:true})),
                              ...vars.map(v => ({code:v[0], name:v[1], target:v[2], fixed:false}))] };
@@ -2542,6 +2670,7 @@
 
     // Chamado pelo showSummary() de simulados.html quando um deck é zerado pela 1ª vez na sessão
     window.registerDeckCompletion = async function (deckName, pct) {
+      if (window.DeckLocks) { DeckLocks.markDone(deckName); if (typeof loadSimBrowser === 'function') loadSimBrowser(); }
       const all = loadDeckBonus();
       const today = todayStr();
       if (!all[today]) all[today] = [];
@@ -2649,22 +2778,40 @@
     let _lastRender = null;
 
     async function renderMetas() {
-      const { day, goals } = getGoalsForToday();
+      const { day, goals, queue } = getGoalsForToday();
       const { sums, dayTotal } = await sumTodayBySubject();
       const nexts = {};
-      await Promise.all(goals.map(async g => { nexts[g.code] = await nextDeckFor(g.code); }));
+      if (!queue) await Promise.all(goals.map(async g => { nexts[g.code] = await nextDeckFor(g.code); }));
       const history = loadHistory();
       const streak = computeStreak(history);
 
       document.getElementById('metasDateLabel').textContent =
         new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
-      document.getElementById('metasCycleTag').textContent = `Dia ${day} do ciclo (1–6)`;
+      document.getElementById('metasCycleTag').textContent = queue ? 'Fila de estudo' : `Dia ${day} do ciclo (1–6)`;
       document.getElementById('metasStreakVal').textContent = `${streak} dia${streak===1?'':'s'}`;
 
+      const deckName = k => (k || '').replace(/^.* - /, '').replace(/'/g, '&#39;');
+      const keyArg = k => (k || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       let doneCount = 0, sumGoal = 0, sumDone = 0;
       const listEl = document.getElementById('metasList');
       listEl.innerHTML = goals.map(g => {
-        const got = Math.min(sums[g.code] || 0, g.target);
+        if (g.kind === 'tps') {
+          const t = DeckLocks.tpsCurrent();
+          const isDone = DeckLocks.tpsDoneToday() || !t.key;
+          if (isDone) doneCount++;
+          const btn = t.key && !t.waitTomorrow
+            ? `<button class="next-deck" onclick="openQueueDeck('${keyArg(t.key)}')">▶ ${deckName(t.key)}<span> · prova ${t.index + 1}/${DeckLocks.TPS.length}</span></button>`
+            : (t.key ? `<div class="next-deck muted">Próxima (${deckName(t.key)}) abre amanhã</div>` : '');
+          return `<div class="meta-item ${isDone?'done':''}">
+            <div class="row1"><span class="name">${g.name}</span><span class="check">✓</span></div>
+            <div class="meta-track"><div class="meta-fill" style="width:${isDone ? 100 : 0}%"></div></div>
+            <span class="count">${isDone ? 'Aprovada hoje' : 'Pendente: uma passada inteira com ≥ ' + DeckLocks.PASS_PCT + '%'}</span>
+            ${btn}
+          </div>`;
+        }
+        // Russo/Alemão não têm código de matéria próprio nas sessões: conta o total do dia
+        const raw = g.tail ? dayTotal : (sums[g.code] || 0);
+        const got = Math.min(raw, g.target);
         const pct = Math.round((got / g.target) * 100);
         const isDone = got >= g.target;
         if (isDone) doneCount++;
@@ -2677,6 +2824,9 @@
           <div class="meta-track"><div class="meta-fill" style="width:${pct}%"></div></div>
           <span class="count">${got.toLocaleString('pt-BR')} / ${g.target.toLocaleString('pt-BR')} questões</span>
           ${(() => {
+            if (g.kind === 'subject') {
+              return g.deckKey ? `<button class="next-deck" onclick="openQueueDeck('${keyArg(g.deckKey)}')">▶ ${deckName(g.deckKey)}<span> · baralho da vez</span></button>` : '';
+            }
             const n = nexts[g.code];
             if (!n || !n.pick) return n && n.total ? `<div class="next-deck muted">✓ Todos os ${n.total} baralhos concluídos</div>` : '';
             const p = n.pick, f = p.folder.replace(/'/g, "\\'"), fl = p.file.replace(/'/g, "\\'");
@@ -2686,7 +2836,8 @@
         </div>`;
       }).join('');
 
-      const overallPct = sumGoal ? Math.round((Math.max(sumDone, Math.min(dayTotal, sumGoal)) / sumGoal) * 100) : 0;
+      if (queue) sumGoal = 2000; // meta total do dia continua 2.000 questões
+      const overallPct = sumGoal ?Math.round((Math.max(sumDone, Math.min(dayTotal, sumGoal)) / sumGoal) * 100) : 0;
       document.getElementById('metasRing').style.setProperty('--pct', Math.min(overallPct,100));
       document.getElementById('metasRingPct').textContent = overallPct + '%';
       document.getElementById('metasDoneTotal').textContent = Math.max(sumDone, dayTotal).toLocaleString('pt-BR');
@@ -2804,6 +2955,12 @@
       await Promise.all([refreshHistoryFromRemote(), refreshDeckBonusFromRemote()]);
       renderMetas();
     })();
+    // Fila mudou (baralho concluído, prova aprovada, troca de matéria): atualiza as metas
+    let _metasQueueTimer = null;
+    window.addEventListener('decklocks:update', () => {
+      clearTimeout(_metasQueueTimer);
+      _metasQueueTimer = setTimeout(() => renderMetas(), 300);
+    });
   })();
   </script>
   <!-- ═══════════ FIM METAS DO DIA ═══════════ -->
