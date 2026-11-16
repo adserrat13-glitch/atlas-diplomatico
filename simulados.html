@@ -93,6 +93,8 @@
     .sb-file.sb-current .sb-pos { color:#d4af37; border-color:rgba(212,175,55,.6); }
     .sb-file.sb-locked { opacity:.4; cursor:not-allowed; border-style:dashed; }
     .sb-file.sb-locked:hover { border-color:var(--border); background:var(--card); }
+    .sb-file.sb-review { opacity:.72; }
+    .sb-file.sb-review:hover { opacity:1; }
     .queue-panel { background:var(--card); border:1px solid rgba(212,175,55,.45); border-radius:14px;
       padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
     .queue-panel .qp-title { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:#d4af37; font-weight:700; }
@@ -429,8 +431,8 @@
         <div style="font-size:12px;color:#9ca3af;margin-top:10px;line-height:1.5" id="srsBoxMsg"></div>
       </div>
       <div class="btns">
-        <button class="btn btn-primary" onclick="startSeq(null)">Responder todas (de onde parei)</button>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-primary seq-only" onclick="startSeq(null)">Responder todas (de onde parei)</button>
+        <div class="seq-only" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center">
           <input id="customQtdInput" type="number" min="1" placeholder="Quantas questões agora?"
             style="width:200px;padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:15px;text-align:center"
             onkeydown="if(event.key==='Enter')startSeq()">
@@ -773,6 +775,13 @@
       const base = filename.replace(/\.csv$/i, '').trim();
       return folder ? `${folder} - ${base}` : base;
     }
+    // Fora da vez: abre só para revisar se o baralho tem revisões (começado, concluído
+    // ou com questões atrasadas na agenda); senão fica travado
+    function deckAccess(deckKey, st) {
+      st = st || (window.DeckLocks ? DeckLocks.status(deckKey) : { access: 'full' });
+      if (st.access === 'none' && deckOverdue(deckKey)) return 'review';
+      return st.access || 'full';
+    }
     function jsArg(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
     // Na tela, cada pasta segue a ordem da fila (baralhos fora da fila vão no fim)
     function byQueue(files, folder) {
@@ -783,13 +792,18 @@
     function deckTile(f, folder, label) {
       const deckKey = deckKeyFor(f, folder);
       const st = window.DeckLocks ? DeckLocks.status(deckKey) : { locked: false };
+      const access = deckAccess(deckKey, st);
       const call = folder ? `loadSimFromPath('${jsArg(f)}', '${jsArg(folder)}')` : `loadSimFromPath('${jsArg(f)}')`;
       let attrs = deckScoreStyle(deckKey);
-      if (st.locked) attrs = attrs.replace(/ title="[^"]*"/, '') + ` title="${escHtml('Bloqueado — ' + st.reason)}"`;
-      const cls = st.locked ? ' sb-locked' : st.current ? ' sb-current' : '';
+      if (access !== 'full') {
+        const tip = access === 'review' ? 'Só revisões — ' + st.reason : 'Bloqueado — ' + st.reason;
+        attrs = attrs.replace(/ title="[^"]*"/, '') + ` title="${escHtml(tip)}"`;
+      }
+      const cls = access === 'none' ? ' sb-locked' : access === 'review' ? ' sb-review' : st.current ? ' sb-current' : '';
       const pos = st.pos !== undefined ? `<span class="sb-pos">${st.done ? '✓' : st.pos + 1}</span>` : '';
+      const arr = access === 'none' ? '🔒' : access === 'review' ? '🧠' : '→';
       return `<div class="sb-file${cls}"${attrs} onclick="${call}">
-            ${pos}<span>${label}</span>${deckUrgentBadge(deckKey)}<span class="arr">${st.locked ? '🔒' : '→'}</span>
+            ${pos}<span>${label}</span>${deckUrgentBadge(deckKey)}<span class="arr">${arr}</span>
           </div>`;
     }
     // Painel "Fila de estudo": matéria da vez, baralho da vez, prova TPS do dia
@@ -867,10 +881,12 @@
 
     let _simLoadToken = 0;
     async function loadSimFromPath(filename, folder) {
-      if (window.DeckLocks && DeckLocks.status(deckKeyFor(filename, folder)).locked) {
+      const access = deckAccess(deckKeyFor(filename, folder));
+      if (access === 'none') {
         DeckLocks.explain(deckKeyFor(filename, folder));
         return;
       }
+      window._reviewOnly = access === 'review';
       const loadToken = ++_simLoadToken;
       const path = folder ? `TPS/questões/${folder}/${filename}` : `TPS/${filename}`;
       const res = await fetch(path.split('/').map(encodeURIComponent).join('/'));
@@ -907,7 +923,7 @@
         ? { correct: passSrc.correct || 0, total: passSrc.total || 0 } : { correct: 0, total: 0 };
       // Prova TPS concluída abaixo de 85%: refaz a prova inteira do zero
       const savedTotal = Math.max(remoteSaved ? remoteSaved.total_questions || 0 : 0, localSaved ? localSaved.totalQ || 0 : 0);
-      if (window.DeckLocks && DeckLocks.tpsNeedsRetake(newDeckName, window._lastDone, savedTotal)) {
+      if (!window._reviewOnly && window.DeckLocks && DeckLocks.tpsNeedsRetake(newDeckName, window._lastDone, savedTotal)) {
         window._lastDone = 0;
         window._passPrior = { correct: 0, total: 0 };
         localStorage.removeItem(progKey);
@@ -1042,6 +1058,7 @@
       const file = e.target.files[0]; if (!file) return;
       deckName = file.name.replace(/\.csv$/i, '').trim();
       window._passPrior = { correct: 0, total: 0 };
+      window._reviewOnly = false;
       Papa.parse(file, {delimiter:';', skipEmptyLines:true, complete(res) { processSimData(res.data); }});
     });
 
@@ -1075,6 +1092,17 @@
         DB.clearCheckpoint(deckName).catch(() => {});
         resumeEl.style.display = 'none';
       };
+      // Fora da vez (fila de estudo): só revisões, sem questões novas nem recomeçar
+      const reviewOnly = !!window._reviewOnly;
+      document.querySelectorAll('#viewOptions .seq-only').forEach(el => { el.style.display = reviewOnly ? 'none' : ''; });
+      resetBtn.style.display = reviewOnly ? 'none' : '';
+      if (reviewOnly) {
+        const st = window.DeckLocks ? DeckLocks.status(deckName) : null;
+        document.getElementById('resumeMsg').textContent =
+          '🧠 Modo revisão: aqui você só revisa as questões deste baralho que estão na agenda. ' +
+          (st && st.reason ? st.reason : 'Questões novas só no baralho da vez.');
+        resumeEl.style.display = 'block';
+      }
       renderSrsBox();
       showView('viewOptions');
     }
@@ -1489,6 +1517,7 @@
     }
 
     function startSeq(n) {
+      if (window._reviewOnly) { alert('Este baralho está em modo revisão: questões novas só no baralho da vez.'); return; }
       const lastDone = window._lastDone || 0;
       const total = allQuestions.length;
       if (lastDone >= total) {

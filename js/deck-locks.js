@@ -9,7 +9,8 @@
 (function () {
   const PASS_PCT = 85;
   const STATE_DECK = '__fila_estudo__';
-  const CACHE_KEY = 'deck_locks_v2';
+  const CACHE_KEY = 'deck_locks_v3';
+  const STATE_VERSION = 2; // estados gravados antes disso usaram outra conta de %: são descartados
 
   // Ordem dentro de cada matéria (fila única). [pasta, baralho]
   const SUBJECTS = [
@@ -76,8 +77,10 @@
   let S = { done: [], passes: {}, pct: {}, current: null };
   try { Object.assign(S, JSON.parse(localStorage.getItem(CACHE_KEY)) || {}); } catch {}
   let _done = new Set(S.done);
+  let _started = new Set(S.started || []);
   const saveCache = () => {
     S.done = [..._done];
+    S.started = [..._started];
     try { localStorage.setItem(CACHE_KEY, JSON.stringify(S)); } catch {}
   };
 
@@ -140,38 +143,51 @@
     return TPS_POS.has(norm(key)) && !tpsPass(key) && total > 0 && lastDone >= total;
   }
 
+  function isStarted(key) {
+    key = realKey(key);
+    if (_started.has(norm(key)) || isDone(key)) return true;
+    const p = localProg(key);
+    return !!(p && p.lastDone > 0);
+  }
+
+  // access: 'full' = questões novas liberadas (baralho/prova da vez)
+  //         'review' = abre só para revisar (concluídos e já começados fora da vez)
+  //         'none' = travado (nunca começado, não tem revisão)
+  // locked = sem questões novas (true em 'review' e 'none')
   function status(deckKey) {
     const key = realKey(deckKey);
     const n = norm(key);
+    const fin = (base, full, reason) => {
+      const access = full ? 'full' : (isStarted(key) ? 'review' : 'none');
+      return Object.assign(base, { access, locked: access !== 'full', reason });
+    };
     if (TPS_POS.has(n)) {
       const pos = TPS_POS.get(n);
       const pass = tpsPass(key);
-      if (pass) return { kind: 'tps', pos, total: TPS.length, done: true, locked: false, pass };
+      const base = { kind: 'tps', pos, total: TPS.length, done: !!pass, pass };
+      if (pass) return fin(base, false, `Prova já aprovada (${pass.pct}%): aqui ficam só as revisões dela.`);
       const cur = tpsCurrent();
-      if (cur.key && norm(cur.key) === n && !cur.waitTomorrow) return { kind: 'tps', pos, total: TPS.length, locked: false, current: true };
-      const reason = cur.key && norm(cur.key) === n
+      const isCur = cur.key && norm(cur.key) === n;
+      if (isCur && !cur.waitTomorrow) return fin(Object.assign(base, { current: true }), true);
+      return fin(base, false, isCur
         ? 'Uma prova TPS nova por dia: esta abre amanhã.'
-        : `Provas TPS vão em ordem, uma por dia, com ≥ ${PASS_PCT}%. A da vez é ${cur.key}.`;
-      return { kind: 'tps', pos, total: TPS.length, locked: true, reason };
+        : `Provas TPS vão em ordem, uma por dia, com ≥ ${PASS_PCT}%. A da vez é ${cur.key}.`);
     }
     const e = SUBJECT_OF.get(n);
-    if (!e) return { kind: 'free', locked: false };
-    const done = isDone(key);
-    if (done) return { kind: 'subject', subject: e.subject, pos: e.pos, total: e.subject.keys.length, done, locked: false };
+    if (!e) return { kind: 'free', access: 'full', locked: false };
+    const base = { kind: 'subject', subject: e.subject, pos: e.pos, total: e.subject.keys.length, done: isDone(key) };
+    if (base.done) return fin(base, false, 'Baralho já concluído: aqui ficam só as revisões dele.');
     const cur = currentSubject();
     const curKey = currentDeckKey(cur);
-    if (cur === e.subject && curKey && norm(curKey) === n) {
-      return { kind: 'subject', subject: e.subject, pos: e.pos, total: e.subject.keys.length, locked: false, current: true };
-    }
-    const reason = cur !== e.subject
+    if (cur === e.subject && curKey && norm(curKey) === n) return fin(Object.assign(base, { current: true }), true);
+    return fin(base, false, cur !== e.subject
       ? `Matéria da vez: ${cur ? cur.label : '—'}. ${e.subject.label} só abre quando chegar a vez dela (uma matéria inteira por vez, a de menor % primeiro).`
-      : `Um baralho por vez em ${e.subject.label}. O da vez é: ${curKey ? curKey.replace(/^.* - /, '') : '—'}.`;
-    return { kind: 'subject', subject: e.subject, pos: e.pos, total: e.subject.keys.length, locked: true, reason };
+      : `Um baralho por vez em ${e.subject.label}. O da vez é: ${curKey ? curKey.replace(/^.* - /, '') : '—'}.`);
   }
 
   function explain(deckKey) {
     const st = status(deckKey);
-    if (st.locked) alert(`🔒 Baralho bloqueado\n\n${st.reason}\n\nAs revisões da agenda continuam liberadas.`);
+    if (st.access === 'none') alert(`🔒 Baralho bloqueado\n\n${st.reason}\n\nAs revisões da agenda continuam liberadas.`);
   }
 
   function markDone(deckKey) {
@@ -190,23 +206,57 @@
 
   function fire() { try { window.dispatchEvent(new Event('decklocks:update')); } catch {} }
 
+  // % por matéria idêntica à da Análise TPS (flattenQuestions + buildSubjectQsMap em
+  // analise-tps.html): erros pela matéria da questão (reclassificada pelo texto quando
+  // falta o código), acertos pelo subjects_breakdown, sessões antigas rateadas.
+  // Espanhol aparece nas sessões como LING (rótulo "Espanhol/FR") ou ESP.
+  const PCT_CODES = { ESP: ['LING', 'ESP'] };
+  function subjectPctFrom(sessions, classify) {
+    const acc = {};
+    const add = (code, hit) => { acc[code] = acc[code] || { total: 0, correct: 0 }; acc[code].total++; if (hit) acc[code].correct++; };
+    const subjOf = (w, s) => w.subjectCode || (w.q && classify ? classify(w.q).subjectCode : null) || s.subject || 'PI';
+    sessions.forEach(s => {
+      const wrongs = s.wrong_items || [];
+      wrongs.forEach(w => add(subjOf(w, s), false));
+      const bd = s.subjects_breakdown;
+      if (bd && Object.keys(bd).length > 0) {
+        Object.entries(bd).forEach(([code, v]) => {
+          const c = (v && v.correct) || 0;
+          for (let i = 0; i < c; i++) add(code, true);
+        });
+      } else {
+        const freq = {};
+        wrongs.forEach(w => { const sc = subjOf(w, s); freq[sc] = (freq[sc] || 0) + 1; });
+        const fe = Object.entries(freq);
+        if (fe.length > 1) {
+          const tot = Object.values(freq).reduce((a, v) => a + v, 0);
+          let remaining = s.correct || 0;
+          fe.forEach(([subj, cnt], i) => {
+            const share = i < fe.length - 1 ? Math.round((cnt / tot) * (s.correct || 0)) : remaining;
+            for (let j = 0; j < share; j++) add(subj, true);
+            remaining -= share;
+          });
+        } else {
+          for (let i = 0; i < (s.correct || 0); i++) add(s.subject || 'PI', true);
+        }
+      }
+      const missing = Math.max(0, (s.wrong || 0) - wrongs.length);
+      for (let i = 0; i < missing; i++) add(s.subject || 'PI', false);
+    });
+    const out = {};
+    SUBJECTS.forEach(sub => {
+      const codes = PCT_CODES[sub.code] || [sub.code];
+      const t = codes.reduce((a, c) => a + ((acc[c] && acc[c].total) || 0), 0);
+      const c = codes.reduce((a, k) => a + ((acc[k] && acc[k].correct) || 0), 0);
+      if (t) out[sub.code] = { total: t, pct: Math.round(c / t * 100) };
+    });
+    return out;
+  }
   async function subjectPct() {
     const user = await DB.getUser();
     if (!user) return null;
     const sessions = (await DB.getSessions(user.id)).filter(s => s.type === 'simulado');
-    const acc = {};
-    const add = (code, t, c) => { if (!code) return; acc[code] = acc[code] || { total: 0, correct: 0 }; acc[code].total += t; acc[code].correct += c; };
-    sessions.forEach(s => {
-      const bd = s.subjects_breakdown;
-      if (bd && typeof bd === 'object' && Object.keys(bd).length) {
-        Object.entries(bd).forEach(([code, v]) => {
-          if (v && typeof v === 'object') add(code, v.total || 0, v.correct || 0);
-        });
-      } else add(s.subject, s.total || 0, s.correct || 0);
-    });
-    const out = {};
-    Object.entries(acc).forEach(([code, v]) => { out[code] = { total: v.total, pct: v.total ? Math.round(v.correct / v.total * 100) : 0 }; });
-    return out;
+    return subjectPctFrom(sessions, typeof window.classifyQuestion === 'function' ? window.classifyQuestion : null);
   }
 
   async function refresh() {
@@ -217,6 +267,7 @@
     ]);
     if (!trophies && !ckpts) return false;
     const done = new Set();
+    const started = new Set();
     const passes = {};
     const best = (k, pct, date) => { const p = passes[k]; if (!p || pct > p.pct) passes[k] = { pct, date }; };
     Object.entries(trophies || {}).forEach(([date, arr]) => (arr || []).forEach(d => {
@@ -226,21 +277,24 @@
     let state = null;
     (ckpts || []).forEach(c => {
       if (c.deck_name === STATE_DECK) { state = c.answers; return; }
+      if (c.current_index > 0) started.add(norm(c.deck_name));
       if (c.total_questions && c.current_index >= c.total_questions) done.add(norm(c.deck_name));
       const p = c.answers && c.answers.pass;
       if (p && p.complete && TPS_POS.has(norm(c.deck_name))) best(norm(c.deck_name), p.pct, p.date);
     });
     _done = done;
+    _started = started;
     S.passes = passes;
     if (pct) S.pct = pct;
-    if (state && state.current) S.current = state.current;
+    if (state && state.current && state.v === STATE_VERSION) S.current = state.current;
+    else S.current = null;
     // Troca de matéria: só quando a atual termina (ou na primeira vez)
     const cur = SUBJECTS.find(s => s.code === S.current);
     if (!cur || subjectDone(cur)) {
       const next = pickNextSubject();
       if (next && next.code !== S.current) {
         S.current = next.code;
-        DB.saveQueueState(STATE_DECK, { current: next.code, since: today() }).catch(e => console.warn('fila: salvar estado falhou', e));
+        DB.saveQueueState(STATE_DECK, { v: STATE_VERSION, current: next.code, since: today() }).catch(e => console.warn('fila: salvar estado falhou', e));
       }
     }
     saveCache();
@@ -249,7 +303,7 @@
   }
 
   window.DeckLocks = {
-    PASS_PCT, SUBJECTS, TPS, norm,
+    PASS_PCT, SUBJECTS, TPS, norm, subjectPctFrom,
     status, explain, markDone, notePass, refresh, tpsNeedsRetake,
     currentSubject, currentDeckKey, upcoming, tpsCurrent, tpsDoneToday, pctOf,
     isTps: key => TPS_POS.has(norm(key)),
