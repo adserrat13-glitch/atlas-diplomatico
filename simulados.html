@@ -65,7 +65,7 @@
     .upload-label strong { color:var(--accent); }
     .upload-hint { font-size:12px; color:var(--muted); margin-top:8px; }
 
-    .sim-browser { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; width:100%; max-width:540px; }
+    .sim-browser { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; width:100%; max-width:540px; align-content:start; }
     .sb-file { background:var(--card); border:1px solid var(--border); border-radius:10px;
       padding:10px 14px; font-size:13px; color:var(--text); cursor:pointer;
       display:flex; align-items:center; gap:8px; transition:.15s; }
@@ -129,6 +129,21 @@
     .qp-link { all:unset; cursor:pointer; color:#d4af37; font-weight:600; }
     .qp-link:hover { text-decoration:underline; }
     @media (max-width:480px) { .qp-grid { grid-template-columns:1fr; } }
+    /* Um quadro por matéria */
+    .subj-card { background:var(--card); border:1px solid var(--border); border-radius:16px;
+      padding:12px 14px 14px; display:flex; flex-direction:column; gap:8px; }
+    .subj-card.current { border-color:rgba(212,175,55,.55); box-shadow:0 0 0 1px rgba(212,175,55,.12); }
+    .subj-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:0 2px; }
+    .subj-title { font-size:15px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .subj-chip { font-size:10px; letter-spacing:.8px; text-transform:uppercase; font-weight:700; padding:3px 8px;
+      border-radius:99px; border:1px solid var(--border); color:var(--muted); }
+    .subj-chip.gold { color:#d4af37; border-color:rgba(212,175,55,.5); background:rgba(212,175,55,.08); }
+    .subj-chip.ok { color:#34d399; border-color:rgba(52,211,153,.45); background:rgba(52,211,153,.07); }
+    .subj-meta { display:flex; gap:12px; font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .subj-bar { margin:0 2px 2px; }
+    .subj-card:not(.current) .subj-bar i { background:rgba(212,175,55,.55); }
+    .subj-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+    @media (max-width:480px) { .subj-grid { grid-template-columns:1fr; } }
 
     /* OPTIONS */
     .opt-title { font-size:22px; font-weight:700; }
@@ -808,12 +823,6 @@
       return st.access || 'full';
     }
     function jsArg(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
-    // Na tela, cada pasta segue a ordem da fila (baralhos fora da fila vão no fim)
-    function byQueue(files, folder) {
-      if (!window.DeckLocks) return files;
-      const rank = f => { const st = DeckLocks.status(deckKeyFor(f, folder)); return st.pos ?? 999; };
-      return files.map((f, i) => ({ f, i, r: rank(f) })).sort((a, b) => a.r - b.r || a.i - b.i).map(x => x.f);
-    }
     function deckTile(f, folder, label) {
       const deckKey = deckKeyFor(f, folder);
       const st = window.DeckLocks ? DeckLocks.status(deckKey) : { locked: false };
@@ -919,18 +928,77 @@
       const questoes = await scanQuestoesFolder();
       const browser = document.getElementById('simBrowser');
       let html = queuePanelHtml();
-      if (!files.length) {
-        html += '<div style="grid-column:1/-1;color:var(--muted);font-size:13px;text-align:center">Coloque arquivos CSV em SIMULADOS/ para aparecerem aqui</div>';
-      } else {
-        html += '<div class="section-label" style="grid-column:1/-1">PROVAS TPS</div>';
-        html += byQueue(files, '').map(f =>
-          deckTile(f, '', f.replace(/\.csv$/i, '').replace(/^\d+\s*/, ''))).join('');
+      if (!window.DeckLocks) {
+        // Sem o módulo da fila: lista simples por pasta
+        html += files.map(f => deckTile(f, '', f.replace(/\.csv$/i, '').replace(/^\d+\s*/, ''))).join('');
+        Object.keys(questoes).forEach(folder => {
+          html += `<div class="section-label" style="grid-column:1/-1">${escHtml(folder)}</div>`;
+          html += questoes[folder].map(f => deckTile(f, folder, f.replace(/\.csv$/i, ''))).join('');
+        });
+        browser.innerHTML = html;
+        return;
       }
-      Object.keys(questoes).forEach(folder => {
-        html += `<div class="section-label" style="grid-column:1/-1">${escHtml(folder)}</div>`;
-        html += byQueue(questoes[folder], folder).map(f =>
-          deckTile(f, folder, f.replace(/\.csv$/i, ''))).join('');
-      });
+      // Um quadro por matéria (Línguas separada por idioma), na ordem:
+      // obrigatórios → rodízio pela % (mais fraca primeiro) → provas TPS → hobby → outros
+      const all = [];   // { f, folder, key }
+      files.forEach(f => all.push({ f, folder: '', key: deckKeyFor(f, '') }));
+      Object.entries(questoes).forEach(([folder, fs]) => fs.forEach(f => all.push({ f, folder, key: deckKeyFor(f, folder) })));
+      const used = new Set();
+      const filesOf = keys => {
+        const want = new Map(keys.map((k, i) => [DeckLocks.norm(k), i]));
+        const baseOf = k => DeckLocks.norm(k.replace(/\.local$/i, ''));
+        // inclui cópias locais (.local) logo depois do baralho original
+        return all.filter(x => want.has(baseOf(x.key)))
+          .map(x => { used.add(x.key); return { ...x, r: want.get(baseOf(x.key)) + (/\.local$/i.test(x.key) ? 0.5 : 0) }; })
+          .sort((a, b) => a.r - b.r);
+      };
+      const curSub = DeckLocks.currentSubject();
+      const subs = DeckLocks.SUBJECTS;
+      const pctRank = s => DeckLocks.pctOf(s) ?? 101;
+      const ordered = [
+        ...subs.filter(s => s.daily),
+        ...subs.filter(s => !s.daily && !s.hobby).map((s, i) => ({ s, i }))
+          .sort((a, b) => pctRank(a.s) - pctRank(b.s) || a.i - b.i).map(x => x.s),
+      ];
+      const card = ({ title, chip = '', chipCls = '', meta = '', pct = null, cls = '', body }) => `
+        <div class="subj-card ${cls}" style="grid-column:1/-1">
+          <div class="subj-head">
+            <div class="subj-title">${title}${chip ? `<span class="subj-chip ${chipCls}">${chip}</span>` : ''}</div>
+            <div class="subj-meta">${meta}</div>
+          </div>
+          ${pct === null ? '' : `<div class="qp-bar subj-bar"><i style="width:${pct}%"></i></div>`}
+          <div class="subj-grid">${body}</div>
+        </div>`;
+      const subjectCard = s => {
+        const items = filesOf(s.keys);
+        if (!items.length) return '';
+        const done = s.keys.filter(k => DeckLocks.status(k).done).length;
+        const p = DeckLocks.pctOf(s);
+        let chip = '', chipCls = '', cls = '';
+        if (done === s.keys.length) { chip = '✓ Concluída'; chipCls = 'ok'; }
+        else if (s.daily) { chip = 'Obrigatório · 200/dia'; chipCls = 'gold'; }
+        else if (s.hobby) { chip = 'Hobby'; }
+        else if (s === curSub) { chip = 'Da vez'; chipCls = 'gold'; cls = 'current'; }
+        const meta = `${p !== null && !s.hobby ? `<span>${p}% acerto</span>` : ''}<span>${done}/${s.keys.length} baralhos</span>`;
+        return card({ title: escHtml(s.label), chip, chipCls, meta, cls, pct: Math.round(done / s.keys.length * 100),
+          body: items.map(x => deckTile(x.f, x.folder, x.f.replace(/\.csv$/i, '').trim())).join('') });
+      };
+      ordered.forEach(s => { html += subjectCard(s); });
+      // Provas TPS
+      const tpsItems = filesOf(DeckLocks.TPS);
+      if (tpsItems.length) {
+        const passed = DeckLocks.TPS.filter(k => DeckLocks.status(k).done).length;
+        html += card({ title: 'Provas TPS', chip: `1 por dia · ≥ ${DeckLocks.PASS_PCT}%`, chipCls: 'gold',
+          meta: `<span>${passed}/${DeckLocks.TPS.length} aprovadas</span>`, pct: Math.round(passed / DeckLocks.TPS.length * 100),
+          body: tpsItems.map(x => deckTile(x.f, '', x.f.replace(/\.csv$/i, '').replace(/^\d+\s*/, '').trim())).join('') });
+      }
+      subs.filter(s => s.hobby).forEach(s => { html += subjectCard(s); });
+      // Baralhos fora da fila (CSVs novos ainda não classificados)
+      const rest = all.filter(x => !used.has(x.key));
+      if (rest.length) {
+        html += card({ title: 'Outros', meta: '<span>fora da fila</span>',
+          body: rest.map(x => deckTile(x.f, x.folder, (x.folder ? x.folder + ' · ' : '') + x.f.replace(/\.csv$/i, '').trim())).join('') });
+      }
       browser.innerHTML = html;
     }
     window.addEventListener('decklocks:update', () => loadSimBrowser());
