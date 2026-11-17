@@ -95,15 +95,40 @@
     .sb-file.sb-locked:hover { border-color:var(--border); background:var(--card); }
     .sb-file.sb-review { opacity:.72; }
     .sb-file.sb-review:hover { opacity:1; }
-    .queue-panel { background:var(--card); border:1px solid rgba(212,175,55,.45); border-radius:14px;
-      padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
-    .queue-panel .qp-title { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:#d4af37; font-weight:700; }
-    .queue-panel .qp-row { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .queue-panel .qp-lbl { font-size:11.5px; color:var(--muted); }
-    .queue-panel .qp-val { font-size:14px; font-weight:700; color:var(--text); }
-    .queue-panel .qp-sub { font-size:11.5px; font-weight:400; color:var(--muted); margin-left:4px; }
-    .queue-panel .qp-btn { padding:8px 14px; font-size:12.5px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .queue-panel .qp-next { font-size:11.5px; color:var(--muted); line-height:1.5; border-top:1px solid var(--border); padding-top:8px; }
+    .queue-panel { background:var(--card); border:1px solid rgba(212,175,55,.35); border-radius:16px;
+      padding:14px; display:flex; flex-direction:column; gap:10px; }
+    .qp-head { display:flex; align-items:baseline; justify-content:space-between; padding:0 2px; }
+    .qp-title { font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#d4af37; font-weight:700; }
+    .qp-progress { font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
+    .qp-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .qp-tile { all:unset; box-sizing:border-box; display:flex; flex-direction:column; gap:3px; min-width:0;
+      padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:rgba(255,255,255,.025);
+      cursor:pointer; transition:border-color .15s, background .15s; }
+    .qp-tile:hover { border-color:rgba(212,175,55,.6); background:rgba(212,175,55,.05); }
+    .qp-tile:focus-visible { outline:2px solid #d4af37; outline-offset:2px; }
+    .qp-tile.wide { grid-column:1/-1; }
+    .qp-tile.main { border-color:rgba(212,175,55,.55); background:rgba(212,175,55,.07); }
+    .qp-tile.done { cursor:default; border-color:rgba(52,211,153,.35); background:rgba(52,211,153,.05); }
+    .qp-tile.wait { cursor:default; opacity:.55; border-style:dashed; }
+    .qp-tile.done:hover, .qp-tile.wait:hover { background:inherit; }
+    .qp-tile.done:hover { border-color:rgba(52,211,153,.35); }
+    .qp-tile.wait:hover { border-color:var(--border); }
+    .qp-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .qp-tag { font-size:10px; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); font-weight:600; }
+    .qp-num { font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .qp-tile.done .qp-num { color:#34d399; }
+    .qp-name { font-size:15px; font-weight:700; color:var(--text); line-height:1.25; }
+    .qp-deck { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .qp-tile.main .qp-name { font-size:17px; }
+    .qp-bar { height:4px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin-top:5px; }
+    .qp-bar i { display:block; height:100%; border-radius:99px; background:#d4af37; transition:width .3s; }
+    .qp-tile.done .qp-bar i { background:#34d399; }
+    .qp-foot { display:flex; flex-wrap:wrap; gap:6px 14px; justify-content:space-between; padding:2px 2px 0;
+      font-size:11.5px; color:var(--muted); }
+    .qp-foot b { color:var(--text); font-weight:600; }
+    .qp-link { all:unset; cursor:pointer; color:#d4af37; font-weight:600; }
+    .qp-link:hover { text-decoration:underline; }
+    @media (max-width:480px) { .qp-grid { grid-template-columns:1fr; } }
 
     /* OPTIONS */
     .opt-title { font-size:22px; font-weight:700; }
@@ -826,61 +851,67 @@
     }
     function queuePanelHtml() {
       if (!window.DeckLocks) return '';
-      const cur = DeckLocks.currentSubject();
-      const curKey = DeckLocks.currentDeckKey(cur);
-      const pct = cur ? DeckLocks.pctOf(cur) : null;
-      const tps = DeckLocks.tpsCurrent();
       const nm = k => escHtml(k.replace(/^.*? - /, ''));
-      let h = '<div class="queue-panel" style="grid-column:1/-1">';
-      h += '<div class="qp-title">Fila de estudo</div>';
-      // 1º Obrigatórias do dia: Inglês e Espanhol (200 cada, mínimo e limite)
+      const tile = ({ cls = '', tag, num = '', name, deck = '', pct = null, key = null }) => {
+        const click = key ? ` onclick="openQueueDeck('${jsArg(key)}')"` : ' tabindex="-1"';
+        const bar = pct === null ? '' : `<div class="qp-bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>`;
+        return `<button type="button" class="qp-tile ${cls}"${click}>
+          <div class="qp-top"><span class="qp-tag">${tag}</span><span class="qp-num">${num}</span></div>
+          <div class="qp-name">${name}</div>${deck ? `<div class="qp-deck">${deck}</div>` : ''}${bar}</button>`;
+      };
+      const tiles = [];
+      let steps = 0, stepsDone = 0;
+
+      // Obrigatórios do dia: Inglês e Espanhol
       DeckLocks.dailyInfo().forEach(d => {
-        const btn = d.key && d.remaining > 0
-          ? `<button class="btn btn-secondary qp-btn" onclick="openQueueDeck('${jsArg(d.key)}')">▶ ${nm(d.key)}</button>` : '';
-        const val = !d.key ? '✓ Todos os baralhos concluídos'
-          : d.ok ? `✓ Feito hoje <span class="qp-sub">${d.done}/${d.target}</span>`
-          : `${d.done}/${d.target} <span class="qp-sub">faltam ${d.remaining}</span>`;
-        h += `<div class="qp-row"><div><div class="qp-lbl">Obrigatório do dia · ${escHtml(d.subject.label)}</div>
-          <div class="qp-val">${val}</div></div>${btn}</div>`;
+        steps++; if (d.ok) stepsDone++;
+        if (!d.key) { tiles.push(tile({ cls: 'done', tag: 'Obrigatório', num: '✓', name: escHtml(d.subject.label), deck: 'Todos os baralhos concluídos' })); return; }
+        tiles.push(tile({
+          cls: d.ok ? 'done' : '', tag: 'Obrigatório', num: d.ok ? '✓ feito' : `${d.done}/${d.target}`,
+          name: escHtml(d.subject.label), deck: nm(d.key), pct: d.done / d.target * 100, key: d.ok ? null : d.key }));
       });
+
+      // Baralho da vez (rodízio)
+      const cur = DeckLocks.currentSubject();
+      const curKey = DeckLocks.currentDeckKey();
       if (cur && curKey) {
-        const done = cur.keys.filter(k => DeckLocks.status(k).done).length;
         const st = DeckLocks.status(curKey);
-        const action = st.waitDaily
-          ? `<div class="qp-sub" style="max-width:220px">🔒 Abre depois de Inglês e Espanhol do dia</div>`
-          : `<button class="btn btn-primary qp-btn" onclick="openQueueDeck('${jsArg(curKey)}')">▶ ${nm(curKey)}</button>`;
-        h += `<div class="qp-row"><div><div class="qp-lbl">Baralho da vez${pct !== null ? ` · ${escHtml(cur.label)} ${pct}%` : ''}</div>
-          <div class="qp-val">${escHtml(cur.label)} <span class="qp-sub">baralho ${done + 1}/${cur.keys.length} · ${nm(curKey)}</span></div></div>
-          ${action}</div>`;
+        const pct = DeckLocks.pctOf(cur);
+        const pos = cur.keys.filter(k => DeckLocks.status(k).done).length + 1;
+        let prog = null;
+        try { const p = JSON.parse(localStorage.getItem('sim_prog_' + curKey.replace(/\s+/g, '_'))); if (p && p.totalQ) prog = p; } catch {}
+        tiles.push(tile({
+          cls: 'wide ' + (st.waitDaily ? 'wait' : 'main'),
+          tag: st.waitDaily ? '🔒 Depois dos idiomas' : `Baralho da vez${pct !== null ? ' · ' + pct + '%' : ''}`,
+          num: prog ? `${prog.lastDone}/${prog.totalQ}` : `${pos}º de ${cur.keys.length}`,
+          name: escHtml(cur.label), deck: nm(curKey),
+          pct: prog ? prog.lastDone / prog.totalQ * 100 : null, key: st.waitDaily ? null : curKey }));
       } else {
-        h += '<div class="qp-row"><div class="qp-val">✓ Todas as matérias concluídas</div></div>';
+        tiles.push(tile({ cls: 'wide done', tag: 'Rodízio', num: '✓', name: 'Todas as matérias concluídas' }));
       }
-      if (tps.key) {
-        h += tps.waitTomorrow
-          ? `<div class="qp-row"><div><div class="qp-lbl">Prova TPS do dia</div><div class="qp-val">✓ Aprovada hoje <span class="qp-sub">${nm(tps.key)} abre amanhã</span></div></div></div>`
-          : `<div class="qp-row"><div><div class="qp-lbl">Prova TPS do dia · precisa de ≥ ${DeckLocks.PASS_PCT}%</div>
-              <div class="qp-val">${nm(tps.key)} <span class="qp-sub">prova ${tps.index + 1}/${DeckLocks.TPS.length}</span></div></div>
-              <button class="btn btn-secondary qp-btn" onclick="openQueueDeck('${jsArg(tps.key)}')">▶ Fazer prova</button></div>`;
-      } else {
-        h += '<div class="qp-row"><div class="qp-val">✓ Todas as provas TPS aprovadas</div></div>';
-      }
-      // Hobby: cota do dia (a cada 1.000 questões das outras matérias, +200)
+
+      // Prova TPS do dia
+      const tps = DeckLocks.tpsCurrent();
+      steps++;
+      if (!tps.key) { stepsDone++; tiles.push(tile({ cls: 'wide done', tag: 'Prova TPS', num: '✓', name: 'Todas aprovadas' })); }
+      else if (tps.waitTomorrow) { stepsDone++; tiles.push(tile({ cls: 'wide done', tag: 'Prova TPS do dia', num: '✓ aprovada', name: 'Feita hoje', deck: `${nm(tps.key)} abre amanhã` })); }
+      else tiles.push(tile({ cls: 'wide', tag: 'Prova TPS do dia', num: `${tps.index + 1}/${DeckLocks.TPS.length}`,
+        name: nm(tps.key), deck: `Precisa de ${DeckLocks.PASS_PCT}% numa passada inteira`, key: tps.key }));
+
+      // Rodapé: hobby + próximas matérias
       const hb = DeckLocks.hobbyInfo();
-      const hobbyBtns = hb.remaining > 0
-        ? DeckLocks.hobbySubjects().filter(x => x.key).map(x =>
-            `<button class="btn btn-secondary qp-btn" onclick="openQueueDeck('${jsArg(x.key)}')">▶ ${escHtml(x.subject.label)}: ${nm(x.key)}</button>`).join('')
-        : '';
-      h += `<div class="qp-row"><div><div class="qp-lbl">Hobby (Russo e Alemão) · +${hb.grant} a cada ${hb.block.toLocaleString('pt-BR')} questões das outras matérias</div>
-        <div class="qp-val">${hb.remaining > 0 ? `${hb.remaining} liberadas hoje` : '🔒 Sem cota agora'}
-        <span class="qp-sub">${hb.hobby}/${hb.budget} usadas · faltam ${hb.toNext} para +${hb.grant}</span></div></div>
-        ${hobbyBtns ? `<div style="display:flex;gap:6px;flex-wrap:wrap">${hobbyBtns}</div>` : ''}</div>`;
-      const next = DeckLocks.upcoming();
-      if (next.length) {
-        h += '<div class="qp-next">Rodízio — próximos baralhos virão de: ' +
-          next.map(s => { const p = DeckLocks.pctOf(s); return escHtml(s.label) + (p !== null ? ` ${p}%` : ''); }).join(' → ') +
-          '<br>A cada baralho terminado, a vez passa para a próxima matéria. A ordem segue a % (menor primeiro) e é recalculada a cada volta.</div>';
-      }
-      return h + '</div>';
+      const hobbyKeys = DeckLocks.hobbySubjects().filter(x => x.key);
+      const hobby = hb.remaining > 0
+        ? `Hobby: <b>${hb.remaining} liberadas</b> · ` + hobbyKeys.map(x => `<button class="qp-link" onclick="openQueueDeck('${jsArg(x.key)}')">${escHtml(x.subject.label)}</button>`).join(' · ')
+        : `Hobby 🔒 libera +${hb.grant} em <b>${hb.toNext}</b> questões`;
+      const next = DeckLocks.upcoming().map(x => escHtml(x.label));
+      const nextTxt = next.length ? `Depois: ${next.slice(0, 3).join(' → ')}${next.length > 3 ? ' …' : ''}` : '';
+
+      return `<div class="queue-panel" style="grid-column:1/-1">
+        <div class="qp-head"><span class="qp-title">Hoje</span><span class="qp-progress">${stepsDone} de ${steps} obrigatórios feitos</span></div>
+        <div class="qp-grid">${tiles.join('')}</div>
+        <div class="qp-foot"><span>${hobby}</span><span>${nextTxt}</span></div>
+      </div>`;
     }
 
     async function loadSimBrowser() {
