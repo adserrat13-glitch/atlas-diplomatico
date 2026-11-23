@@ -2,6 +2,7 @@
 // Rodízio entre matérias: um baralho por vez. Cada volta passa por todas as
 // matérias da menor para a maior % de acerto (mesma conta da Análise TPS); as
 // abaixo de 72% entram 2 vezes por volta. A ordem é recalculada a cada volta.
+// Direito e Dir. Internacional nunca seguidos: Economia entra entre os dois.
 // Dentro de cada matéria os baralhos seguem a ordem fixa abaixo.
 // Hobby (Russo, Alemão): a cada 1.000 questões das outras matérias no dia,
 // libera 200 questões de hobby.
@@ -107,12 +108,29 @@
   const MAIN = SUBJECTS.filter(x => !x.hobby && !x.daily);   // só estas entram no rodízio
   const byCode = c => SUBJECTS.find(x => x.code === c);
   const nextDeckOf = sub => sub ? sub.keys.find(k => !isDone(k)) || null : null;
-  function buildCycle() {
+  // Direito e Dir. Internacional nunca em sequência: Economia entra entre os dois
+  const LAW = new Set(['DIR', 'DIP']);
+  const SPACER = 'ECO';
+  const isOpen = c => { const s = byCode(c); return !!(s && !subjectDone(s)); };
+  function separateLaw(codes, prev) {
+    if (!isOpen(SPACER)) return codes;
+    const out = [];
+    let last = prev;
+    for (const c of codes) {
+      if (!isOpen(c)) { out.push(c); continue; }   // matéria concluída é pulada: não conta como vizinha
+      if (c === last) continue;                    // mesma matéria duas vezes seguidas: fica uma
+      if (LAW.has(c) && LAW.has(last)) out.push(SPACER);
+      out.push(c);
+      last = c;
+    }
+    return out;
+  }
+  function buildCycle(prev = null) {
     const open = MAIN.filter(x => !subjectDone(x))
       .map((x, i) => ({ x, i, p: pctOf(x) ?? 101 })).sort((a, b) => a.p - b.p || a.i - b.i).map(o => o.x);
     const weak = open.filter(x => (pctOf(x) ?? 101) < WEAK_PCT);
     const half = Math.ceil(open.length / 2);
-    return [...open.slice(0, half), ...weak, ...open.slice(half)].map(x => x.code);
+    return separateLaw([...open.slice(0, half), ...weak, ...open.slice(half)].map(x => x.code), prev);
   }
   function advance(Q, lastCode) {
     let cycle = Q.cycle.slice(), idx = Q.idx;
@@ -122,10 +140,11 @@
         for (let i = idx + 1; i < cycle.length; i++) {
           const sub = byCode(cycle[i]);
           if (!sub || subjectDone(sub) || (avoidRepeat && cycle[i] === lastCode)) continue;
-          return { v: STATE_VERSION, cycle, idx: i, deck: nextDeckOf(sub), since: today() };
+          if (LAW.has(lastCode) && LAW.has(cycle[i]) && isOpen(SPACER)) cycle.splice(i, 0, SPACER);
+          return { v: STATE_VERSION, cycle, idx: i, deck: nextDeckOf(byCode(cycle[i])), since: today() };
         }
       }
-      cycle = buildCycle(); idx = -1;   // volta nova, pela % de agora
+      cycle = buildCycle(lastCode); idx = -1;   // volta nova, pela % de agora
       if (!cycle.length) break;
     }
     return { v: STATE_VERSION, cycle: [], idx: 0, deck: null, since: today() };
@@ -137,7 +156,16 @@
     if (!Q || Q.v !== STATE_VERSION || !Array.isArray(Q.cycle)) {
       Q = advance({ cycle: buildCycle(), idx: -1 }, null);
       changed = true;
-    } else if (!Q.deck || isDone(Q.deck)) {
+    } else {
+      // volta já salva: aplica a separação Direito / DIP no que falta dela
+      const tail = Q.cycle.slice(Q.idx + 1);
+      const fixed = separateLaw(tail, Q.cycle[Q.idx]);
+      if (fixed.length !== tail.length) {
+        Q = Object.assign({}, Q, { cycle: [...Q.cycle.slice(0, Q.idx + 1), ...fixed] });
+        changed = true;
+      }
+    }
+    if (Q.v === STATE_VERSION && (!Q.deck || isDone(Q.deck))) {
       const last = Q.deck ? (SUBJECT_OF.get(norm(Q.deck)) || {}).subject : null;
       const N = advance(Q, last ? last.code : null);
       if (N.deck !== Q.deck || N.idx !== Q.idx) { Q = N; changed = true; }
@@ -159,7 +187,7 @@
   function upcoming() {
     const Q = ensureQueue();
     const rest = Q.cycle.slice(Q.idx + 1).map(byCode).filter(x => x && !subjectDone(x));
-    return rest.length ? rest : buildCycle().map(byCode);
+    return rest.length ? rest : buildCycle(Q.cycle[Q.idx]).map(byCode);
   }
 
   // ── Hobby: cota diária ──
