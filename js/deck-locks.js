@@ -164,6 +164,17 @@
         Q = Object.assign({}, Q, { cycle: [...Q.cycle.slice(0, Q.idx + 1), ...fixed] });
         changed = true;
       }
+      // o baralho da vez veio colado no outro Direito: Economia entra agora
+      let p = Q.idx - 1;
+      while (p >= 0 && !isOpen(Q.cycle[p])) p--;
+      const prevCode = p >= 0 ? Q.cycle[p] : null;
+      const curCode = Q.cycle[Q.idx];
+      if (LAW.has(prevCode) && LAW.has(curCode) && isOpen(SPACER)) {
+        const cycle = Q.cycle.slice();
+        cycle.splice(Q.idx, 0, SPACER);
+        Q = Object.assign({}, Q, { cycle, deck: nextDeckOf(byCode(SPACER)), since: today() });
+        changed = true;
+      }
     }
     if (Q.v === STATE_VERSION && (!Q.deck || isDone(Q.deck))) {
       const last = Q.deck ? (SUBJECT_OF.get(norm(Q.deck)) || {}).subject : null;
