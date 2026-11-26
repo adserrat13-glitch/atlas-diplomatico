@@ -17,7 +17,18 @@
   const STATE_VERSION = 4; // estados de versões anteriores (outra regra/conta) são descartados
   const WEAK_PCT = 72;      // abaixo disso a matéria entra 2x por volta
   const HOBBY_BLOCK = 1000, HOBBY_GRANT = 200;
-  const DAILY_TARGET = 200; // Inglês e Espanhol: exatamente 200 novas por dia (mínimo e limite)
+  // Obrigatórias do dia (fora do rodízio): daily = questões novas por dia.
+  // Inglês/Espanhol 200, Português 100 (mínimo e limite). PI 01–17: 100 no mínimo,
+  // sem limite (noCap), um baralho por vez em ordem até o 17.
+  // Obrigatória com todos os baralhos concluídos: a obrigação vira zerar as
+  // revisões vencidas dela (agenda SRS dos baralhos da matéria).
+  const PI_TRACK = [
+    '01 - Teoria das Relacoes Internacionais', '02 - HPEB (Historia da Politica Externa Brasileira)',
+    '03 - ONU', '04 - Seguranca Internacional', '05 - Meio Ambiente Internacional', '06 - Direitos Humanos',
+    '07 - Coalizoes (BRICS, G20, Sul-Sul)', '08 - Sistema Financeiro Internacional',
+    '09 - Sistema Comercial Internacional (OMC-GATT)', '10-11 - Blocos Economicos e Integracao Sul-Americana',
+    '12 - EUA Politica Externa', '13 - Argentina', '14 - Americas (America Latina e Caribe)',
+    '15 - Africa Politica Internacional', '16 - Asia Politica Internacional', '17 - Europa Politica Internacional'];
 
   // Ordem dentro de cada matéria (fila única). [pasta, baralho]
   const SUBJECTS = [
@@ -32,13 +43,9 @@
     { code: 'ECO', label: 'Economia', decks: [
       ['ECONOMIA', 'ECONOMIA'], ['ECONOMIA', 'FEB 2'], ['ECONOMIA', 'ECO 2'],
       ['ECONOMIA', 'FEB MANUAL'], ['ECONOMIA', 'ECONOMIA TPS'], ['ECONOMIA', 'ORDEM E PROGRESSO']] },
+    { code: 'PI17', label: 'Pol. Internacional 01–17', daily: 100, noCap: true,
+      decks: PI_TRACK.map(n => ['POLITICA INTERNACIONAL', n]) },
     { code: 'PI', label: 'Pol. Internacional', decks: [
-      '01 - Teoria das Relacoes Internacionais', '02 - HPEB (Historia da Politica Externa Brasileira)',
-      '03 - ONU', '04 - Seguranca Internacional', '05 - Meio Ambiente Internacional', '06 - Direitos Humanos',
-      '07 - Coalizoes (BRICS, G20, Sul-Sul)', '08 - Sistema Financeiro Internacional',
-      '09 - Sistema Comercial Internacional (OMC-GATT)', '10-11 - Blocos Economicos e Integracao Sul-Americana',
-      '12 - EUA Politica Externa', '13 - Argentina', '14 - Americas (America Latina e Caribe)',
-      '15 - Africa Politica Internacional', '16 - Asia Politica Internacional', '17 - Europa Politica Internacional',
       'ATUALIDADES 2024', 'ATUALIDADES 2025', 'LESSA 1', 'LESSA 2', 'PI COLE DIPLO',
       'POLITICA INTERNACIONAL TPS', 'POLITICAINTERNACIONAL', 'RELAÇÕES INTERNACIONAIS',
       'REPERTORIO FUNAG', 'TEORIA DAS RELAÇÕES INTERNACIONAIS'].map(n => ['POLITICA INTERNACIONAL', n]) },
@@ -48,16 +55,16 @@
       ['HISTORIADOBRASIL', 'HPEB DORATIOTO'], ['HISTORIADOBRASIL', 'HISTORIA DO BRASIL 2 FASE'],
       ['HISTORIADOBRASIL', 'HPEB GAMBIAGI'], ['HISTORIADOBRASIL', 'POLITICA EXTERNA 193012'],
       ['HISTORIADOBRASIL', 'TPS HB']] },
-    { code: 'ESP', label: 'Espanhol', daily: true, decks: [['LINGUAS', 'ESPANHOL C1']] },
+    { code: 'ESP', label: 'Espanhol', daily: 200, decks: [['LINGUAS', 'ESPANHOL C1']] },
     { code: 'GEO', label: 'Geografia', decks: [
       ['GEOGRAFIA', 'GEOGRAFIA FUNAG'], ['GEOGRAFIA', 'GEOGRAFIA APOSTILA NOVA']] },
-    { code: 'LP', label: 'Português', decks: [
+    { code: 'LP', label: 'Português', daily: 100, decks: [
       ['PORTUGUES', 'PORTUGUES DIPLOMATA'], ['PORTUGUES', 'portgues 1 pestana'], ['PORTUGUES', 'COMO ESCREVER'],
       ['PORTUGUES', 'poort diplo 2 anki'], ['PORTUGUES', 'INTERPRETAÇÃO DE TEXTOS']] },
     { code: 'HM', label: 'Hist. Mundial', decks: [
       ['HISTORIAMUNDIAL', 'BURNS'], ['HISTORIAMUNDIAL', 'HM SOMBRA SARAIVA'], ['HISTORIAMUNDIAL', 'HM DIPLOMACIA'],
       ['HISTORIAMUNDIAL', 'HM MANUAL'], ['HISTORIAMUNDIAL', 'HSITORIA DIFICIL']] },
-    { code: 'ING', label: 'Inglês', daily: true, decks: [
+    { code: 'ING', label: 'Inglês', daily: 200, decks: [
       ['LINGUAS', 'INGLÊS C2'], ['INGLES', 'VOCABULARIO'], ['INGLES', 'GRAMMAR TRANSFORMAR'],
       ['INGLES', 'INGLES GRAN'], ['LINGUAS', 'INGLÊS']] },
     // Hobby (não caem no CACD): fora do rodízio, liberados pela cota diária
@@ -107,11 +114,12 @@
   // ── Rodízio de matérias ──
   const MAIN = SUBJECTS.filter(x => !x.hobby && !x.daily);   // só estas entram no rodízio
   const byCode = c => SUBJECTS.find(x => x.code === c);
+  const inRotation = sub => !!(sub && !sub.hobby && !sub.daily);
   const nextDeckOf = sub => sub ? sub.keys.find(k => !isDone(k)) || null : null;
   // Direito e Dir. Internacional nunca em sequência: Economia entra entre os dois
   const LAW = new Set(['DIR', 'DIP']);
   const SPACER = 'ECO';
-  const isOpen = c => { const s = byCode(c); return !!(s && !subjectDone(s)); };
+  const isOpen = c => { const s = byCode(c); return !!(inRotation(s) && !subjectDone(s)); };
   function separateLaw(codes, prev) {
     if (!isOpen(SPACER)) return codes;
     const out = [];
@@ -139,7 +147,7 @@
       for (const avoidRepeat of [true, false]) {
         for (let i = idx + 1; i < cycle.length; i++) {
           const sub = byCode(cycle[i]);
-          if (!sub || subjectDone(sub) || (avoidRepeat && cycle[i] === lastCode)) continue;
+          if (!inRotation(sub) || subjectDone(sub) || (avoidRepeat && cycle[i] === lastCode)) continue;
           if (LAW.has(lastCode) && LAW.has(cycle[i]) && isOpen(SPACER)) cycle.splice(i, 0, SPACER);
           return { v: STATE_VERSION, cycle, idx: i, deck: nextDeckOf(byCode(cycle[i])), since: today() };
         }
@@ -176,7 +184,9 @@
         changed = true;
       }
     }
-    if (Q.v === STATE_VERSION && (!Q.deck || isDone(Q.deck))) {
+    // baralho da vez virou obrigatória (fora do rodízio) ou terminou: passa a vez
+    const curSub = Q.deck ? (SUBJECT_OF.get(norm(Q.deck)) || {}).subject : null;
+    if (Q.v === STATE_VERSION && (!Q.deck || isDone(Q.deck) || !inRotation(curSub))) {
       const last = Q.deck ? (SUBJECT_OF.get(norm(Q.deck)) || {}).subject : null;
       const N = advance(Q, last ? last.code : null);
       if (N.deck !== Q.deck || N.idx !== Q.idx) { Q = N; changed = true; }
@@ -197,8 +207,8 @@
   // Próximas matérias da volta atual (ou da próxima volta, se esta acabou)
   function upcoming() {
     const Q = ensureQueue();
-    const rest = Q.cycle.slice(Q.idx + 1).map(byCode).filter(x => x && !subjectDone(x));
-    return rest.length ? rest : buildCycle(Q.cycle[Q.idx]).map(byCode);
+    const rest = Q.cycle.slice(Q.idx + 1).map(byCode).filter(x => inRotation(x) && !subjectDone(x));
+    return rest.length ? rest : buildCycle(Q.cycle[Q.idx]).map(byCode).filter(inRotation);
   }
 
   // ── Hobby: cota diária ──
@@ -210,19 +220,23 @@
              toNext: HOBBY_BLOCK - (t.main % HOBBY_BLOCK), block: HOBBY_BLOCK, grant: HOBBY_GRANT };
   }
 
-  // ── Obrigatórias do dia: Inglês e Espanhol, 200 novas cada (mínimo e limite) ──
-  // Conta só questões novas (sessões "simulado") feitas hoje nos baralhos da matéria.
-  // Matéria sem baralho por fazer conta como cumprida.
+  // ── Obrigatórias do dia ──
+  // mode 'new': questões novas (sessões "simulado") feitas hoje nos baralhos da matéria.
+  // mode 'review': matéria com todos os baralhos concluídos → zerar as revisões
+  // vencidas desses baralhos (contagem lida da agenda em refresh()).
   const DAILY = SUBJECTS.filter(x => x.daily);
   function dailyInfo() {
     const t = S.today && S.today.date === today() ? S.today : { daily: {} };
     return DAILY.map(sub => {
-      const doneQ = (t.daily && t.daily[sub.code]) || 0;
       const key = nextDeckOf(sub);
-      const finished = !key;
-      return { subject: sub, key, done: doneQ, target: DAILY_TARGET,
-               remaining: finished ? 0 : Math.max(0, DAILY_TARGET - doneQ),
-               ok: finished || doneQ >= DAILY_TARGET };
+      if (!key) {
+        const due = S.reviewDue && S.reviewDue.date === today() ? S.reviewDue.bySubject[sub.code] || 0 : 0;
+        return { subject: sub, key: null, mode: 'review', due, done: 0, target: 0, remaining: 0, ok: due === 0 };
+      }
+      const doneQ = (t.daily && t.daily[sub.code]) || 0;
+      const target = sub.daily;
+      return { subject: sub, key, mode: 'new', done: doneQ, target, noCap: !!sub.noCap,
+               remaining: Math.max(0, target - doneQ), ok: doneQ >= target };
     });
   }
   const dailyAllOk = () => dailyInfo().every(d => d.ok);
@@ -293,13 +307,14 @@
       const nxt = nextDeckOf(sub);
       if (norm(nxt || '') !== n) return fin(base, false, `Um baralho por vez em ${sub.label}. O da vez é ${(nxt || '—').replace(/^.*? - /, '')}.`);
       const d = dailyInfo().find(x => x.subject === sub);
-      if (d.remaining > 0) return fin(Object.assign(base, { current: true, dailyRemaining: d.remaining }), true);
-      return fin(base, false, `${sub.label} de hoje feito (${d.done}/${DAILY_TARGET}). Amanhã libera mais ${DAILY_TARGET}.`);
+      if (d.remaining > 0 || d.noCap) return fin(Object.assign(base, { current: true, dailyRemaining: d.remaining }), true);
+      return fin(base, false, `${sub.label} de hoje feito (${d.done}/${d.target}). Amanhã libera mais ${d.target}.`);
     }
     const curKey = currentDeckKey();
     if (curKey && norm(curKey) === n) {
       if (!dailyAllOk()) {
-        const pend = dailyInfo().filter(x => !x.ok).map(x => `${x.subject.label} ${x.done}/${x.target}`).join(' e ');
+        const pend = dailyInfo().filter(x => !x.ok).map(x => x.mode === 'review'
+          ? `${x.subject.label} ${x.due} revisões` : `${x.subject.label} ${x.done}/${x.target}`).join(', ');
         return fin(Object.assign(base, { current: true, waitDaily: true }), false,
           `Primeiro as obrigatórias do dia: ${pend}. Depois este baralho abre.`);
       }
@@ -336,7 +351,7 @@
   // analise-tps.html): erros pela matéria da questão (reclassificada pelo texto quando
   // falta o código), acertos pelo subjects_breakdown, sessões antigas rateadas.
   // Espanhol aparece nas sessões como LING (rótulo "Espanhol/FR") ou ESP.
-  const PCT_CODES = { ESP: ['LING', 'ESP'] };
+  const PCT_CODES = { ESP: ['LING', 'ESP'], PI17: ['PI'] };
   function subjectPctFrom(sessions, classify) {
     const acc = {};
     const add = (code, hit) => { acc[code] = acc[code] || { total: 0, correct: 0 }; acc[code].total++; if (hit) acc[code].correct++; };
@@ -393,6 +408,20 @@
     return t;
   }
 
+  // Revisões vencidas das obrigatórias já concluídas (viram obrigação do dia)
+  async function loadReviewDue() {
+    const subs = DAILY.filter(subjectDone);
+    if (!subs.length) { S.reviewDue = { date: today(), bySubject: {} }; return; }
+    try {
+      if (typeof window.flushSrs === 'function') await window.flushSrs();
+      const keys = subs.flatMap(s => s.keys);
+      const byDeck = await DB.getSrsDueByDecks(today(), keys);
+      const bySubject = {};
+      subs.forEach(s => { bySubject[s.code] = s.keys.reduce((a, k) => a + (byDeck[k] || 0), 0); });
+      S.reviewDue = { date: today(), bySubject };
+    } catch (e) { console.warn('fila: revisões das obrigatórias indisponíveis', e); }
+  }
+
   async function refresh() {
     const [trophies, ckpts, sessions] = await Promise.all([
       DB.getDeckTrophies().catch(() => null),
@@ -423,6 +452,7 @@
     _started = started;
     S.passes = passes;
     if (pct) S.pct = pct;
+    await loadReviewDue();
     // Estado salvo no servidor manda (cross-device); versões antigas são descartadas
     if (state && state.v === STATE_VERSION) S.queue = state;
     else if (!S.queue || S.queue.v !== STATE_VERSION) S.queue = null;
@@ -440,13 +470,16 @@
     hobbySubjects: () => SUBJECTS.filter(x => x.hobby).map(x => ({ subject: x, key: nextDeckOf(x) })),
     isHobby: key => { const e = SUBJECT_OF.get(norm(key)); return !!(e && e.subject.hobby); },
     dailyInfo, dailyAllOk,
+    dailyByCode: code => dailyInfo().find(d => d.subject.code === code) || null,
     // Quantas questões novas a sessão deste baralho pode ter hoje (null = sem limite)
     sessionCap: key => {
       const e = SUBJECT_OF.get(norm(key));
       if (!e) return null;
       if (e.subject.hobby) { const h = hobbyInfo(); return { remaining: h.remaining, label: 'Hobby',
         empty: `Cota de hobby esgotada por hoje (${h.hobby}/${h.budget}). Faça mais ${h.toNext} questões das outras matérias para liberar +${h.grant}.` }; }
-      if (e.subject.daily) { const d = dailyInfo().find(x => x.subject === e.subject); return { remaining: d.remaining, label: e.subject.label,
+      if (e.subject.daily) { const d = dailyInfo().find(x => x.subject === e.subject);
+        if (d.noCap) return null;
+        return { remaining: d.remaining, label: e.subject.label,
         empty: `${e.subject.label} de hoje já feito (${d.done}/${d.target}). Amanhã libera mais ${d.target}.` }; }
       return null;
     },

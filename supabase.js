@@ -217,6 +217,7 @@ const DB = {
     if (opts.mode === 'final') query = query.or('status.eq.mastered,lapses.gt.0');
     else query = query.neq('status', 'mastered').lte('due_date', today);
     if (opts.deck) query = query.eq('deck', opts.deck);
+    if (opts.decks) query = query.in('deck', opts.decks);
     if (opts.subject === '') query = query.is('subject_code', null);
     else if (opts.subject) query = query.eq('subject_code', opts.subject);
     if (opts.mode === 'final') {
@@ -243,6 +244,18 @@ const DB = {
   /** Returns map: { subject_code: quantidade vencida } */
   getSrsDueCounts(today) {
     return this._srsCountBySubject(q => q.neq('status', 'mastered').lte('due_date', today));
+  },
+
+  /** Returns map: { deck: quantidade vencida } só para os baralhos pedidos */
+  async getSrsDueByDecks(today, decks) {
+    const user = await this.getUser();
+    if (!user) throw new Error('sem usuário');
+    const rows = await this._srsFetchAll(() => _sb.from('simulado_srs')
+      .select('deck').eq('user_id', user.id).in('deck', decks)
+      .neq('status', 'mastered').lte('due_date', today).order('id'));
+    const counts = {};
+    rows.forEach(r => { counts[r.deck] = (counts[r.deck] || 0) + 1; });
+    return counts;
   },
 
   /** Returns map: { subject_code: quantidade para a reta final } (dominadas + já erradas) */

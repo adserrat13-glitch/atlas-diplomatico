@@ -861,8 +861,8 @@
     function queuePanelHtml() {
       if (!window.DeckLocks) return '';
       const nm = k => escHtml(k.replace(/^.*? - /, ''));
-      const tile = ({ cls = '', tag, num = '', name, deck = '', pct = null, key = null }) => {
-        const click = key ? ` onclick="openQueueDeck('${jsArg(key)}')"` : ' tabindex="-1"';
+      const tile = ({ cls = '', tag, num = '', name, deck = '', pct = null, key = null, act = null }) => {
+        const click = act ? ` onclick="${act}"` : key ? ` onclick="openQueueDeck('${jsArg(key)}')"` : ' tabindex="-1"';
         const bar = pct === null ? '' : `<div class="qp-bar"><i style="width:${Math.max(0, Math.min(100, pct))}%"></i></div>`;
         return `<button type="button" class="qp-tile ${cls}"${click}>
           <div class="qp-top"><span class="qp-tag">${tag}</span><span class="qp-num">${num}</span></div>
@@ -871,13 +871,21 @@
       const tiles = [];
       let steps = 0, stepsDone = 0;
 
-      // Obrigatórios do dia: Inglês e Espanhol
+      // Obrigatórios do dia: novas (Inglês, Espanhol, Português, PI 01–17) ou, se a matéria
+      // já foi concluída, as revisões vencidas dela
       DeckLocks.dailyInfo().forEach(d => {
         steps++; if (d.ok) stepsDone++;
-        if (!d.key) { tiles.push(tile({ cls: 'done', tag: 'Obrigatório', num: '✓', name: escHtml(d.subject.label), deck: 'Todos os baralhos concluídos' })); return; }
+        if (d.mode === 'review') {
+          tiles.push(tile({ cls: d.ok ? 'done' : '', tag: 'Obrigatório · revisões', num: d.ok ? '✓ feito' : `${d.due} vencidas`,
+            name: escHtml(d.subject.label), deck: d.ok ? 'Revisões de hoje zeradas' : 'Baralhos concluídos: zere as revisões',
+            act: d.ok ? null : `startDailyReview('${jsArg(d.subject.code)}')` }));
+          return;
+        }
+        const extra = d.ok && d.noCap;   // PI 01–17: meta batida, mas pode seguir
         tiles.push(tile({
-          cls: d.ok ? 'done' : '', tag: 'Obrigatório', num: d.ok ? '✓ feito' : `${d.done}/${d.target}`,
-          name: escHtml(d.subject.label), deck: nm(d.key), pct: d.done / d.target * 100, key: d.ok ? null : d.key }));
+          cls: d.ok ? 'done' : '', tag: 'Obrigatório', num: d.ok ? (extra ? `✓ ${d.done}` : '✓ feito') : `${d.done}/${d.target}`,
+          name: escHtml(d.subject.label), deck: nm(d.key), pct: Math.min(100, d.done / d.target * 100),
+          key: d.ok && !extra ? null : d.key }));
       });
 
       // Baralho da vez (rodízio)
@@ -891,7 +899,7 @@
         try { const p = JSON.parse(localStorage.getItem('sim_prog_' + curKey.replace(/\s+/g, '_'))); if (p && p.totalQ) prog = p; } catch {}
         tiles.push(tile({
           cls: 'wide ' + (st.waitDaily ? 'wait' : 'main'),
-          tag: st.waitDaily ? '🔒 Depois dos idiomas' : `Baralho da vez${pct !== null ? ' · ' + pct + '%' : ''}`,
+          tag: st.waitDaily ? '🔒 Depois das obrigatórias' : `Baralho da vez${pct !== null ? ' · ' + pct + '%' : ''}`,
           num: prog ? `${prog.lastDone}/${prog.totalQ}` : `${pos}º de ${cur.keys.length}`,
           name: escHtml(cur.label), deck: nm(curKey),
           pct: prog ? prog.lastDone / prog.totalQ * 100 : null, key: st.waitDaily ? null : curKey }));
@@ -975,8 +983,8 @@
         const done = s.keys.filter(k => DeckLocks.status(k).done).length;
         const p = DeckLocks.pctOf(s);
         let chip = '', chipCls = '', cls = '';
-        if (done === s.keys.length) { chip = '✓ Concluída'; chipCls = 'ok'; }
-        else if (s.daily) { chip = 'Obrigatório · 200/dia'; chipCls = 'gold'; }
+        if (done === s.keys.length) { chip = s.daily ? '✓ Concluída · revisões obrigatórias' : '✓ Concluída'; chipCls = 'ok'; }
+        else if (s.daily) { chip = `Obrigatório · ${s.noCap ? 'mín. ' : ''}${s.daily}/dia`; chipCls = 'gold'; }
         else if (s.hobby) { chip = 'Hobby'; }
         else if (s === curSub) { chip = 'Da vez'; chipCls = 'gold'; cls = 'current'; }
         const meta = `${p !== null && !s.hobby ? `<span>${p}% acerto</span>` : ''}<span>${done}/${s.keys.length} baralhos</span>`;
@@ -1602,6 +1610,14 @@
         deckName = SRS_GENERAL_DECK;
         srsBeginSession(cards.map(srsHydrate), title);
       } catch (e) { alert('Não foi possível carregar a revisão: ' + e.message); }
+    }
+
+    // Obrigatória concluída: revisões vencidas dos baralhos dela
+    function startDailyReview(code) {
+      const d = window.DeckLocks && DeckLocks.dailyByCode(code);
+      if (!d) return;
+      if (typeof closeMetasOverlay === 'function') closeMetasOverlay();
+      return srsStartFromDb({ decks: d.subject.keys }, d.subject.label + ' (Revisões obrigatórias)');
     }
 
     function startSrsHome(idx) {
@@ -2751,9 +2767,11 @@
       if (window.DeckLocks) {
         const cur = DeckLocks.currentSubject();
         const goals = [];
-        // Obrigatórias do dia: Inglês e Espanhol (200 novas cada)
-        DeckLocks.dailyInfo().filter(d => d.key).forEach(d => goals.push({
-          code: d.subject.code, name: 'Obrigatório · ' + d.subject.label, target: d.target, kind: 'daily', daily: d }));
+        // Obrigatórias do dia: novas (Inglês/Espanhol 200, Português 100, PI 01–17 mín. 100)
+        // ou revisões vencidas das já concluídas
+        DeckLocks.dailyInfo().forEach(d => goals.push({
+          code: d.subject.code, name: (d.mode === 'review' ? 'Revisões obrigatórias · ' : 'Obrigatório · ') + d.subject.label,
+          target: d.target, kind: 'daily', daily: d }));
         // Rodízio: a matéria muda a cada baralho, então a meta conta todas as questões do dia
         if (cur) goals.push({ code: 'ALL', name: 'Estudo do dia · vez de ' + cur.label, target: QUEUE_SUBJECT_TARGET,
                               kind: 'subject', deckKey: DeckLocks.currentDeckKey(), allDay: true });
@@ -2963,6 +2981,17 @@
       let doneCount = 0, sumGoal = 0, sumDone = 0;
       const listEl = document.getElementById('metasList');
       listEl.innerHTML = goals.map(g => {
+        if (g.kind === 'daily' && g.daily.mode === 'review') {
+          const d = g.daily;
+          if (d.ok) doneCount++;
+          const btn = d.ok ? '' : `<button class="next-deck" onclick="startDailyReview('${keyArg(d.subject.code)}')">▶ Revisar<span> · ${d.due} vencidas</span></button>`;
+          return `<div class="meta-item ${d.ok?'done':''}">
+            <div class="row1"><span class="name">${g.name}</span><span class="check">✓</span></div>
+            <div class="meta-track"><div class="meta-fill" style="width:${d.ok ? 100 : 0}%"></div></div>
+            <span class="count">${d.ok ? 'Revisões de hoje zeradas' : d.due + ' revisões vencidas'}</span>
+            ${btn}
+          </div>`;
+        }
         if (g.kind === 'daily') {
           const d = g.daily, got = Math.min(d.done, d.target), isDone = d.ok;
           if (isDone) doneCount++;
